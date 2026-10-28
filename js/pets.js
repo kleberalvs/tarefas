@@ -132,19 +132,110 @@ function paintCat(cv, k, P, m) {
   if (P.eye !== undefined) R.wh.forEach(([wx, wy], n) => { for (let s = 1; s <= 4; s++) { const x = wx + s + 1, y = wy + Math.round((n ? .35 : -.25) * s); if (x < GW && y >= 0 && y < GH && !g[y * GW + x]) put(y * GW + x, [235, 232, 226], 150 - s * 25); } });
   ctx.putImageData(img, 0, 0);
 }
-function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; paintCat(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], {}); return cv; }
+/* ---------- estilo realista: desenho suave, com volume, pelagem e olhos detalhados ---------- */
+const rgbS = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const lit = (h, t) => rgbS(mixC(hex2(h), [255, 248, 235], t));
+const drk = (h, t) => rgbS(mixC(hex2(h), [28, 18, 30], t));
+function seeded(n) { let s = n; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+const FUR = (() => { const r = seeded(7), a = []; for (let i = 0; i < 420; i++) a.push([r() * CW, r() * CH, (r() - .5) * .9, r()]); return a; })();
+function paintCatReal(cv, k, P, m = {}) {
+  const B = CATS[k] || CATS.laranja, pal = B.c, K = cv.width / CW;
+  const lay = cv._lay || (cv._lay = document.createElement('canvas')); lay.width = cv.width; lay.height = cv.height;
+  const c = lay.getContext('2d'); c.setTransform(K, 0, 0, K, 0, 0); c.lineJoin = 'round';
+  const [bx, by, brx, bry, brot] = P.b, [hx, hy, hr] = P.h;
+  const hrr = hr * Math.PI / 180, hp = (u, v) => [hx + u * Math.cos(hrr) - v * Math.sin(hrr), hy + u * Math.sin(hrr) + v * Math.cos(hrr)];
+  const pt = B.points ? pal.x : pal.b;
+  const grad = (x, y, r, col, dark = 0) => { const g = c.createLinearGradient(x - r * .6, y - r, x + r * .5, y + r); g.addColorStop(0, lit(col, .22)); g.addColorStop(.45, drk(col, dark)); g.addColorStop(1, drk(col, .32 + dark)); return g; };
+  const ell = (x, y, rx, ry, rot, fill) => { c.beginPath(); c.ellipse(x, y, rx, ry, rot * Math.PI / 180, 0, Math.PI * 2); c.fillStyle = fill; c.fill(); };
+  const legP = (L, col, dark, w1, w2) => {
+    c.lineCap = 'round';
+    const g = c.createLinearGradient(L[0] - 1.5, L[1], L[0] + 1.5, L[5]); g.addColorStop(0, lit(col, .12)); g.addColorStop(1, drk(col, .3 + dark));
+    c.strokeStyle = g; c.lineWidth = w1; c.beginPath(); c.moveTo(L[0], L[1]); c.lineTo(L[2], L[3]); c.stroke();
+    c.lineWidth = w2; c.beginPath(); c.moveTo(L[2], L[3]); c.lineTo(L[4], L[5]); c.stroke();
+    ell(L[4] + .55, L[5] + .25, 1.45, .9, 0, B.paws ? drk(pal.w, dark + .05) : drk(col, dark + .08));
+  };
+  /* camadas de trás para a frente */
+  legP(P.ff, B.points ? pal.x : pal.b, .32, 2.5, 2); legP(P.hf, B.points ? pal.x : pal.b, .32, 2.7, 2);
+  let tx = P.tb[0], ty = P.tb[1]; c.lineCap = 'round';
+  const tc = B.calico ? pal.y : pt;
+  P.ta.forEach((a, i) => { const r = a * Math.PI / 180, nx = tx + Math.cos(r) * 1.8, ny = Math.min(CG - .6, ty + Math.sin(r) * 1.8); c.strokeStyle = i > 3 && B.calico ? pal.x : i % 2 && B.stripe ? drk(tc, .08) : tc; c.lineWidth = 2.5 - i * .1; c.beginPath(); c.moveTo(tx, ty); c.lineTo(nx, ny); c.stroke(); tx = nx; ty = ny; });
+  ell(P.ha[0], P.ha[1], P.ha[2], P.ha[3], 0, grad(P.ha[0], P.ha[1], P.ha[3], pal.b, .04));
+  ell(bx, by, brx, bry, brot, grad(bx, by, bry, pal.b));
+  c.lineCap = 'round'; c.strokeStyle = grad(P.nk[2], P.nk[3], 3, pal.b); c.lineWidth = 5.6; c.beginPath(); c.moveTo(P.nk[0], P.nk[1]); c.lineTo(P.nk[2], P.nk[3]); c.stroke();
+  legP(P.hn, B.points ? pal.x : pal.b, 0, 2.7, 2.05); legP(P.fn, B.points ? pal.x : pal.b, 0, 2.5, 2.05);
+  /* orelhas e cabeça */
+  const tri = (a, b, d, fill) => { c.beginPath(); c.moveTo(...a); c.quadraticCurveTo(...hp(-2.3, -4.2), ...b); c.lineTo(...d); c.closePath(); c.fillStyle = fill; c.fill(); };
+  const earCol = B.calico ? pal.y : pt;
+  c.beginPath(); c.moveTo(...hp(-3.7, -1.4)); c.lineTo(...hp(-3.1, -6.8)); c.lineTo(...hp(-.8, -3.2)); c.closePath(); c.fillStyle = drk(earCol, .3); c.fill();
+  ell(hx, hy, 4.3, 3.8, hr, grad(hx, hy, 3.8, B.points ? pal.x : B.calico ? pal.b : pal.b));
+  ell(...hp(-1.2, 1.3), 2.6, 2.2, hr, grad(hx - 1, hy + 1.3, 2.2, B.points ? pal.x : pal.b, .04));
+  c.beginPath(); c.moveTo(...hp(-1.4, -2.6)); c.lineTo(...hp(.2, -7.1)); c.lineTo(...hp(2.4, -2.6)); c.closePath(); c.fillStyle = grad(hx, hy - 5, 2.5, B.calico ? pal.x : pt); c.fill();
+  const ig = c.createLinearGradient(...hp(.3, -6.4), ...hp(.4, -3)); ig.addColorStop(0, drk(pal.p, .25)); ig.addColorStop(1, lit(pal.p, .1));
+  c.beginPath(); c.moveTo(...hp(-.4, -3.1)); c.lineTo(...hp(.2, -5.9)); c.lineTo(...hp(1.5, -3.1)); c.closePath(); c.fillStyle = ig; c.fill();
+  /* manchas, listras e partes brancas (só por cima do que já foi desenhado) */
+  c.globalCompositeOperation = 'source-atop';
+  if (B.calico) {
+    ell(bx - 3, by - 1.5, 4.5, 3, -10, pal.x); ell(bx + 3.5, by - 2.2, 2.6, 2, 15, pal.y); ell(P.ha[0] - 1, P.ha[1] - 1, 3.6, 3, 0, pal.x);
+    ell(...hp(-1.8, -1.6), 2.6, 2.2, 0, pal.x);
+  }
+  if (B.stripe) {
+    c.strokeStyle = rgbS(hex2(pal.d), .5); c.lineCap = 'round'; c.shadowColor = rgbS(hex2(pal.d), .6); c.shadowBlur = K * .5;
+    const br = brot * Math.PI / 180;
+    for (let i = -3; i <= 3; i++) { const u = i * brx / 3.6, x0 = bx + u * Math.cos(br), y0 = by + u * Math.sin(br); c.lineWidth = .55 + ((i * 7 + 9) % 4) * .12; c.beginPath(); c.moveTo(x0 - Math.sin(br) * -bry, y0 + Math.cos(br) * -bry - .2); c.quadraticCurveTo(x0 + 1, y0, x0 + .3 - Math.sin(br) * bry * .2, y0 + Math.cos(br) * bry * .2); c.stroke(); }
+    for (let i = 0; i < 3; i++) { c.lineWidth = .45; c.beginPath(); c.moveTo(...hp(-1 + i * .9, -3.6)); c.lineTo(...hp(-.6 + i * .7, -1.6)); c.stroke(); }
+    c.lineWidth = .7; ['fn', 'hn', 'ff', 'hf'].forEach(kk => { const L = P[kk]; for (let j = 1; j < 3; j++) { const t = j / 3, x = L[2] + (L[4] - L[2]) * t, y = L[3] + (L[5] - L[3]) * t; c.beginPath(); c.moveTo(x - 1, y); c.lineTo(x + 1, y + .2); c.stroke(); } });
+  }
+  if (B.white || B.calico) {
+    const wg = (x, y, r) => { const g = c.createRadialGradient(x - r * .3, y - r * .3, 0, x, y, r * 1.1); g.addColorStop(0, '#FFFFFF'); g.addColorStop(.55, pal.w); g.addColorStop(1, rgbS(hex2(pal.w), 0)); return g; };
+    const cx = (P.nk[0] + P.nk[2]) / 2 + 1.5, cy = (P.nk[1] + P.nk[3]) / 2 + 1.7; ell(cx, cy, 2.4, 3, 0, wg(cx, cy, 2.6));
+    if (B.calico) { ell(bx + 1, by + bry * .55, brx * .8, bry * .55, brot, wg(bx, by + bry, bry)); }
+  }
+  c.shadowBlur = 0;
+  /* luz geral e textura de pelo */
+  const lg = c.createLinearGradient(0, 4, 0, CG); lg.addColorStop(0, 'rgba(255,250,235,.10)'); lg.addColorStop(.55, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(20,10,30,.22)');
+  c.fillStyle = lg; c.fillRect(0, 0, CW, CH);
+  c.lineCap = 'round'; c.lineWidth = .16;
+  FUR.forEach(([x, y, a, r]) => { c.strokeStyle = r < .5 ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)'; c.beginPath(); c.moveTo(x, y); c.lineTo(x - .7, y + a * .7); c.stroke(); });
+  c.globalCompositeOperation = 'source-over';
+  /* focinho branco, nariz, boca, olho e bigodes */
+  const [mx, my] = hp(3.3, 1.3);
+  if (B.white || B.calico) { const g = c.createRadialGradient(mx - .4, my - .4, 0, mx, my, 2.2); g.addColorStop(0, '#FFFFFF'); g.addColorStop(1, drk(pal.w, .12)); ell(mx, my, 1.95, 1.5, hr, g); }
+  else ell(mx, my, 1.95, 1.5, hr, grad(mx, my, 1.5, B.points ? pal.x : pal.b, -.05));
+  const [nx, ny] = hp(5.05, .5); c.beginPath(); c.moveTo(nx + .25, ny - .3); c.lineTo(nx - .7, ny - .45); c.lineTo(nx - .35, ny + .35); c.closePath(); c.fillStyle = pal.p; c.fill();
+  c.strokeStyle = 'rgba(30,20,20,.7)'; c.lineWidth = .18; c.beginPath(); c.moveTo(...hp(4.7, .9)); c.quadraticCurveTo(...hp(4.6, 1.9), ...hp(3.9, 2.1)); c.stroke();
+  if (m.mouth) { c.beginPath(); c.ellipse(...hp(4.2, 2.3), .55, .45, hrr, 0, Math.PI * 2); c.fillStyle = '#3A1A1E'; c.fill(); c.beginPath(); c.ellipse(...hp(4.25, 2.55), .35, .2, hrr, 0, Math.PI * 2); c.fillStyle = pal.p; c.fill(); }
+  if (m.tongue) { c.beginPath(); c.ellipse(...hp(4.9, 2.4), .45, .28, hrr + .4, 0, Math.PI * 2); c.fillStyle = pal.p; c.fill(); }
+  const [ex, ey] = hp(2.1, -.6);
+  if (P.eye > .5 && !m.blink) {
+    c.save(); c.translate(ex, ey); c.rotate(hrr - .12);
+    c.beginPath(); c.ellipse(0, 0, .95, .62, 0, 0, Math.PI * 2); c.fillStyle = '#1A1412'; c.fill();
+    const g = c.createRadialGradient(-.1, .1, 0, 0, 0, .8); g.addColorStop(0, lit(pal.E, .35)); g.addColorStop(.7, pal.E); g.addColorStop(1, drk(pal.E, .4));
+    c.beginPath(); c.ellipse(0, 0, .8, .5, 0, 0, Math.PI * 2); c.fillStyle = g; c.fill();
+    c.beginPath(); c.ellipse(.15, 0, .16, .46, 0, 0, Math.PI * 2); c.fillStyle = '#0B0808'; c.fill();
+    c.beginPath(); c.arc(-.3, -.2, .16, 0, Math.PI * 2); c.fillStyle = 'rgba(255,255,255,.95)'; c.fill();
+    c.restore();
+  } else { c.strokeStyle = '#1A1412'; c.lineWidth = .22; c.beginPath(); c.moveTo(ex - .9, ey + .05); c.quadraticCurveTo(ex, ey + .45, ex + .9, ey); c.stroke(); }
+  c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = .1; c.lineCap = 'round';
+  [[-.5, .2], [0, .5], [.4, .95]].forEach(([d, e]) => { const [x0, y0] = hp(4, 1.3 + d * .5); const [x1, y1] = hp(8, 1.3 + d * 1.8 + e); const [qx, qy] = hp(6.2, 1.1 + d); c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(qx, qy, x1, y1); c.stroke(); });
+  /* resultado com borda suave */
+  const o = cv.getContext('2d'); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, cv.width, cv.height);
+  o.shadowColor = 'rgba(20,12,16,.35)'; o.shadowBlur = K * .35; o.drawImage(lay, 0, 0); o.shadowBlur = 0;
+}
+function petStyle() { return (db.s.pets && db.s.pets.style) || 'real'; }
+function drawPet(cv, k, P, m) { if (petStyle() === 'pixel') { if (cv.width !== GW) { cv.width = GW; cv.height = GH; } paintCat(cv, k, P, m); } else { const K = Math.round(CW * Math.min(8, Math.max(4, (cv._sc || 3) * Math.min(2, devicePixelRatio || 1)))); if (cv.width !== K) { cv.width = K; cv.height = Math.round(K * CH / CW); } paintCatReal(cv, k, P, m); } cv.classList.toggle('real', petStyle() !== 'pixel'); }
+function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; cv._sc = 2; drawPet(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], {}); return cv; }
 function catImg(k, pose, size = 88) { const cv = catCanvas(k, pose); return `<img class="petimg" src="${cv.toDataURL()}" width="${size}" height="${Math.round(size * CH / CW)}" alt="">`; }
 
 /* ---------- gatos na tela ---------- */
 const PETS = { box: null, list: [], tick: null };
-function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
+function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, style: p.style || 'real', cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
 function savePets(p) { db.s.pets = p; put('s', db.s); petsSync(); }
 function petScale() { return isMobile() ? 2.5 : 3; }
 function petPos() { try { return JSON.parse(localStorage.getItem('tt_petpos') || '{}'); } catch (e) { return {}; } }
 function savePos() { const m = {}; PETS.list.forEach(p => { const [W, H] = p.room(); m[p.slot] = { x: W ? p.X / W : 0, y: H ? p.Y / H : 0 }; }); try { localStorage.setItem('tt_petpos', JSON.stringify(m)); } catch (e) {} }
 function petsSync() {
   const cfg = petCfg(), want = cfg.on ? cfg.cats : [];
-  const sig = JSON.stringify(want.map(c => c.k + '|' + (c.n || '')));
+  const sig = petStyle() + JSON.stringify(want.map(c => c.k + '|' + (c.n || '')));
   if (PETS.sig === sig) return;
   PETS.sig = sig;
   PETS.list.forEach(p => p.kill()); PETS.list = [];
@@ -161,7 +252,7 @@ function makePet(c, slot, saved) {
   const el = document.createElement('div'); el.className = 'pet'; el.style.width = EW + 'px'; el.style.height = EH + 'px'; el.style.setProperty('--sc', SC);
   el.setAttribute('role', 'img'); el.setAttribute('aria-label', 'Gatinho ' + (c.n || ''));
   el.innerHTML = `<span class="petsh"></span><div class="petb"></div><span class="petfx"></span>`;
-  const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv'; el.querySelector('.petb').appendChild(cv);
+  const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv'; cv._sc = SC; el.querySelector('.petb').appendChild(cv);
   PETS.box.appendChild(el);
   const room = () => [Math.max(0, innerWidth - EW), Math.max(0, innerHeight - EH)];
   const p = { slot, k: c.k, n: c.n, el, cv, room, dead: false, timers: [], t: 0, dir: slot ? -1 : 1, pose: 'sit', P: cloneP(POSES.sit), tw: null, walk: null, m: {}, busy: false };
@@ -191,7 +282,7 @@ function makePet(c, slot, saved) {
       if (w.left <= 0 || p.X <= 0 || p.X >= W) { p.walk = null; savePos(); w.done(); }
     }
     if (p.pose === 'groom') { P.fn[5] += Math.sin(t * .55) * 1.1; P.fn[3] += Math.sin(t * .55) * .6; p.m.tongue = Math.sin(t * .55) > .2; }
-    paintCat(cv, p.k, P, Object.assign({}, p.m, { blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
+    drawPet(cv, p.k, P, Object.assign({}, p.m, { blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
   };
   /* comportamento */
   const wait = (ms, fn) => T(fn, ms);
@@ -260,6 +351,7 @@ VIEWS.pets = main => {
   main.innerHTML = headHtml('Pets') + `<div class="scroll"><div class="me pets">
     <nav class="crumbs"><a href="#/me">Perfil</a><span>/</span><span>Pets</span></nav>
     <label class="srow petsw"><span class="f1"><b>Mostrar gatinhos no app</b><span class="mut sm">Eles ficam parados pela tela, piscando, abanando o rabo, se lambendo e até cochilando.</span></span><span class="sw-t"><input type="checkbox" data-petson ${cfg.on ? 'checked' : ''}><span></span></span></label>
+    <div class="srow petsw"><span class="f1"><b>Estilo</b><span class="mut sm">Realista tem volume, pelagem e olhos detalhados. Pixelado é o estilo de videogame.</span></span><div class="seg">${[['real', 'Realista'], ['pixel', 'Pixelado']].map(([k, n]) => `<button class="${petStyle() === k ? 'on' : ''}" data-act="petstyle" data-v="${k}">${n}</button>`).join('')}</div></div>
     <section class="sgrp"><h2>🐈 Escolha até dois gatos</h2>
       <div class="petgrid">${Object.entries(CATS).map(([k, c]) => { const i = sel.indexOf(k); return `<button class="petcard${i >= 0 ? ' on' : ''}" data-act="petpick" data-k="${k}">${i >= 0 ? `<span class="petnum">${i + 1}</span>` : ''}${catImg(k, 'sit', 92)}<span>${esc(c.n)}</span></button>`; }).join('')}</div>
     </section>
@@ -280,6 +372,7 @@ Object.assign(ACTS, {
     }
     savePets(p); render();
   },
+  petstyle: b => { const p = petCfg(); p.style = b.dataset.v; savePets(p); render(); },
   petsreset: () => { petsReset(); toast('Gatos de volta ao canto'); },
   petstoggle: () => { const p = petCfg(); p.on = !p.on; if (p.on && !p.cats.length) p.cats = [{ k: 'laranja', n: 'Mingau' }]; savePets(p); toast(p.on ? 'Gatinhos à vista 🐈' : 'Gatinhos guardados'); if (R.v === 'pets' || R.v === 'settings' || R.v === 'me') render(); },
 });
