@@ -1605,3 +1605,9 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 @keyframes lgpop{from{transform:scale(0)}to{transform:scale(1)}}
 @keyframes lgfade{to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.lgdot,.lgck,.lgln,.lgo{animation:none;stroke-dashoffset:0;opacity:1}.lgln.l1{opacity:.55}}
+/* botão de opções/estilo nos cartões de documento */
+.dcard.kd{position:relative}
+.kmore{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--txt2);border:1px solid var(--line);opacity:0;transition:opacity .15s,background-color .15s;z-index:2;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.dcard.kd:hover .kmore,.kmore:focus-visible{opacity:1}
+.kmore:hover{background:var(--card);color:var(--txt)}
+@media (hover:none){.kmore{opacity:1;width:30px;height:30px}}

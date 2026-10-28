@@ -69,7 +69,7 @@ function docCard(d) {
   return `<a class="dcard kd${th ? ' themed' : ` pbg-${esc(st.bg || 'plain')}`}" href="#/doc/${d.id}" data-ctx="doc:${d.id}" data-drag="dd:${d.id}" data-drop="dtree:${d.id}" style="${esc(style)}">${cov}
     <span class="kin"><span class="khead"><span class="dic">${esc(d.icon || '📄')}</span><b class="kt">${esc(d.title || 'Sem título')}</b></span>
     ${prev ? `<span class="kprev">${prev}</span>` : '<span class="kprev"><p class="mut">Documento vazio</p></span>'}
-    <span class="kfoot mut sm">${esc(fmtDay(ymd(new Date(d.u || d.c)), true))} · ${plural(words, 'palavra', 'palavras')}${d.fav ? `<span class="dfav">${ic('star', 13)}</span>` : ''}</span></span></a>`;
+    <span class="kfoot mut sm">${esc(fmtDay(ymd(new Date(d.u || d.c)), true))} · ${plural(words, 'palavra', 'palavras')}${d.fav ? `<span class="dfav">${ic('star', 13)}</span>` : ''}</span></span><button class="kmore" data-act="dcardmenu" data-id="${d.id}" aria-label="Opções do documento" title="Estilo e opções">${ic('more', 18)}</button></a>`;
 }
 function folderCard(f) {
   const n = db.d.filter(d => !d.del && d.folder === f.id).length, sub = folderKids(f.id, 'd').length;
@@ -141,7 +141,7 @@ VIEWS.doc = main => {
   const backD = db.d.filter(x => !x.del && x.id !== d.id && (x.b || []).some(b => b.ref === d.id || (b.text || '').includes('data-ref="' + d.id + '"')));
   const fol = d.folder && get('f', d.folder);
   const pre = `<nav class="crumbs"><a href="#/docs">Documentos</a>${fol ? folderAncestors(fol.id).reverse().map(id => { const f = get('f', id); return `<span>/</span><a href="#/docs/${id}">${esc((f.emoji ? f.emoji + ' ' : '') + f.name)}</a>`; }).join('') : ''}${path.map(p => `<span>/</span><a href="#/doc/${p.id}">${esc(p.icon || '')} ${esc(p.title || 'Sem título')}</a>`).join('')}</nav>`;
-  const right = `<button class="ib${d.fav ? ' on-star' : ''}" data-act="dfav" aria-label="${d.fav ? 'Remover dos favoritos' : 'Favoritar'}">${ic('star')}</button><button class="btn ghost sm" data-act="dpage" title="Alternar entre página contínua e folha A4">${ic('file', 16)}<span class="hide-s">${a4 ? 'Folha A4' : 'Página'}</span></button><button class="btn ghost sm dsbtn" data-act="dthemes">${ic('spark', 16)}<span class="hide-s">Estilos</span></button><button class="btn ghost sm" data-act="dstyle" data-pop>${ic('palette', 16)}<span class="hide-s">Ajustes</span></button><button class="btn ghost sm" data-act="dexport" data-pop>${ic('export', 16)}<span class="hide-s">Exportar</span></button><button class="ib" data-act="dmenu" aria-label="Mais opções">${ic('more')}</button>`;
+  const right = `<button class="ib${d.fav ? ' on-star' : ''}" data-act="dfav" aria-label="${d.fav ? 'Remover dos favoritos' : 'Favoritar'}">${ic('star')}</button><button class="btn ghost sm" data-act="dpage" title="Alternar entre página contínua e folha A4">${ic('file', 16)}<span class="hide-s">${a4 ? 'Folha A4' : 'Página'}</span></button><button class="btn ghost sm dsbtn" data-act="dthemes">${ic('spark', 16)}<span>Estilo</span></button><button class="btn ghost sm" data-act="dstyle" data-pop>${ic('palette', 16)}<span class="hide-s">Ajustes</span></button><button class="btn ghost sm" data-act="dexport" data-pop>${ic('export', 16)}<span class="hide-s">Exportar</span></button><button class="ib" data-act="dmenu" aria-label="Mais opções">${ic('more')}</button>`;
   const TH = s.th && dsGet(s.th);
   main.className = a4 ? 'pbg-a4' : TH ? 'themed' : 'pbg-' + s.bg;
   if (TH) main.setAttribute('style', dsVars(TH)); else main.removeAttribute('style');
@@ -775,7 +775,19 @@ Object.assign(ACTS, {
   },
   dfav: () => { const d = ED.doc; d.fav = !d.fav; put('d', d); },
   dstyle: b => styleMenu(b),
-  dthemes: () => { const d = ED.doc; if (!d) return; stylePicker(id => { d.style = d.style || {}; if (id) d.style.th = id; else delete d.style.th; put('d', d); render(true); }, d.style && d.style.th); },
+  dthemes: () => { const d = ED.doc; if (d) docStyle(d); },
+  dcardmenu: (b, e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const d = get('d', b.dataset.id); if (!d) return;
+    menu(b, [
+      { label: 'Mudar estilo', icon: 'spark', act: () => docStyle(d) },
+      { label: 'Abrir', icon: 'doc', act: () => go('doc/' + d.id) },
+      { label: d.fav ? 'Remover dos favoritos' : 'Favoritar', icon: 'star', act: () => { d.fav = !d.fav; put('d', d); } },
+      { label: 'Duplicar', icon: 'copy', act: () => { const c = clone(d); c.id = uid(); c.title = (d.title || 'Sem título') + ' (cópia)'; c.c = Date.now(); c.b.forEach(x => x.id = uid()); put('d', c); } },
+      { sep: 1 },
+      { label: 'Mover para a Lixeira', icon: 'trash', danger: 1, act: () => { d.del = Date.now(); put('d', d); docKids(d.id).forEach(k => { k.par = d.par; put('d', k, { silent: true }); }); changed(); toast('Documento na Lixeira', 'Desfazer', () => { d.del = null; put('d', d); }); } },
+    ], { right: 1 });
+  },
   dexport: b => exportMenu(b, { kind: 'doc', id: ED.doc.id }),
   dicon: b => emojiPick(b, e => { ED.doc.icon = e; put('d', ED.doc); }),
   dcover: b => coverMenu(b),
@@ -787,6 +799,7 @@ Object.assign(ACTS, {
   dmenu: b => {
     const d = ED.doc;
     menu(b, [
+      { label: 'Mudar estilo', icon: 'spark', act: () => docStyle(d) },
       { label: 'Nova subpágina', icon: 'page', act: () => { const k = newDoc({ par: d.id, o: Date.now() }); d.b.push({ id: uid(), type: 'page', ref: k.id }); put('d', d); go('doc/' + k.id); } },
       { label: 'Mover para…', icon: 'folder', act: () => menu(b, [{ label: 'Raiz (sem pai)', on: !d.par, act: () => { d.par = null; put('d', d); } }, ...db.d.filter(x => !x.del && x.id !== d.id && !docPath(x).some(p => p.id === d.id)).map(x => ({ label: (x.icon || '') + ' ' + (x.title || 'Sem título'), on: d.par === x.id, act: () => { d.par = x.id; put('d', d); } }))]) },
       { label: 'Duplicar', icon: 'copy', act: () => { const c = clone(d); c.id = uid(); c.title = (d.title || 'Sem título') + ' (cópia)'; c.c = Date.now(); c.b.forEach(x => x.id = uid()); put('d', c); go('doc/' + c.id); } },
@@ -862,4 +875,13 @@ function mdToDoc(md) {
   });
   b.forEach(x => delete x._open);
   return { title, b: b.length ? b : [{ id: uid(), type: 'p', text: '' }] };
+}
+
+/* escolher/trocar o estilo de um documento (aberto ou não): só a aparência muda, o conteúdo continua igual */
+function docStyle(d) {
+  stylePicker(id => {
+    d.style = d.style || {};
+    if (id) d.style.th = id; else delete d.style.th;
+    put('d', d); render(true);
+  }, d.style && d.style.th);
 }

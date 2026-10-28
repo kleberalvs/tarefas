@@ -404,6 +404,7 @@ function editTag(g) {
 function ctxMenu(spec, anchor, at) {
   const [k, id] = spec.split(':');
   if (k === 'nav') return navMenu(id, anchor, at);
+  if (k === 'doc') { const d = get('d', id); if (!d) return; menu(anchor, [{ label: 'Mudar estilo', icon: 'spark', act: () => docStyle(d) }, { label: 'Abrir', icon: 'doc', act: () => go('doc/' + d.id) }, { label: d.fav ? 'Remover dos favoritos' : 'Favoritar', icon: 'star', act: () => { d.fav = !d.fav; put('d', d); } }], { at }); return; }
   if (k === 'list') {
     const l = get('l', id); if (!l) return;
     menu(anchor, [
