@@ -46,14 +46,22 @@ function renderDetail(det) {
     <div class="dnotes rich" data-keep contenteditable="true" data-ph="Descrição, ideias, links…" aria-label="Descrição">${clean(t.notes)}</div>
 
     <div class="props">
-      ${t.cover ? '' : `<div class="prop"><span class="pl">${ic('cover', 18)}Capa</span><div class="pv"><label class="chipb filebtn">${ic('img', 14)}<span>Adicionar foto de capa</span><input type="file" accept="image/*" hidden data-f="cover"></label></div></div>`}
-      <div class="prop"><span class="pl">${ic('sub', 18)}Início</span><div class="pv"><input type="date" class="in sm" data-keep data-f="sD" value="${sD}" aria-label="Data de início"><input type="time" class="in sm" data-keep data-f="sT" value="${sT}" aria-label="Hora de início" ${sD ? '' : 'disabled'}></div></div>
-      <div class="prop"><span class="pl">${ic('cal', 18)}Fim / prazo</span><div class="pv"><input type="date" class="in sm${overdue(t) ? ' red' : ''}" data-keep data-f="eD" value="${eD}" aria-label="Data de fim"><input type="time" class="in sm" data-keep data-f="eT" value="${eT}" aria-label="Hora de fim" ${eD ? '' : 'disabled'}></div></div>
-      <div class="prop"><span class="pl">${ic('repeat', 18)}Repetir</span><div class="pv"><button class="chipb" data-act="drep">${esc(t.rep ? repText(t.rep) : 'Não repete')}</button></div></div>
-      <div class="prop"><span class="pl">${ic('bell', 18)}Lembrete</span><div class="pv"><select class="in sm" data-keep data-f="rem" ${tOnly(t.due || t.start) || eD || sD ? '' : 'disabled'}><option value="">Nenhum</option>${REM_OPTS.map(o => `<option value="${o[0]}" ${(t.rem || [])[0] === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></div></div>
-      <div class="prop"><span class="pl">${ic('flag', 18)}Prioridade</span><div class="pv prios">${[3, 2, 1, 0].map(p => `<button class="pbtn${(t.prio || 0) === p ? ' on' : ''}" data-act="dsetprio" data-p="${p}" style="--pc:${PRIO[p].c}">${ic('flag', 16)}<span>${PRIO[p].n}</span></button>`).join('')}</div></div>
-      <div class="prop"><span class="pl">${ic('tag', 18)}Etiquetas</span><div class="pv wrap">${(t.tags || []).map(g => { const x = get('g', g); return x ? `<span class="mtag" style="--c:${esc(x.color)}">#${esc(x.name)}<button class="mini" data-act="duntag" data-g="${g}" aria-label="Remover etiqueta ${esc(x.name)}">${ic('x', 12)}</button></span>` : ''; }).join('')}<button class="chipb" data-act="dtags">${ic('plus', 14)}<span>Etiqueta</span></button></div></div>
-      ${typeof gcalReady === 'function' && db.s.gClient ? `<div class="prop"><span class="pl">${ic('google', 18)}Google Agenda</span><div class="pv"><label class="sw-t"><input type="checkbox" data-f="gc" ${t.gc || (t.gcOn !== false && db.s.gPush && (t.due || t.start)) ? 'checked' : ''} ${t.due || t.start ? '' : 'disabled'}><span></span></label><span class="mut sm">${t.gc ? 'Sincronizada' : t.due || t.start ? 'Enviar para a agenda' : 'Defina uma data'}</span></div></div>` : ''}
+      ${(() => {
+        const dLabel = (d, tm) => d ? `${cap(fmtDay(d, true))}${tm ? ' · ' + tm : ''}` : '';
+        const row = (icon, label, val, act, opts = {}) => `<div class="prop"><span class="pl">${ic(icon, 16)}${label}</span><div class="pv">${val ? `<button class="pval${opts.cls ? ' ' + opts.cls : ''}" data-act="${act}" ${opts.style ? `style="${opts.style}"` : ''}>${val}</button>` : `<button class="pval empty" data-act="${act}">${opts.ph || 'Vazio'}</button>`}${opts.extra || ''}</div></div>`;
+        const remTxt = (t.rem || []).length ? (REM_OPTS.find(o => o[0] === t.rem[0]) || [0, fmtDur(t.rem[0]) + ' antes'])[1] : '';
+        const tagsH = (t.tags || []).map(g => { const x = get('g', g); return x ? `<span class="ptag" style="--c:${esc(x.color)}">${x.emoji ? esc(x.emoji) + ' ' : '#'}${esc(x.name)}<button data-act="duntag" data-g="${g}" aria-label="Remover etiqueta ${esc(x.name)}">${ic('x', 11)}</button></span>` : ''; }).join('');
+        return [
+          row('cal', 'Prazo', eD ? `<span class="${overdue(t) ? 'red' : ''}">${esc(dLabel(eD, eT))}</span>` : '', 'dpdue', { ph: 'Definir prazo', extra: eD ? `<button class="pclr" data-act="pclr" data-k="due" aria-label="Limpar prazo">${ic('x', 12)}</button>` : '' }),
+          row('startd', 'Início', sD ? esc(dLabel(sD, sT)) : '', 'dpstart', { ph: 'Definir início', extra: sD ? `<button class="pclr" data-act="pclr" data-k="start" aria-label="Limpar início">${ic('x', 12)}</button>` : '' }),
+          row('repeat', 'Repetir', t.rep ? esc(repText(t.rep)) : '', 'drep', { ph: 'Não repete' }),
+          row('bell', 'Lembrete', remTxt ? esc(remTxt) : '', 'drem', { ph: tOnly(t.due || t.start) ? 'Nenhum' : 'Defina um horário' }),
+          row('flag', 'Prioridade', t.prio ? `${ic('flag', 14)}${PRIO[t.prio].n}` : '', 'dprio', { ph: 'Nenhuma', style: t.prio ? `color:${PRIO[t.prio].c}` : '' }),
+          `<div class="prop"><span class="pl">${ic('tag', 16)}Etiquetas</span><div class="pv wrap">${tagsH}<button class="pval ${tagsH ? 'add' : 'empty'}" data-act="dtags">${tagsH ? ic('plus', 13) : 'Adicionar'}</button></div></div>`,
+          t.cover ? '' : `<div class="prop"><span class="pl">${ic('cover', 16)}Capa</span><div class="pv"><label class="pval empty filebtn">Adicionar foto<input type="file" accept="image/*" hidden data-f="cover"></label></div></div>`,
+          typeof gcalReady === 'function' && db.s.gClient ? `<div class="prop"><span class="pl">${ic('google', 16)}Google</span><div class="pv"><label class="sw-t"><input type="checkbox" data-f="gc" ${t.gc || (t.gcOn !== false && db.s.gPush && (t.due || t.start)) ? 'checked' : ''} ${t.due || t.start ? '' : 'disabled'}><span></span></label><span class="mut sm">${t.gc ? 'Na sua agenda' : t.due || t.start ? 'Enviar para a agenda' : 'Defina uma data'}</span></div></div>` : '',
+        ].join('');
+      })()}
     </div>
 
     <section class="dsec"><h3>${ic('todo', 18)}Itens <span class="cnt">${chk.length ? chk.filter(c => c.done).length + '/' + chk.length : ''}</span></h3>
@@ -140,8 +148,9 @@ function bindDetail(det, t) {
   no.addEventListener('paste', e => { e.preventDefault(); const h = e.clipboardData.getData('text/html'), tx = e.clipboardData.getData('text/plain'); document.execCommand('insertHTML', false, h ? clean(h) : esc(tx).replace(/\n/g, '<br>')); });
   det.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('change', async () => {
     const f = inp.dataset.f, v = inp.value;
-    const sD = det.querySelector('[data-f=sD]').value, sT = det.querySelector('[data-f=sT]').value, eD = det.querySelector('[data-f=eD]').value, eT = det.querySelector('[data-f=eT]').value;
     if (['sD', 'sT', 'eD', 'eT'].includes(f)) {
+      const val = k => { const e = det.querySelector(`[data-f=${k}]`); return e ? e.value : ''; };
+      const sD = val('sD'), sT = val('sT'), eD = val('eD'), eT = val('eT');
       t.start = sD ? withT(sD, sT) : null;
       t.due = eD ? withT(eD, eT) : null;
       if (t.start && t.due && t.start > t.due) { if (f === 'sD' || f === 'sT') t.due = t.start; else t.start = t.due; }
@@ -178,6 +187,10 @@ Object.assign(ACTS, {
   dclose: () => closeTask(),
   tcovrm: () => { const t = get('t', R.sel); if (t && t.cover) { const m = t.cover; t.cover = null; put('t', t); FILES.remove(m); } },
   dcheck: b => checkTask(R.sel),
+  dpdue: b => { const t = get('t', R.sel); datePicker(b, { date: dOnly(t.due || '') || null, time: tOnly(t.due) || null }, v => { if (!v.date) { t.due = null; if (!t.start) t.rep = null; } else { t.due = withT(v.date, v.time); if (t.start && t.start > t.due) t.start = null; if (v.time && !(t.rem || []).length) t.rem = [0]; } put('t', t); gcalPushTask(t); }, { simple: 1 }); },
+  dpstart: b => { const t = get('t', R.sel); datePicker(b, { date: dOnly(t.start || '') || null, time: tOnly(t.start) || null }, v => { if (!v.date) t.start = null; else { t.start = withT(v.date, v.time); if (t.due && t.start > t.due) t.due = t.start; } put('t', t); gcalPushTask(t); }, { simple: 1 }); },
+  pclr: b => { const t = get('t', R.sel); if (b.dataset.k === 'due') t.due = null; else t.start = null; if (!t.due && !t.start) t.rep = null; put('t', t); gcalPushTask(t); },
+  drem: b => { const t = get('t', R.sel); if (!tOnly(t.due || t.start)) { toast('Defina um horário no prazo ou no início para usar lembrete'); return; } menu(b, [{ label: 'Nenhum', on: !(t.rem || []).length, act: () => { t.rem = []; put('t', t); } }, ...REM_OPTS.map(o => ({ label: o[1], icon: 'bell', on: (t.rem || [])[0] === o[0], act: () => { t.rem = [o[0]]; put('t', t); } }))]); },
   dprio: b => { const t = get('t', R.sel); menu(b, [3, 2, 1, 0].map(p => ({ label: 'Prioridade ' + PRIO[p].n.toLowerCase(), color: PRIO[p].c, on: (t.prio || 0) === p, act: () => { t.prio = p; put('t', t); } })), { right: 1 }); },
   dsetprio: b => { const t = get('t', R.sel); t.prio = +b.dataset.p; put('t', t); },
   dlist: b => {

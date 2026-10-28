@@ -52,6 +52,7 @@ const IC = {
   clip: '<path d="M20 11.5l-7.8 7.8a4.6 4.6 0 0 1-6.5-6.5l8.1-8.1a3 3 0 0 1 4.3 4.3l-8 8a1.5 1.5 0 0 1-2.2-2.1l7.4-7.4"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   sub: '<path d="M6 4v9a3 3 0 0 0 3 3h9M15 13l3 3-3 3"/>',
+  startd: '<circle cx="12" cy="12" r="8.5"/><path d="M10 8.5l5 3.5-5 3.5z" fill="currentColor"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>',
   pause: '<path d="M8 5.5v13M16 5.5v13" stroke-width="3"/>',
@@ -103,7 +104,7 @@ const IC = {
   print: '<path d="M7 9V3.5h10V9M7 17H4.5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H17"/><rect x="7" y="14" width="10" height="6.5" rx="1"/>',
   alignl: '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>', alignc: '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>', alignr: '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>', alignj: '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
   indent: '<path d="M4 6h16M10 10h10M10 14h10M4 18h16M4 9.5l3 2.5-3 2.5"/>', outdent: '<path d="M4 6h16M10 10h10M10 14h10M4 18h16M7 9.5L4 12l3 2.5"/>',
-  sup: '<path d="M4 7l8 10M12 7l-8 10M16 9.5a2 2 0 1 1 3.4 1.4L16 14h4"/>', sub: '<path d="M4 6l8 10M12 6l-8 10M16 15.5a2 2 0 1 1 3.4 1.4L16 20h4"/>',
+  sup: '<path d="M4 7l8 10M12 7l-8 10M16 9.5a2 2 0 1 1 3.4 1.4L16 14h4"/>', subsc: '<path d="M4 6l8 10M12 6l-8 10M16 15.5a2 2 0 1 1 3.4 1.4L16 20h4"/>',
   pagebreak: '<path d="M6 3.5v5h12v-5M6 20.5v-5h12v5M3 12h2M8 12h2M13 12h2M18 12h3"/>',
   arch: '<rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2"/><path d="M5.5 9v9.5a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9M10 13h4"/>',
 };

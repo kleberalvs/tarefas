@@ -424,11 +424,12 @@ function datePicker(anchor, v, onSave, opts = {}) {
       ${cells.map(c => `<button class="dd${c.slice(0, 7) !== month ? ' out' : ''}${c === T ? ' today' : ''}${c === v.date ? ' sel' : ''}${v.sdate && c >= v.sdate && v.date && c <= v.date && c !== v.date ? ' rng' : ''}" data-d="${c}" aria-label="${fmtLong(c)}">${+c.slice(8)}</button>`).join('')}</div>
       <div class="dopts">
         <label class="drow">${ic('clock', 18)}<span>Horário</span><input type="time" class="in sm" data-f="time" value="${v.time || ''}"></label>
+        ${opts.simple ? '' : `
         <label class="drow${v.time ? '' : ' dim'}">${ic('timer', 18)}<span>Até</span><input type="time" class="in sm" data-f="end" value="${v.end || ''}" ${v.time ? '' : 'disabled'}></label>
         ${opts.noStart ? '' : `<label class="drow">${ic('sub', 18)}<span>Início</span><input type="date" class="in sm" data-f="sdate" value="${v.sdate || ''}"></label>`}
         <label class="drow">${ic('bell', 18)}<span>Lembrete</span><select class="in sm" data-f="rem"><option value="">Nenhum</option>${remOpts.map(o => `<option value="${o[0]}" ${(v.rem || [])[0] === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></label>
         <label class="drow">${ic('repeat', 18)}<span>Repetir</span><select class="in sm" data-f="rep">${repOpts.map(o => `<option value="${o[0]}" ${repKey(v.rep) === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></label>
-        ${v.rep ? `<p class="rept">${esc(repText(v.rep))}</p>` : ''}
+        ${v.rep ? `<p class="rept">${esc(repText(v.rep))}</p>` : ''}`}
       </div>
       <div class="row end"><button class="btn ghost sm" data-x>Limpar</button><button class="btn red sm" data-ok>OK</button></div>`;
   };

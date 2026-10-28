@@ -1049,3 +1049,20 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 @media (max-width:759px){.tlist .trow:not(.card){margin-left:calc(var(--lvl,0) * 18px);padding:12px 12px}.tlist .trow .caret{left:-20px;top:-2px}}
 .fsrow{gap:4px}.fsrow .ib{font-weight:800;color:var(--txt2)}.fsrow b{min-width:48px;text-align:center}
 .tlist{padding-top:6px}
+
+/* propriedades da tarefa: leves, sem caixas */
+.props{display:flex;flex-direction:column;gap:1px;border:0;border-radius:0;padding:2px 0 6px;margin:4px 0 6px;background:none;border-bottom:1px solid var(--line)}
+.prop{min-height:36px;border-bottom:0;gap:6px;flex-wrap:nowrap}
+.pl{width:104px;gap:9px;font-size:calc(13px * var(--fs,1));color:var(--mut2)}
+.pl svg{opacity:.85}
+.pv{gap:4px}
+.pval{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 9px;border-radius:8px;font-size:calc(13.5px * var(--fs,1));font-weight:500;color:var(--txt);transition:background .12s;text-align:left;cursor:pointer}
+.pval:hover{background:var(--hover)}
+.pval.empty{color:var(--mut2);font-weight:400}
+.pval.add{width:30px;padding:0;justify-content:center;color:var(--mut)}
+.pval .red{color:var(--red);font-weight:600}
+.pclr{width:24px;height:24px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--mut2);opacity:0;transition:.12s}
+.prop:hover .pclr{opacity:1}.pclr:hover{background:var(--hover);color:var(--txt)}
+.ptag{display:inline-flex;align-items:center;gap:3px;min-height:26px;padding:0 4px 0 9px;border-radius:13px;background:color-mix(in srgb,var(--c) 13%,transparent);color:var(--c);font-size:calc(12.5px * var(--fs,1));font-weight:600}
+.ptag button{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;opacity:.6}.ptag button:hover{opacity:1;background:color-mix(in srgb,var(--c) 20%,transparent)}
+@media (hover:none){.pclr{opacity:1}}
