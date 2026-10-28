@@ -20,6 +20,11 @@ VIEWS.settings = main => {
     : CLOUD ? `<div class="srow"><div><b>Modo local</b><p class="mut sm">Os dados ficam só neste aparelho.</p></div><button class="btn red sm" data-act="login">Entrar</button></div>`
     : `<p class="mut">Nuvem não configurada: os dados ficam só neste aparelho.</p>`}
   </section>
+  <section class="sgrp"><h2>${ic('sun', 18)}Aparência</h2>
+    <div class="srow"><span>Tema</span><div class="seg">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']].map(([k, n]) => `<button class="${s.theme === k ? 'on' : ''}" data-act="sset" data-k="theme" data-v="${k}">${n}</button>`).join('')}</div></div>
+    <div class="srow"><span>Semana começa</span><div class="seg">${[[0, 'Domingo'], [1, 'Segunda']].map(([k, n]) => `<button class="${s.weekStart === k ? 'on' : ''}" data-act="sset" data-k="weekStart" data-v="${k}" data-num="1">${n}</button>`).join('')}</div></div>
+    <label class="srow"><span>Visual compacto</span><span class="sw-t"><input type="checkbox" data-sk="compact" ${s.compact ? 'checked' : ''}><span></span></span></label>
+  </section>
   <section class="sgrp"><h2>${ic('palette', 18)}Estilo de cores</h2>
     <div class="skins">${SKINS.map(([k, n, d, a, sd, bg, tx]) => `<button class="skin${(s.skin || 'classico') === k ? ' on' : ''}" data-act="skin" data-k="${k}" style="--ka:${a};--ks:${sd};--kb:${bg};--kt:${tx}"><span class="sk"><span class="sks"><b></b><b></b><b></b><b></b></span><span class="skm"><span></span><span></span><span></span><em></em></span></span><span class="skn">${n}<small>${d}</small></span></button>`).join('')}</div>
   </section>
@@ -27,11 +32,6 @@ VIEWS.settings = main => {
     <p class="hint">Escolha a cor de cada ícone e o que aparece no menu. Também dá para clicar com o botão direito (ou tocar nos três pontinhos) em qualquer item do menu.</p>
     ${[...NAV_TOP, ...NAV_LOW].map(id => { const p = navPref(id), [, icon, name] = NAVS[id]; return `<div class="navset"><span class="nic" style="--nc:${esc(p.c || NAVC[id])}">${p.emoji ? `<span class="nemo">${esc(p.emoji)}</span>` : ic(icon, 18)}</span><span class="f1">${esc(p.name || name)}</span><input type="color" value="${esc(p.c || NAVC[id])}" data-navc="${id}" aria-label="Cor de ${esc(name)}"><button class="ib" data-act="navmore" data-id="${id}" aria-label="Mais opções de ${esc(name)}">${ic('more', 18)}</button><span class="sw-t"><input type="checkbox" data-navshow="${id}" ${p.hide ? '' : 'checked'} aria-label="Mostrar ${esc(name)}"><span></span></span></div>`; }).join('')}
     <div class="row"><button class="btn ghost sm" data-act="navreset">Restaurar o menu padrão</button></div>
-  </section>
-  <section class="sgrp"><h2>${ic('sun', 18)}Aparência</h2>
-    <div class="srow"><span>Tema</span><div class="seg">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']].map(([k, n]) => `<button class="${s.theme === k ? 'on' : ''}" data-act="sset" data-k="theme" data-v="${k}">${n}</button>`).join('')}</div></div>
-    <div class="srow"><span>Semana começa</span><div class="seg">${[[0, 'Domingo'], [1, 'Segunda']].map(([k, n]) => `<button class="${s.weekStart === k ? 'on' : ''}" data-act="sset" data-k="weekStart" data-v="${k}" data-num="1">${n}</button>`).join('')}</div></div>
-    <label class="srow"><span>Visual compacto</span><span class="sw-t"><input type="checkbox" data-sk="compact" ${s.compact ? 'checked' : ''}><span></span></span></label>
   </section>
   <section class="sgrp"><h2>${ic('todo', 18)}Tarefas</h2>
     <label class="srow"><span>Lista padrão para novas tarefas</span><select class="in sm" data-sk="defList">${db.l.filter(l => !l.arch).map(l => `<option value="${l.id}" ${s.defList === l.id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>
