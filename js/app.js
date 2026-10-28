@@ -30,8 +30,8 @@ VIEWS.settings = main => {
     <div class="skins">${SKINS.map(([k, n, d, a, sd, bg, tx]) => `<button class="skin${(s.skin || 'classico') === k ? ' on' : ''}" data-act="skin" data-k="${k}" style="--ka:${a};--ks:${sd};--kb:${bg};--kt:${tx}"><span class="sk"><span class="sks"><b></b><b></b><b></b><b></b></span><span class="skm"><span></span><span></span><span></span><em></em></span></span><span class="skn">${n}<small>${d}</small></span></button>`).join('')}</div>
   </section>
   <section class="sgrp"><h2>${ic('menu', 18)}Menu lateral</h2>
-    <p class="hint">Escolha a cor de cada ícone e o que aparece no menu. Também dá para clicar com o botão direito (ou tocar nos três pontinhos) em qualquer item do menu.</p>
-    ${[...NAV_TOP, ...NAV_LOW].map(id => { const p = navPref(id), [, icon, name] = NAVS[id]; return `<div class="navset"><span class="nic" style="--nc:${esc(p.c || NAVC[id])}">${p.emoji ? `<span class="nemo">${esc(p.emoji)}</span>` : ic(icon, 18)}</span><span class="f1">${esc(p.name || name)}</span><input type="color" value="${esc(p.c || NAVC[id])}" data-navc="${id}" aria-label="Cor de ${esc(name)}"><button class="ib" data-act="navmore" data-id="${id}" aria-label="Mais opções de ${esc(name)}">${ic('more', 18)}</button><span class="sw-t"><input type="checkbox" data-navshow="${id}" ${p.hide ? '' : 'checked'} aria-label="Mostrar ${esc(name)}"><span></span></span></div>`; }).join('')}
+    <p class="hint">Por padrão, os ícones seguem a cor do estilo escolhido. Para mudar a cor de um item, use o seletor ao lado dele (↺ volta à cor do tema). Também dá para clicar com o botão direito (ou tocar nos três pontinhos) em qualquer item do menu.</p>
+    ${[...NAV_TOP, ...NAV_LOW].map(id => { const p = navPref(id), [, icon, name] = NAVS[id]; return `<div class="navset"><span class="nic" style="--nc:${esc(p.c || 'var(--red)')}">${p.emoji ? `<span class="nemo">${esc(p.emoji)}</span>` : ic(icon, 18)}</span><span class="f1">${esc(p.name || name)}</span><input type="color" value="${esc(p.c || accentHex())}" data-navc="${id}" aria-label="Cor de ${esc(name)}" title="${p.c ? 'Cor personalizada' : 'Segue a cor do tema'}">${p.c ? `<button class="mini" data-act="navcreset" data-id="${id}" title="Voltar à cor do tema" aria-label="Voltar à cor do tema">↺</button>` : ''}<button class="ib" data-act="navmore" data-id="${id}" aria-label="Mais opções de ${esc(name)}">${ic('more', 18)}</button><span class="sw-t"><input type="checkbox" data-navshow="${id}" ${p.hide ? '' : 'checked'} aria-label="Mostrar ${esc(name)}"><span></span></span></div>`; }).join('')}
     <div class="row"><button class="btn ghost sm" data-act="navreset">Restaurar o menu padrão</button></div>
   </section>
   <section class="sgrp"><h2>${ic('todo', 18)}Tarefas</h2>
@@ -85,6 +85,7 @@ Object.assign(ACTS, {
   logout: () => signOut(),
   skin: b => { db.s.skin = b.dataset.k; put('s', db.s); applyTheme(); },
   navmore: b => navMenu(b.dataset.id, b),
+  navcreset: b => { const p = Object.assign({}, navPref(b.dataset.id)); delete p.c; db.s.nav[b.dataset.id] = p; put('s', db.s); },
   navreset: () => { db.s.nav = {}; put('s', db.s); toast('Menu restaurado'); },
   admrecheck: async () => { await checkAdmin(); render(true); toast(IS_ADMIN ? 'Você é o administrador' : ADMIN_FREE ? 'Pronto: já pode se tornar administrador' : ADMIN_ERR || 'Ainda não há permissão de administrador'); },
   login: () => goLogin(),
@@ -119,6 +120,12 @@ function initSw() {
 }
 
 /* ---------- início ---------- */
+function accentHex() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--red').trim();
+  if (/^#[0-9a-f]{6}$/i.test(v)) return v;
+  if (/^#[0-9a-f]{3}$/i.test(v)) return '#' + v.slice(1).split('').map(x => x + x).join('');
+  return '#DC4C3E';
+}
 function afterRender() {
   if (typeof loadTaskImgs === 'function') loadTaskImgs($('#main'));
   const fm = $('#side a[href="#/focus"] .cnt');

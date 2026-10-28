@@ -75,12 +75,12 @@ function NV(id, cur, ov) {
   const p = navPref(id); if (p.hide) return '';
   const [href, icon, name, o] = NAVS[id];
   const on = id === 'docs' ? ((cur === 'docs' && !R.id) || cur === 'doc') : cur === id;
-  return navItem(href, icon, p.name || name, { on, count: o.cnt && !p.nocnt ? countFor(o.cnt) : 0, red: id === 'today' && ov > 0, drop: o.drop, nc: p.c || NAVC[id === 'habits' ? 'habits' : id], emoji: p.emoji, ctx: 'nav:' + id });
+  return navItem(href, icon, p.name || name, { on, count: o.cnt && !p.nocnt ? countFor(o.cnt) : 0, red: id === 'today' && ov > 0, drop: o.drop, nc: p.c || 'var(--red)', emoji: p.emoji, ctx: 'nav:' + id });
 }
 function navMenu(id, anchor, at) {
   const p = navPref(id), set = (k, v) => { db.s.nav = db.s.nav || {}; db.s.nav[id] = Object.assign({}, navPref(id), { [k]: v }); if (v == null) delete db.s.nav[id][k]; put('s', db.s); };
   menu(anchor, [
-    { html: `<div class="mtitle">Cor do ícone</div><div class="navcols">${['', ...COLORS, '#1D1D1F'].map(c => `<button class="swb${(p.c || '') === c ? ' on' : ''}" data-nc="${c}" style="--c:${c || NAVC[id]}" aria-label="${c ? 'Cor ' + c : 'Cor padrão'}">${c ? '' : '↺'}</button>`).join('')}</div>` },
+    { html: `<div class="mtitle">Cor do ícone</div><div class="navcols">${['', ...COLORS, '#1D1D1F'].map(c => `<button class="swb${(p.c || '') === c ? ' on' : ''}" data-nc="${c}" style="--c:${c || 'var(--red)'}" aria-label="${c ? 'Cor ' + c : 'Cor do tema'}" title="${c ? '' : 'Cor do tema'}">${c ? '' : '↺'}</button>`).join('')}</div>` },
     { label: p.emoji ? 'Trocar emoji' : 'Usar um emoji no lugar do ícone', icon: 'star', act: () => emojiPicker(anchor, e => set('emoji', e || null), { none: 1 }) },
     { label: 'Renomear…', icon: 'edit', act: async () => { const n = await ask('Nome no menu', p.name || NAVS[id][2]); if (n !== null) set('name', n === NAVS[id][2] ? null : n); } },
     NAVS[id][3].cnt ? { label: p.nocnt ? 'Mostrar contador' : 'Ocultar contador', icon: 'hash', act: () => set('nocnt', p.nocnt ? null : 1) } : null,
@@ -138,8 +138,8 @@ function sideHtml() {
   </div>
   <nav class="snav low">
     ${NAV_LOW.map(n => NV(n, cur, ov)).join('')}
-    ${typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? navItem('users', 'users', 'Usuários', { on: cur === 'users', nc: NAVC.users }) : ''}
-    ${navItem('settings', 'gear', 'Configurações', { on: cur === 'settings', nc: NAVC.settings })}
+    ${typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? navItem('users', 'users', 'Usuários', { on: cur === 'users', nc: 'var(--red)' }) : ''}
+    ${navItem('settings', 'gear', 'Configurações', { on: cur === 'settings', nc: 'var(--red)' })}
   </nav>`;
 }
 /* perfil: nome e foto (recortada no centro) */
