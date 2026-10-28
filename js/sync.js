@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.28-38';
+const APPV = '2026.10.28-39';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -165,7 +165,7 @@ async function enter(s) {
   if (typeof pushRefresh === 'function') pushRefresh();
   render(true);
 }
-const LOGO_SVG = '<svg class="lgmark" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="17" class="lgbg"/><rect x="17" y="17" width="30" height="30" rx="9" class="lgbox"/><path d="M24.5 32.5l5.5 5.5 10-11" class="lgchk"/></svg>';
+const LOGO_SVG = '<svg class="lgmark" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="15" class="lgbg"/><g transform="translate(32 32) scale(.875) translate(-31.3 -32.6)"><circle cx="20.5" cy="21" r="5.5" class="lgdot"/><path d="M18.2 21.2l1.7 1.7 3.2-3.6" class="lgck"/><path d="M30 21h16" class="lgln l1"/><circle cx="20.5" cy="32.5" r="4.6" class="lgo o2"/><path d="M30 32.5h16" class="lgln l2"/><circle cx="20.5" cy="44" r="4.6" class="lgo o3"/><path d="M30 44h11" class="lgln l3"/></g></svg>';
 function loginShell(inner) {
   let d = $('#login');
   if (!d) { d = document.createElement('div'); d.id = 'login'; document.body.appendChild(d); }

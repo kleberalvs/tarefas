@@ -1594,3 +1594,14 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
   .srow:has(>.row:first-child){flex-wrap:nowrap}
   .srow>.row:first-child{min-width:0;flex-wrap:nowrap}
 }
+/* logo "lista" (2026-10-28) */
+.lgdot{fill:var(--onacc);transform-box:fill-box;transform-origin:center;animation:lgpop .4s .2s cubic-bezier(.34,1.6,.5,1) both}
+.lgck{fill:none;stroke:var(--red);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:8;stroke-dashoffset:8;animation:draw .35s .5s var(--ease) forwards}
+.lhin .lgck{stroke:var(--red)}
+.lgln{fill:none;stroke:var(--onacc);stroke-width:4;stroke-linecap:round;stroke-dasharray:18;stroke-dashoffset:18;animation:draw .45s var(--ease) forwards}
+.lgln.l1{opacity:.55;animation-delay:.3s}.lgln.l2{animation-delay:.4s}.lgln.l3{animation-delay:.5s}
+.lgo{fill:none;stroke:var(--onacc);stroke-width:2.4;opacity:0;animation:lgfade .3s var(--ease) forwards}
+.lgo.o2{animation-delay:.3s}.lgo.o3{animation-delay:.4s}
+@keyframes lgpop{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes lgfade{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.lgdot,.lgck,.lgln,.lgo{animation:none;stroke-dashoffset:0;opacity:1}.lgln.l1{opacity:.55}}
