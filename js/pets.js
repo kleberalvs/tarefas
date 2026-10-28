@@ -26,100 +26,120 @@ const POSES = {
 };
 const cloneP = o => JSON.parse(JSON.stringify(o));
 function lerpP(a, b, t) { if (typeof a === 'number') return a + (b - a) * t; if (Array.isArray(a)) return a.map((v, i) => lerpP(v, b[i], t)); const o = {}; for (const k in a) o[k] = k in b ? lerpP(a[k], b[k], t) : a[k]; return o; }
+/* desenho: as formas são rasterizadas numa grade 1,5× maior, com luz de cima à esquerda,
+   4 tons por cor (com pontilhado, como pelo), contorno colorido e bigodes */
+const RS = 1.5, GW = CW * RS, GH = CH * RS;
+const LIGHT = (() => { const v = [-.45, -.75, .55], n = Math.hypot(...v); return v.map(x => x / n); })();
 function rastCat(P, m = {}) {
-  const g = new Array(CW * CH).fill('');
-  const set = (x, y, c) => { if (x >= 0 && y >= 0 && x < CW && y < CH) g[y * CW + x] = c; };
-  const ell = (cx, cy, rx, ry, rot, c) => {
+  const N = GW * GH, g = new Array(N).fill(''), lum = new Float32Array(N);
+  const set = (x, y, c, l) => { if (x >= 0 && y >= 0 && x < GW && y < GH) { g[y * GW + x] = c; lum[y * GW + x] = l; } };
+  const shade = (nx, ny, nz) => Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+  const ell = (cx, cy, rx, ry, rot, c, k = 1) => {
+    cx *= RS; cy *= RS; rx *= RS; ry *= RS;
     const r = rot * Math.PI / 180, co = Math.cos(r), si = Math.sin(r), R = Math.max(rx, ry) + 1;
-    for (let y = Math.floor(cy - R); y <= cy + R; y++) for (let x = Math.floor(cx - R); x <= cx + R; x++) { const dx = x + .5 - cx, dy = y + .5 - cy, u = dx * co + dy * si, v = -dx * si + dy * co; if (u * u / (rx * rx) + v * v / (ry * ry) <= 1) set(x, y, c); }
-  };
-  const cap = (x1, y1, x2, y2, r, c) => {
-    const vx = x2 - x1, vy = y2 - y1, L = vx * vx + vy * vy || 1;
-    for (let y = Math.floor(Math.min(y1, y2) - r - 1); y <= Math.max(y1, y2) + r + 1; y++) for (let x = Math.floor(Math.min(x1, x2) - r - 1); x <= Math.max(x1, x2) + r + 1; x++) {
-      const px = x + .5, py = y + .5, t = Math.max(0, Math.min(1, ((px - x1) * vx + (py - y1) * vy) / L)), dx = px - (x1 + vx * t), dy = py - (y1 + vy * t);
-      if (dx * dx + dy * dy <= r * r) set(x, y, c);
+    for (let y = Math.floor(cy - R); y <= cy + R; y++) for (let x = Math.floor(cx - R); x <= cx + R; x++) {
+      const dx = x + .5 - cx, dy = y + .5 - cy, u = (dx * co + dy * si) / rx, v = (-dx * si + dy * co) / ry, q = u * u + v * v;
+      if (q <= 1) { const nx = u * co - v * si, ny = u * si + v * co; set(x, y, c, shade(nx * .8, ny * .8, Math.sqrt(1 - q)) * k); }
     }
   };
-  const tri = (a, b, d, c) => {
+  const cap = (x1, y1, x2, y2, r, c, k = 1) => {
+    x1 *= RS; y1 *= RS; x2 *= RS; y2 *= RS; r *= RS;
+    const vx = x2 - x1, vy = y2 - y1, L = vx * vx + vy * vy || 1;
+    for (let y = Math.floor(Math.min(y1, y2) - r - 1); y <= Math.max(y1, y2) + r + 1; y++) for (let x = Math.floor(Math.min(x1, x2) - r - 1); x <= Math.max(x1, x2) + r + 1; x++) {
+      const px = x + .5, py = y + .5, t = Math.max(0, Math.min(1, ((px - x1) * vx + (py - y1) * vy) / L)), dx = px - (x1 + vx * t), dy = py - (y1 + vy * t), d2 = (dx * dx + dy * dy) / (r * r);
+      if (d2 <= 1) { const d = Math.sqrt(d2) || 1e-6; set(x, y, c, shade(dx / r * .9, dy / r * .9, Math.sqrt(1 - d2)) * k); }
+    }
+  };
+  const tri = (a, b, d, c, l) => {
+    a = a.map(v => v * RS); b = b.map(v => v * RS); d = d.map(v => v * RS);
     const s = (p, q, r) => (p[0] - r[0]) * (q[1] - r[1]) - (q[0] - r[0]) * (p[1] - r[1]);
     for (let y = Math.floor(Math.min(a[1], b[1], d[1])); y <= Math.max(a[1], b[1], d[1]); y++) for (let x = Math.floor(Math.min(a[0], b[0], d[0])); x <= Math.max(a[0], b[0], d[0]); x++) {
       const p = [x + .5, y + .5], d1 = s(p, a, b), d2 = s(p, b, d), d3 = s(p, d, a);
-      if (!((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0))) set(x, y, c);
+      if (!((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0))) set(x, y, c, l);
     }
   };
-  const leg = (L, c) => { cap(L[0], L[1], L[2], L[3], 1.4, c); cap(L[2], L[3], L[4], L[5], 1.15, c); ell(L[4] + .7, L[5] + .25, 1.75, 1.05, 0, c === 'F' ? 'F' : 'P'); };
+  const leg = (L, c, k) => { cap(L[0], L[1], L[2], L[3], 1.3, c, k); cap(L[2], L[3], L[4], L[5], 1.02, c, k); ell(L[4] + .6, L[5] + .3, 1.6, .95, 0, c === 'F' ? 'F' : 'P', k); };
   const [bx, by, brx, bry, brot] = P.b, [hx, hy, hr] = P.h;
-  leg(P.ff, 'F'); leg(P.hf, 'F');
+  leg(P.ff, 'F', .55); leg(P.hf, 'F', .55);
   let tx = P.tb[0], ty = P.tb[1];
-  P.ta.forEach((a, i) => { const r = a * Math.PI / 180, nx = tx + Math.cos(r) * 1.8, ny = Math.min(CG - .6, ty + Math.sin(r) * 1.8); cap(tx, ty, nx, ny, 1.3 - i * .05, 'T'); tx = nx; ty = ny; });
+  P.ta.forEach((a, i) => { const r = a * Math.PI / 180, nx = tx + Math.cos(r) * 1.8, ny = Math.min(CG - .6, ty + Math.sin(r) * 1.8); cap(tx, ty, nx, ny, 1.25 - i * .04, 'T'); tx = nx; ty = ny; });
   ell(P.ha[0], P.ha[1], P.ha[2], P.ha[3], 0, 'b');
   ell(bx, by, brx, bry, brot, 'b');
-  cap(P.nk[0], P.nk[1], P.nk[2], P.nk[3], 3, 'b');
-  ell((P.nk[0] + P.nk[2]) / 2 + 1.6, (P.nk[1] + P.nk[3]) / 2 + 1.6, 2.2, 2.8, 0, 'C');
-  leg(P.hn, 'L'); leg(P.fn, 'L');
+  cap(P.nk[0], P.nk[1], P.nk[2], P.nk[3], 2.8, 'b');
+  ell((P.nk[0] + P.nk[2]) / 2 + 1.5, (P.nk[1] + P.nk[3]) / 2 + 1.7, 2, 2.6, 0, 'C');
+  leg(P.hn, 'L', 1); leg(P.fn, 'L', 1);
   const hrr = hr * Math.PI / 180, hp = (u, v) => [hx + u * Math.cos(hrr) - v * Math.sin(hrr), hy + u * Math.sin(hrr) + v * Math.cos(hrr)];
-  tri(hp(-3.9, -1.6), hp(-.7, -3.4), hp(-3.1, -7), 'R');
-  ell(hx, hy, 4.6, 4, hr, 'H');
-  tri(hp(-1.3, -2.8), hp(2.5, -2.7), hp(.3, -7.3), 'R');
-  tri(hp(-.3, -3.3), hp(1.5, -3.2), hp(.3, -5.9), 'p');
-  ell(...hp(3.5, 1.4), 2.1, 1.7, hr, 'M');
-  const [ex, ey] = hp(2, -.9), ix = Math.floor(ex), iy = Math.floor(ey);
-  if (P.eye > .5 && !m.blink) { set(ix, iy, 'E'); set(ix + 1, iy, 'k'); set(ix, iy + 1, 'E'); set(ix + 1, iy + 1, 'k'); }
-  else { set(ix, iy + 1, 'o'); set(ix + 1, iy + 1, 'o'); }
-  const [nx, ny] = hp(5.5, .4); set(Math.floor(nx), Math.floor(ny), 'n');
-  if (m.mouth) { const [mx, my] = hp(4.2, 2.7); set(Math.floor(mx), Math.floor(my), 'k'); set(Math.floor(mx) + 1, Math.floor(my), 'k'); set(Math.floor(mx), Math.floor(my) + 1, 'p'); }
-  if (m.tongue) { const [mx, my] = hp(5, 2.6); set(Math.floor(mx), Math.floor(my), 'p'); }
-  return g;
+  tri(hp(-3.7, -1.4), hp(-.8, -3.2), hp(-3, -6.8), 'R', .25);
+  ell(hx, hy, 4.3, 3.8, hr, 'H');
+  ell(...hp(-1.2, 1.3), 2.6, 2.2, hr, 'H');
+  tri(hp(-1.3, -2.6), hp(2.3, -2.6), hp(.2, -7), 'R', .7);
+  tri(hp(-.4, -3.1), hp(1.4, -3.1), hp(.2, -5.6), 'p', .6);
+  ell(...hp(3.3, 1.3), 1.9, 1.5, hr, 'M');
+  const G = (u, v) => { const [x, y] = hp(u, v); return [Math.floor(x * RS), Math.floor(y * RS)]; };
+  const [ex, ey] = G(1.6, -.9);
+  if (P.eye > .5 && !m.blink) { set(ex, ey, 'E', .9); set(ex + 1, ey, 'k', 0); set(ex + 2, ey, 'E', .5); set(ex, ey + 1, 'E', .6); set(ex + 1, ey + 1, 'k', 0); set(ex + 2, ey + 1, 'E', .4); set(ex + 2, ey - 1 < 0 ? ey : ey, 'h', 1); }
+  else { set(ex, ey + 1, 'c', 0); set(ex + 1, ey + 1, 'c', 0); set(ex + 2, ey + 1, 'c', 0); }
+  const [nx, ny] = G(5.1, .3); set(nx, ny, 'n', .7); set(nx - 1, ny, 'n', .5);
+  const [mx, my] = G(4.4, 2.1);
+  if (m.mouth) { set(mx, my, 'k', 0); set(mx + 1, my, 'k', 0); set(mx, my + 1, 'p', .5); set(mx + 1, my + 1, 'k', 0); }
+  if (m.tongue) { const [qx, qy] = G(5, 2.5); set(qx, qy, 'p', .8); set(qx, qy + 1, 'p', .5); }
+  const wh = [G(4.2, 1.2), G(4.4, 1.8)];
+  return { g, lum, wh, by: by * RS, bry: bry * RS, hx: hx * RS, hy: hy * RS };
 }
+const hex2 = h => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const mixC = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const SHD = hex2('#2A1E3A'), HIL = hex2('#FFF4DC'), TONES = {};
+function tones(h) { return TONES[h] || (TONES[h] = (() => { const c = hex2(h); return [mixC(c, SHD, .36), mixC(c, SHD, .17), c, mixC(c, HIL, .26)]; })()); }
+const BAYER = [0, .5, .75, .25];
 function paintCat(cv, k, P, m) {
-  const g = rastCat(P, m), B = CATS[k] || CATS.laranja, pal = Object.assign({ k: '#121212', n: B.c.p }, B.c);
-  const at = (x, y) => (x < 0 || y < 0 || x >= CW || y >= CH) ? '' : g[y * CW + x];
-  const out = new Array(CW * CH).fill(null);
-  const by = P.b[1], bry = P.b[3], hx = P.h[0], hy = P.h[1];
-  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
-    const c = g[y * CW + x];
-    if (!c) { if (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) out[y * CW + x] = pal.o; continue; }
-    let col;
-    const base = () => {
-      if (B.calico) {
-        if (c === 'b' && x < 18 && y < by + .5) return pal.x;
-        if (c === 'b' && x >= 19 && x < 24 && y < by - 1) return pal.y;
-        if ((c === 'H' || c === 'R') && x < hx - .5 && y < hy + 1) return pal.x;
-        if (c === 'R' && x >= hx - .5) return pal.y;
-        if (c === 'T') return x < 9 ? pal.y : pal.x;
-      }
-      if (B.points && 'HRLTM'.includes(c)) return pal.x;
-      if (B.stripe) {
-        if (c === 'b' && (x + (y >> 1)) % 4 === 0 && y < by + 1) return pal.d;
-        if (c === 'H' && y < hy - 1.5 && x % 2 === 0 && x < hx + 1) return pal.d;
-        if (c === 'T' && (x + y) % 3 === 0) return pal.d;
-        if (c === 'L' && y % 3 === 0 && y < CG - 1) return pal.d;
-      }
-      const up = at(x, y - 1);
-      if ((c === 'b' || c === 'H') && (!up)) return pal.l;
-      if (c === 'b' && (y > by + bry * .4 || at(x - 1, y) === 'L' || at(x + 1, y) === 'L' || at(x, y - 1) === 'H')) return pal.s;
+  const R = rastCat(P, m), g = R.g, B = CATS[k] || CATS.laranja, pal = B.c;
+  const at = (x, y) => (x < 0 || y < 0 || x >= GW || y >= GH) ? '' : g[y * GW + x];
+  const baseOf = (c, x, y) => {
+    if (c === 'E') return pal.E; if (c === 'k' || c === 'c') return '#121212'; if (c === 'p') return pal.p; if (c === 'n') return pal.n || pal.p; if (c === 'h') return '#FFFFFF';
+    if (B.calico) {
+      if (c === 'M' || c === 'C' || c === 'P') return pal.w;
+      if (c === 'b' && x < 26 && y < R.by + 1) return pal.x;
+      if (c === 'b' && x >= 28 && x < 35 && y < R.by - 2) return pal.y;
+      if ((c === 'H' || c === 'R') && x < R.hx - 1 && y < R.hy + 2) return pal.x;
+      if (c === 'R' && x >= R.hx - 1) return pal.y;
+      if (c === 'T') return x < 13 ? pal.y : pal.x;
       return pal.b;
-    };
-    if (c === 'E') col = pal.E; else if (c === 'k') col = pal.k; else if (c === 'p') col = pal.p; else if (c === 'n') col = pal.n; else if (c === 'o') col = pal.o;
-    else if (c === 'F') col = B.points ? pal.x : pal.s;
-    else if (c === 'P') col = B.paws ? pal.w : B.points ? pal.x : pal.b;
-    else if (c === 'M' || c === 'C') col = B.white ? pal.w : (B.points && c === 'M') ? pal.x : c === 'C' ? base.call(null) : pal.b;
-    else col = base();
-    if (c === 'M' && B.calico) col = pal.w;
-    out[y * CW + x] = col;
+    }
+    if (c === 'P') return B.paws ? pal.w : B.points ? pal.x : pal.b;
+    if (c === 'M' || c === 'C') return B.white ? pal.w : (B.points && c === 'M') ? pal.x : pal.b;
+    if (B.points && 'HRLTF'.includes(c)) return pal.x;
+    if (B.stripe) {
+      if (c === 'b' && Math.sin((x + Math.sin(y * .45) * 2.2) * .62) > .55 && y < R.by + R.bry * .2) return pal.d;
+      if (c === 'H' && y < R.hy - 2 && Math.sin(x * 1.3) > .5 && x < R.hx + 2) return pal.d;
+      if ((c === 'T' || c === 'L' || c === 'F') && Math.sin((x + y) * .9) > .6) return pal.d;
+    }
+    return pal.b;
+  };
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(GW, GH), D = img.data, base = new Array(GW * GH);
+  const put = (i, rgb, a = 255) => { D[i * 4] = rgb[0]; D[i * 4 + 1] = rgb[1]; D[i * 4 + 2] = rgb[2]; D[i * 4 + 3] = a; };
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const i = y * GW + x, c = g[i]; if (!c) continue;
+    const b0 = baseOf(c, x, y); base[i] = b0;
+    if ('Ekchn'.includes(c) && c !== 'n') { put(i, c === 'E' ? mixC(hex2(b0), [255, 255, 255], R.lum[i] > .7 ? .25 : 0) : hex2(b0)); continue; }
+    const v = R.lum[i] * 3.4 + .45 + (BAYER[(x & 1) + (y & 1) * 2] - .375) * .7;
+    put(i, tones(b0)[Math.max(0, Math.min(3, Math.floor(v)))]);
   }
-  const ctx = cv.getContext('2d'), img = ctx.createImageData(CW, CH);
-  out.forEach((h, i) => { if (!h) return; const n = parseInt(h.slice(1), 16); img.data[i * 4] = n >> 16; img.data[i * 4 + 1] = (n >> 8) & 255; img.data[i * 4 + 2] = n & 255; img.data[i * 4 + 3] = 255; });
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    const i = y * GW + x; if (g[i]) continue;
+    const nb = [[x, y + 1], [x - 1, y], [x + 1, y], [x, y - 1]].find(([a, b]) => at(a, b));
+    if (nb) { const j = nb[1] * GW + nb[0]; put(i, mixC(hex2(base[j]), [20, 12, 16], .62)); }
+  }
+  if (P.eye !== undefined) R.wh.forEach(([wx, wy], n) => { for (let s = 1; s <= 4; s++) { const x = wx + s + 1, y = wy + Math.round((n ? .35 : -.25) * s); if (x < GW && y >= 0 && y < GH && !g[y * GW + x]) put(y * GW + x, [235, 232, 226], 150 - s * 25); } });
   ctx.putImageData(img, 0, 0);
 }
-function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH; cv.className = 'petcv ' + cls; paintCat(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], {}); return cv; }
+function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; paintCat(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], {}); return cv; }
 function catImg(k, pose, size = 88) { const cv = catCanvas(k, pose); return `<img class="petimg" src="${cv.toDataURL()}" width="${size}" height="${Math.round(size * CH / CW)}" alt="">`; }
 
 /* ---------- gatos na tela ---------- */
 const PETS = { box: null, list: [], tick: null };
 function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
 function savePets(p) { db.s.pets = p; put('s', db.s); petsSync(); }
-function petScale() { return isMobile() ? 2 : 3; }
+function petScale() { return isMobile() ? 2.5 : 3; }
 function petPos() { try { return JSON.parse(localStorage.getItem('tt_petpos') || '{}'); } catch (e) { return {}; } }
 function savePos() { const m = {}; PETS.list.forEach(p => { const [W, H] = p.room(); m[p.slot] = { x: W ? p.X / W : 0, y: H ? p.Y / H : 0 }; }); try { localStorage.setItem('tt_petpos', JSON.stringify(m)); } catch (e) {} }
 function petsSync() {
@@ -141,7 +161,7 @@ function makePet(c, slot, saved) {
   const el = document.createElement('div'); el.className = 'pet'; el.style.width = EW + 'px'; el.style.height = EH + 'px'; el.style.setProperty('--sc', SC);
   el.setAttribute('role', 'img'); el.setAttribute('aria-label', 'Gatinho ' + (c.n || ''));
   el.innerHTML = `<span class="petsh"></span><div class="petb"></div><span class="petfx"></span>`;
-  const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH; cv.className = 'petcv'; el.querySelector('.petb').appendChild(cv);
+  const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv'; el.querySelector('.petb').appendChild(cv);
   PETS.box.appendChild(el);
   const room = () => [Math.max(0, innerWidth - EW), Math.max(0, innerHeight - EH)];
   const p = { slot, k: c.k, n: c.n, el, cv, room, dead: false, timers: [], t: 0, dir: slot ? -1 : 1, pose: 'sit', P: cloneP(POSES.sit), tw: null, walk: null, m: {}, busy: false };
@@ -166,8 +186,8 @@ function makePet(c, slot, saved) {
       const legs = [['fn', 0], ['hf', 0], ['ff', Math.PI], ['hn', Math.PI]];
       legs.forEach(([k, o]) => { const s = Math.sin(w.ph + o), lift = Math.max(0, Math.cos(w.ph + o)); P[k][4] += s * 2.3; P[k][5] -= lift * 1.3; P[k][2] += s * 1.1; });
       const bob = Math.abs(Math.sin(w.ph)) * .45; P.b[1] -= bob; P.ha[1] -= bob; P.h[1] -= bob * .7; P.nk[1] -= bob; P.nk[3] -= bob;
-      p.X += p.dir * (SC === 3 ? 1.5 : 1.05); place();
-      const [W] = room(); w.left -= SC === 3 ? 1.5 : 1.05;
+      p.X += p.dir * SC * .5; place();
+      const [W] = room(); w.left -= SC * .5;
       if (w.left <= 0 || p.X <= 0 || p.X >= W) { p.walk = null; savePos(); w.done(); }
     }
     if (p.pose === 'groom') { P.fn[5] += Math.sin(t * .55) * 1.1; P.fn[3] += Math.sin(t * .55) * .6; p.m.tongue = Math.sin(t * .55) > .2; }
