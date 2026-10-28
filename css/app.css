@@ -1111,7 +1111,7 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 .pet{position:absolute;left:0;top:0;pointer-events:auto;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .pet.held{cursor:grabbing;z-index:2}
 .petb{position:absolute;inset:0;transform-origin:50% 90%}
-.petcv{width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block}.petcv.real{image-rendering:auto}
+.petcv{width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block}.petcv.real{image-rendering:auto}.petcv{transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
 .petimg{display:block}
 .petsh{position:absolute;left:22%;width:56%;bottom:calc(var(--sc,3) * 2px);height:calc(var(--sc,3) * 2.5px);border-radius:50%;background:rgba(0,0,0,.14);filter:blur(1px);transition:.2s}
 .pet.held .petb{animation:dangle .6s ease-in-out infinite}

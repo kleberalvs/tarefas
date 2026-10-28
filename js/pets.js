@@ -329,8 +329,13 @@ function sprPreload(k) { ['frente', 'frente_b', 'sentado', 'lat_dir', 'lat_dir_b
 const SPW = 280, SPH = 204;
 function paintSprite(cv, k, m = {}) {
   if (cv.width !== SPW) { cv.width = SPW; cv.height = SPH; }
-  const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, SPW, SPH);
+  const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1;
   let pose = m.sp || 'frente';
+  const nowT = performance.now();
+  if (cv._base !== pose) { if (cv._base) { const f = cv._fade || (cv._fade = document.createElement('canvas')); f.width = SPW; f.height = SPH; f.getContext('2d').drawImage(cv, 0, 0); cv._ft = nowT; } cv._base = pose; }
+  c.clearRect(0, 0, SPW, SPH);
+  const fa = cv._ft ? 1 - (nowT - cv._ft) / 240 : 0;
+  if (fa > 0) { c.save(); c.globalAlpha = fa; c.drawImage(cv._fade, 0, 0); c.restore(); c.globalAlpha = 1 - fa * .6; }
   if (m.closed && sprOk(sprImg(k, pose + '_b'))) pose += '_b';
   let im = sprImg(k, pose);
   if (!sprOk(im)) { im = sprImg(k, 'frente'); pose = 'frente'; if (!sprOk(im)) return; }
@@ -384,13 +389,20 @@ function petsSync() {
   if (PETS.sig === sig) return;
   PETS.sig = sig;
   PETS.list.forEach(p => p.kill()); PETS.list = [];
-  clearInterval(PETS.tick); PETS.tick = null;
+  cancelAnimationFrame(PETS.tick); PETS.tick = null;
   if (!want.length) { if (PETS.box) PETS.box.remove(); PETS.box = null; return; }
   if (!PETS.box) { PETS.box = document.createElement('div'); PETS.box.id = 'pets'; document.body.appendChild(PETS.box); }
   const pos = petPos();
   if (petStyle() === 'ilustrado') want.forEach(c => sprPreload(c.k));
   want.forEach((c, i) => PETS.list.push(makePet(c, i, pos[i])));
-  PETS.tick = setInterval(() => { if (document.hidden) return; PETS.list.forEach(p => p.step()); }, 90);
+  const smooth = petStyle() === 'ilustrado'; let last = performance.now(), acc = 0;
+  const loop = ts => {
+    if (!PETS.tick) return; PETS.tick = requestAnimationFrame(loop);
+    const dt = Math.min(120, ts - last); last = ts; if (document.hidden) return;
+    if (smooth) PETS.list.forEach(p => p.step(dt / 90));
+    else { acc += dt; if (acc >= 90) { acc = 0; PETS.list.forEach(p => p.step(1)); } }
+  };
+  PETS.tick = requestAnimationFrame(loop);
 }
 function petsReset() { try { localStorage.removeItem('tt_petpos'); } catch (e) {} PETS.sig = null; petsSync(); }
 function makePet(c, slot, saved) {
@@ -410,29 +422,35 @@ function makePet(c, slot, saved) {
   const other = () => PETS.list.find(q => q !== p);
   const toPose = (name, ms = 500) => { p.tw = { from: cloneP(p.P), to: POSES[name], t: 0, n: Math.max(1, Math.round(ms / 90)) }; p.pose = name; };
   /* desenho de cada quadro */
-  p.step = () => {
-    p.t++;
-    if (p.tw) { const tw = p.tw; tw.t++; const e = tw.t / tw.n, k = e < .5 ? 2 * e * e : 1 - Math.pow(-2 * e + 2, 2) / 2; p.P = lerpP(tw.from, tw.to, Math.min(1, k)); if (tw.t >= tw.n) p.tw = null; }
+  p.step = (k = 1) => {
+    p.t += k;
+    if (p.tw) { const tw = p.tw; tw.t += k; const e = tw.t / tw.n, k = e < .5 ? 2 * e * e : 1 - Math.pow(-2 * e + 2, 2) / 2; p.P = lerpP(tw.from, tw.to, Math.min(1, k)); if (tw.t >= tw.n) p.tw = null; }
     const P = cloneP(p.P), t = p.t;
     const sleeping = p.pose === 'sleep', held = p.pose === 'hang';
     if (!p.walk && !held) { const br = Math.sin(t * (sleeping ? .07 : .11)) * (sleeping ? .3 : .18); P.b[3] += br; P.ha[3] += br * .6; P.h[1] += br * .5; }
     const amp = sleeping ? 3 : p.pose === 'lie' ? 5 : held ? 10 : p.pose === 'sit' ? 9 : 12, sp = sleeping ? .05 : held ? .3 : .13;
     P.ta = P.ta.map((a, i) => a + Math.sin(t * sp - i * .5) * amp * (i / 6));
     if (p.walk) {
-      const w = p.walk; w.ph += .48;
+      const w = p.walk; w.ph += .42 * k;
       const legs = [['fn', 0], ['hf', 0], ['ff', Math.PI], ['hn', Math.PI]];
       legs.forEach(([k, o]) => { const s = Math.sin(w.ph + o), lift = Math.max(0, Math.cos(w.ph + o)); P[k][4] += s * 2.3; P[k][5] -= lift * 1.3; P[k][2] += s * 1.1; });
       const bob = Math.abs(Math.sin(w.ph)) * .45; P.b[1] -= bob; P.ha[1] -= bob; P.h[1] -= bob * .7; P.nk[1] -= bob; P.nk[3] -= bob;
-      p.X += p.dir * SC * .5; place();
-      const [W] = room(); w.left -= SC * .5;
+      p.X += p.dir * SC * .44 * k; place();
+      const [W] = room(); w.left -= SC * .44 * k;
       if (w.left <= 0 || p.X <= 0 || p.X >= W) { p.walk = null; savePos(); w.done(); }
     }
     if (p.pose === 'groom') { P.fn[5] += Math.sin(t * .55) * 1.1; P.fn[3] += Math.sin(t * .55) * .6; p.m.tongue = Math.sin(t * .55) > .2; }
     if (petStyle() === 'ilustrado') {
-      const ph = p.walk ? p.walk.ph : 0, br = Math.sin(t * (p.pose === 'sleep' ? .07 : .11));
-      const sp = p.pose === 'hang' ? 'frente' : p.m.happy ? 'carinho' : p.walk || p.pose === 'stand' || p.pose === 'stretch' ? 'andando' : p.pose === 'lie' || p.pose === 'sleep' ? 'deitado' : p.pose === 'groom' ? 'carinho' : (p.m.view || 'frente');
-      const blink = p.m.blink || (!p.walk && p.pose !== 'hang' && (t % 43 === 0 || t % 43 === 1));
-      drawPet(cv, p.k, P, { sp, closed: p.pose === 'sleep' || blink || (p.pose === 'lie' && Math.sin(t * .02) > .55), step: ph, tail: Math.sin(t * (p.walk ? .35 : .12)) * (p.walk ? .16 : .1), tilt: p.m.tilt != null ? p.m.tilt : Math.sin(t * .045) * .035, dy: p.walk ? -Math.abs(Math.sin(ph)) * 3 : p.pose === 'groom' ? Math.sin(t * .5) * 1.5 : 0, rot: p.pose === 'hang' ? Math.sin(t * .5) * .08 : p.m.happy ? Math.sin(t * .6) * .03 : 0, sy: 1 + br * (p.pose === 'sleep' ? .022 : .013), sx: (p.pose === 'stretch' ? 1.07 : 1) * (1 - br * .004) });
+      const now = performance.now(), ph = p.walk ? p.walk.ph : 0, sl = p.pose === 'sleep', br = Math.sin(t * (sl ? .07 : .11));
+      const sp = p.pose === 'hang' ? 'frente' : p.m.happy ? 'carinho' : p.walk || p.pose === 'stand' || p.pose === 'stretch' ? 'andando' : p.pose === 'lie' || sl ? 'deitado' : p.pose === 'groom' ? 'carinho' : (p.m.view || 'frente');
+      if (!p.nb || now > p.nb) { p.bu = now + 120; p.nb = now + 2400 + Math.random() * 3600; if (Math.random() < .25) p.bu2 = now + 300; }
+      const blink = p.m.blink || now < p.bu || (p.bu2 && now > p.bu2 && now < p.bu2 + 110);
+      const S = p.sm || (p.sm = { tilt: 0, rot: 0, dy: 0 }), e = Math.min(1, .14 * k);
+      const tTilt = p.m.tilt != null ? p.m.tilt : Math.sin(t * .04) * .03;
+      const tRot = p.pose === 'hang' ? Math.sin(t * .45) * .1 : p.m.happy ? Math.sin(t * .5) * .04 : p.walk ? Math.sin(ph) * .012 : 0;
+      const tDy = p.walk ? -Math.abs(Math.sin(ph)) * 3.2 : p.m.happy ? -Math.abs(Math.sin(t * .45)) * 4 : p.pose === 'groom' ? Math.sin(t * .5) * 1.5 : 0;
+      S.tilt += (tTilt - S.tilt) * e; S.rot += (tRot - S.rot) * Math.min(1, .3 * k); S.dy += (tDy - S.dy) * Math.min(1, .45 * k);
+      drawPet(cv, p.k, P, { sp, closed: sl || blink || (p.pose === 'lie' && Math.sin(t * .02) > .55), step: ph, tail: Math.sin(t * (p.walk ? .3 : .1)) * (p.walk ? .17 : .1), tilt: S.tilt, dy: S.dy, rot: S.rot, sy: 1 + br * (sl ? .024 : .014), sx: (p.pose === 'stretch' ? 1.07 : 1) * (1 - br * .005) });
       return;
     }
     drawPet(cv, p.k, P, Object.assign({}, p.m, { fmode: p.pose === 'lie' || p.pose === 'sleep' ? 'loaf' : 'sit', eyes: p.m.eyes || (p.pose === 'sleep' || p.pose === 'groom' || p.pose === 'stretch' ? 'closed' : p.pose === 'hang' ? 'wide' : p.pose === 'lie' && Math.sin(t * .02) > .3 ? 'sleepy' : undefined), paw: p.pose === 'groom', walkf: p.walk ? (Math.floor(p.walk.ph / 1.5) % 2) + 1 : 0, tail: Math.sin(t * (p.pose === 'sleep' ? .05 : .13)) > .35 ? 1 : 0, bob: p.walk ? (Math.floor(p.walk.ph / 1.5) % 2) : (Math.sin(t * .11) > .75 ? 1 : 0), blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
