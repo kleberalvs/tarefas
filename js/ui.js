@@ -45,6 +45,7 @@ function doRender(force) {
     main.className = '';
     try { fn(main); } catch (e) { console.error(e); main.innerHTML = `<div class="empty"><p>Algo deu errado ao abrir esta tela.</p><p class="mut">${esc(e.message)}</p></div>`; }
     const sc2 = main.querySelector('.scroll'); if (sc2 && main.dataset.key === key) sc2.scrollTop = top;
+    if (main.dataset.key !== key && !matchMedia('(prefers-reduced-motion: reduce)').matches) { main.classList.add('vin'); clearTimeout(main._vt); main._vt = setTimeout(() => main.classList.remove('vin'), 700); }
     main.dataset.key = key;
   }
   if (typeof renderDetail === 'function' && (force || !busy(det))) renderDetail(det);
@@ -189,6 +190,41 @@ function tabsHtml() {
   return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets', 'notes'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
 }
 /* cabeçalho padrão das telas */
+/* "- " + espaço vira "• "; Enter continua a lista; Enter num item vazio encerra */
+const BUL_RE = /^[\-–—*][ \u00a0]$/;
+function bulletArea(ta) {
+  ta.addEventListener('input', e => {
+    const p = ta.selectionStart, ls = ta.value.lastIndexOf('\n', p - 1) + 1;
+    if (BUL_RE.test(ta.value.slice(ls, p))) { ta.value = ta.value.slice(0, ls) + '• ' + ta.value.slice(p); ta.setSelectionRange(ls + 2, ls + 2); ta.dispatchEvent(new Event('input')); }
+  });
+  ta.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    const p = ta.selectionStart, ls = ta.value.lastIndexOf('\n', p - 1) + 1, line = ta.value.slice(ls, p);
+    if (!line.startsWith('• ')) return;
+    e.preventDefault();
+    if (line.trim() === '•') { ta.value = ta.value.slice(0, ls) + ta.value.slice(p); ta.setSelectionRange(ls, ls); }
+    else { ta.value = ta.value.slice(0, p) + '\n• ' + ta.value.slice(ta.selectionEnd); ta.setSelectionRange(p + 3, p + 3); }
+    ta.dispatchEvent(new Event('input'));
+  });
+}
+function bulletRich(el) {
+  el.addEventListener('input', () => {
+    const s = getSelection(); if (!s.rangeCount) return; const r = s.getRangeAt(0), n = r.startContainer;
+    if (n.nodeType !== 3) return;
+    const before = n.textContent.slice(0, r.startOffset), prev = n.previousSibling;
+    const lineStart = !prev || prev.nodeName === 'BR' || prev.nodeName === 'DIV' || prev.nodeName === 'P';
+    if (lineStart && BUL_RE.test(before)) { n.textContent = '• ' + n.textContent.slice(r.startOffset); const nr = document.createRange(); nr.setStart(n, 2); nr.collapse(true); s.removeAllRanges(); s.addRange(nr); }
+  });
+  el.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+    const s = getSelection(); if (!s.rangeCount) return; const n = s.getRangeAt(0).startContainer;
+    const txt = (n.nodeType === 3 ? n.textContent : n.textContent || '');
+    if (!txt.startsWith('• ')) return;
+    if (txt.trim() === '•') { e.preventDefault(); n.textContent = ''; return; }
+    setTimeout(() => document.execCommand('insertText', false, '• '), 0);
+  });
+}
+function folderPathName(f) { const p = []; let x = f, k = 0; while (x && k++ < 12) { p.unshift((x.emoji ? x.emoji + ' ' : '') + x.name); x = x.par ? get('f', x.par) : null; } return p.join(' / '); }
 function headHtml(title, sub, right = '', opts = {}) {
   return `<header class="vhead">
     <button class="ib show-m" data-act="drawer" aria-label="Abrir menu">${ic('menu')}</button>
@@ -243,7 +279,7 @@ function pop(anchor, html, opts = {}) {
   return el;
 }
 function modal(html, opts = {}) {
-  closeModal();
+  closeModal(true);
   const m = $('#modal');
   m.innerHTML = `<div class="mbox ${opts.cls || ''}" role="dialog" aria-modal="true">${html}</div>`;
   m.classList.add('on');
@@ -251,7 +287,11 @@ function modal(html, opts = {}) {
   if (f && !isMobile()) setTimeout(() => f.focus(), 30);
   return m.firstChild;
 }
-function closeModal() { const m = $('#modal'); m.classList.remove('on'); m.innerHTML = ''; }
+function closeModal(instant) {
+  const m = $('#modal'); clearTimeout(m._ct);
+  if (instant === true || !m.classList.contains('on') || matchMedia('(prefers-reduced-motion: reduce)').matches) { m.classList.remove('on', 'closing'); m.innerHTML = ''; return; }
+  m.classList.add('closing'); m._ct = setTimeout(() => { m.classList.remove('on', 'closing'); m.innerHTML = ''; }, 190);
+}
 function ask(title, value = '', opts = {}) {
   return new Promise(res => {
     const el = modal(`<h2>${esc(title)}</h2>${opts.sub ? `<p class="mut">${esc(opts.sub)}</p>` : ''}<form><input class="in" value="${esc(value)}" placeholder="${esc(opts.ph || '')}" autofocus maxlength="200"><div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">${esc(opts.ok || 'Salvar')}</button></div></form>`);
@@ -638,7 +678,7 @@ function initUi() {
     else if (e.key === '/') { e.preventDefault(); go('search'); }
     else if (e.key === 'h') go('l/today');
     else if (e.key === 'c') go('cal');
-    else if (e.key === 'd') { const d = newDoc({ o: Date.now() }); go('doc/' + d.id); }
+    else if (e.key === 'd') { e.preventDefault(); ACTS.dnew(); }
     else if (e.key === 'k') openNote(null);
   });
   initDnd();

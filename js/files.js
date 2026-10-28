@@ -56,7 +56,38 @@ const FILES = (() => {
   }
   return { add, blob, url, remove, flush };
 })();
+document.addEventListener('click', e => {
+  const im = e.target.closest && e.target.closest('#blocks figure.bimg img[data-img]');
+  if (!im || !ED.doc) return;
+  const imgs = ED.doc.b.filter(b => b.type === 'img' && b.file).map(b => b.file);
+  lightbox(imgs, Math.max(0, imgs.findIndex(f => f.id === im.dataset.img)));
+});
+/* visualizador de imagens: tela cheia, zoom com dois dedos/duplo toque, baixar e compartilhar */
+async function lightbox(list, i = 0) {
+  list = (Array.isArray(list) ? list : [list]).filter(Boolean); if (!list.length) return;
+  const lb = document.createElement('div'); lb.className = 'lbox'; lb.innerHTML = `<div class="lbbar"><span class="lbn"></span><span class="f1"></span>${navigator.share ? `<button class="ib" data-lb="share" aria-label="Compartilhar">${ic('share', 20)}</button>` : ''}<button class="ib" data-lb="dl" aria-label="Baixar">${ic('dl', 20)}</button><button class="ib" data-lb="x" aria-label="Fechar">${ic('x', 22)}</button></div><div class="lbstage"><img alt=""></div>${list.length > 1 ? `<button class="lbnav l" data-lb="p" aria-label="Anterior">${ic('left', 26)}</button><button class="lbnav r" data-lb="n" aria-label="Próxima">${ic('right', 26)}</button>` : ''}`;
+  document.body.appendChild(lb); requestAnimationFrame(() => lb.classList.add('on'));
+  const img = lb.querySelector('img'); let zoom = 1;
+  const show = async () => { const m = list[i]; lb.querySelector('.lbn').textContent = (list.length > 1 ? (i + 1) + ' / ' + list.length + ' · ' : '') + (m.name || 'Imagem'); img.classList.remove('in'); zoom = 1; img.style.transform = ''; try { if (!IMG_URL.has(m.id)) IMG_URL.set(m.id, await FILES.url(m)); img.src = IMG_URL.get(m.id); img.onload = () => img.classList.add('in'); } catch (e) { toast('Imagem indisponível neste aparelho'); } };
+  const close = () => { lb.classList.remove('on'); document.removeEventListener('keydown', key, true); setTimeout(() => lb.remove(), 220); };
+  const key = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } else if (e.key === 'ArrowRight' && list.length > 1) { i = (i + 1) % list.length; show(); } else if (e.key === 'ArrowLeft' && list.length > 1) { i = (i - 1 + list.length) % list.length; show(); } };
+  document.addEventListener('keydown', key, true);
+  lb.addEventListener('click', async e => {
+    const b = e.target.closest('[data-lb]');
+    if (!b) { if (e.target === lb || e.target.classList.contains('lbstage')) close(); return; }
+    const a = b.dataset.lb, m = list[i];
+    if (a === 'x') close();
+    else if (a === 'n') { i = (i + 1) % list.length; show(); } else if (a === 'p') { i = (i - 1 + list.length) % list.length; show(); }
+    else if (a === 'dl') { try { const bl = await FILES.blob(m), u = URL.createObjectURL(bl), l = document.createElement('a'); l.href = u; l.download = m.name || 'imagem.jpg'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); } catch (er) { toast('Não foi possível baixar'); } }
+    else if (a === 'share') { try { const bl = await FILES.blob(m); const f = new File([bl], m.name || 'imagem.jpg', { type: bl.type || m.type || 'image/jpeg' }); if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f] }); else await navigator.share({ title: m.name }); } catch (er) {} }
+  });
+  img.addEventListener('dblclick', () => { zoom = zoom > 1 ? 1 : 2.2; img.style.transform = `scale(${zoom})`; });
+  let sx = 0; lb.querySelector('.lbstage').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  lb.querySelector('.lbstage').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 60 && list.length > 1 && zoom === 1 && !(window.visualViewport && visualViewport.scale > 1.05)) { i = (i + (dx < 0 ? 1 : -1) + list.length) % list.length; show(); } });
+  show();
+}
 async function openFile(m) {
+  if (/^image\//.test(m.type || '')) return lightbox(m);
   try {
     const u = await FILES.url(m);
     if (/^image\/|^application\/pdf|^text\//.test(m.type) && !/iPhone|iPad/.test(navigator.userAgent)) window.open(u, '_blank');

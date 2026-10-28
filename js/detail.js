@@ -40,7 +40,7 @@ function renderDetail(det) {
     <button class="ib hide-m" data-act="dclose" aria-label="Fechar">${ic('x')}</button>
   </header>
   <div class="dscroll">
-    ${t.cover ? `<div class="tcover"><img alt="Capa da tarefa" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"><div class="tcbtns"><label class="btn ghost sm">${ic('img', 16)}Trocar<input type="file" accept="image/*" hidden data-f="cover"></label><button class="btn ghost sm" data-act="tcovrm">Remover</button></div></div>` : ''}
+    ${t.cover ? `<div class="tcover"><img alt="Capa da tarefa" data-act="covopen" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"><div class="tcbtns"><label class="btn ghost sm">${ic('img', 16)}Trocar<input type="file" accept="image/*" hidden data-f="cover"></label><button class="btn ghost sm" data-act="tcovrm">Remover</button></div></div>` : ''}
     ${t.par ? `<button class="link dparent" data-act="topen" data-id="${t.par}">${ic('left', 14)} ${esc((get('t', t.par) || {}).title || 'Tarefa principal')}</button>` : ''}
     <textarea class="dtitle" data-keep rows="1" placeholder="Título da tarefa" aria-label="Título">${esc(t.title)}</textarea>
     <div class="dnotes rich" data-keep contenteditable="true" data-ph="Descrição, ideias, links…" aria-label="Descrição">${clean(t.notes)}</div>
@@ -141,7 +141,7 @@ function bindDetail(det, t) {
       put('t', t); gcalPushTask(t); render(true);
     } else { t.title = ti.value.trim(); put('t', t); gcalPushTask(t); }
   };
-  const no = det.querySelector('.dnotes');
+  const no = det.querySelector('.dnotes'); if (no) bulletRich(no);
   const saveNotes = debounce(() => { t.notes = clean(no.innerHTML); put('t', t); }, 500);
   no.oninput = saveNotes;
   no.onblur = () => { t.notes = clean(no.innerHTML); put('t', t); gcalPushTask(t); };
@@ -185,6 +185,7 @@ function bindDetail(det, t) {
 }
 Object.assign(ACTS, {
   dclose: () => closeTask(),
+  covopen: () => { const t = get('t', R.sel); if (t && t.cover) lightbox(t.cover); },
   tcovrm: () => { const t = get('t', R.sel); if (t && t.cover) { const m = t.cover; t.cover = null; put('t', t); FILES.remove(m); } },
   dcheck: b => checkTask(R.sel),
   dpdue: b => { const t = get('t', R.sel); datePicker(b, { date: dOnly(t.due || '') || null, time: tOnly(t.due) || null }, v => { if (!v.date) { t.due = null; if (!t.start) t.rep = null; } else { t.due = withT(v.date, v.time); if (t.start && t.start > t.due) t.start = null; if (v.time && !(t.rem || []).length) t.rem = [0]; } put('t', t); gcalPushTask(t); }, { simple: 1 }); },

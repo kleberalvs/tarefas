@@ -74,7 +74,7 @@ VIEWS.notes = main => {
       <div class="seg">${[['notas', 'Notas'], ['arquivo', 'Arquivo'], ['lixeira', 'Lixeira']].map(([k, n]) => `<button class="${NF.tab === k ? 'on' : ''}" data-act="ntab" data-k="${k}">${n}</button>`).join('')}</div>
     </div>
     ${tags.length ? `<div class="ntagbar"><button class="${!NF.tag ? 'on' : ''}" data-act="ntag" data-k="">Todas</button>${tags.map(t => `<button class="${NF.tag === t ? 'on' : ''}" data-act="ntag" data-k="${esc(t)}">${ic('tag', 13)}${esc(t)}</button>`).join('')}</div>` : ''}
-    ${NF.tab === 'notas' ? `<div class="ntake"><button class="ntake-t" data-act="qnote">Criar uma nota…</button><button class="ib" data-act="qnote" data-list="1" title="Nova lista" aria-label="Nova lista">${ic('done', 19)}</button><button class="ib" data-act="qnote" data-img="1" title="Nova nota com imagem" aria-label="Nova nota com imagem">${ic('img', 19)}</button><button class="ib" data-act="qnote" data-rec="1" title="Nova nota de voz" aria-label="Nova nota de voz">${ic('mic', 19)}</button></div>` : ''}
+    ${NF.tab === 'notas' ? `<div class="ntake"><button class="ntake-t" data-act="qnote">Criar uma nota…</button><button class="ib" data-act="qnote" data-list="1" title="Nova lista" aria-label="Nova lista">${ic('done', 19)}</button><button class="ib" data-act="qnote" data-img="1" title="Nova nota com imagem" aria-label="Nova nota com imagem">${ic('img', 19)}</button><button class="ib" data-act="qnote" data-draw="1" title="Escrever à mão" aria-label="Escrever à mão">${ic('pen', 19)}</button><button class="ib" data-act="qnote" data-rec="1" title="Nova nota de voz" aria-label="Nova nota de voz">${ic('mic', 19)}</button></div>` : ''}
     ${NF.tab === 'lixeira' && list.length ? `<div class="row end"><button class="btn ghost sm" data-act="nempty">Esvaziar lixeira</button></div>` : ''}
     ${pinned.length ? `<h4 class="nsec">Fixadas</h4><div class="ngrid">${pinned.map(noteCard).join('')}</div>${rest.length ? '<h4 class="nsec">Outras</h4>' : ''}` : ''}
     <div class="ngrid">${rest.map(noteCard).join('')}</div>
@@ -97,6 +97,7 @@ function openNote(id, opts = {}) {
   drawNoteEditor();
   if (opts.img) setTimeout(() => ACTS.nimgadd(null, null, true), 60);
   if (opts.rec) setTimeout(() => startRec(), 120);
+  if (opts.draw) setTimeout(() => NE_ACT.draw(), 120);
 }
 const saveNote = debounce(() => { if (!NE) return; const n = NE.n; if (NE.isNew && noteEmpty(n)) return; NE.isNew = false; n.o = n.o || Date.now(); put('n', n); }, 400);
 function noteChanged() { saveNote(); }
@@ -105,7 +106,7 @@ function drawNoteEditor() {
   const itemRow = (i, k) => `<div class="nitem${i.done ? ' done' : ''}" data-k="${k}"><input type="checkbox" ${i.done ? 'checked' : ''} data-nck="${k}" aria-label="Marcar"><input class="nit" value="${esc(i.t)}" data-nit="${k}" placeholder="Item"><button class="ib xs" data-nrm="${k}" aria-label="Remover item">${ic('x', 15)}</button></div>`;
   const el = modal(`<div class="nedit ncard${n.color ? ' tint' : ''}${n.bg ? ' patt' : ''}${n.bgImg ? ' bgimg' : ''}${n.big ? ' big' : ''}" style="${noteStyle(n)}">
     ${n.bgImg ? `<img class="nbgi" data-nimg="${n.bgImg.id}" data-n="${n.id}" data-bg="1" alt="">` : ''}
-    <div class="neimgs">${(n.img || []).map(m => `<div class="neimg"><img data-nimg="${m.id}" data-n="${n.id}" alt=""><button class="ib xs" data-nimgrm="${m.id}" aria-label="Remover imagem">${ic('trash', 15)}</button></div>`).join('')}</div>
+    <div class="neimgs">${(n.img || []).map(m => `<div class="neimg"><img data-nimg="${m.id}" data-n="${n.id}" data-lbi="${m.id}" alt=""><button class="ib xs" data-nimgrm="${m.id}" aria-label="Remover imagem">${ic('trash', 15)}</button></div>`).join('')}</div>
     <div class="nin">
       <div class="nehead"><input class="ntitle" id="ne_t" placeholder="Título" value="${esc(n.title || '')}" maxlength="200"><button class="npin${n.pin ? ' on' : ''}" data-ne="pin" aria-label="Fixar">${ic('pin', 19)}</button></div>
       ${n.list ? `<div class="nitems">${items.map((i, k) => i.done ? '' : itemRow(i, k)).join('')}<div class="nitem add">${ic('plus', 16)}<input class="nit" id="ne_add" placeholder="Item da lista"></div>${items.some(i => i.done) ? `<p class="mut sm nmk">${items.filter(i => i.done).length} marcado(s)</p>${items.map((i, k) => i.done ? itemRow(i, k) : '').join('')}` : ''}</div>`
@@ -118,6 +119,8 @@ function drawNoteEditor() {
     <div class="nefoot">
       <button class="ib" data-pop data-ne="pal" title="Cores, fundo e letra" aria-label="Cores, fundo e letra">${ic('palette', 18)}</button>
       <button class="ib" data-pop data-ne="img" title="Adicionar imagem" aria-label="Adicionar imagem">${ic('img', 18)}</button>
+      <button class="ib aib" data-pop data-ne="ai" title="Escrever com IA" aria-label="Escrever com IA">${ic('spark', 18)}</button>
+      <button class="ib" data-pop data-ne="draw" title="Escrever à mão" aria-label="Escrever à mão">${ic('pen', 18)}</button>
       <button class="ib" data-pop data-ne="aud" title="Áudio" aria-label="Áudio">${ic('mic', 18)}</button>
       <button class="ib" data-pop data-ne="list" title="${n.list ? 'Ocultar caixas de seleção' : 'Mostrar caixas de seleção'}" aria-label="Lista">${ic('done', 18)}</button>
       <button class="ib" data-pop data-ne="tag" title="Etiquetas" aria-label="Etiquetas">${ic('tag', 18)}</button>
@@ -129,7 +132,8 @@ function drawNoteEditor() {
   const box = el;
   const t = box.querySelector('#ne_t'); t.oninput = () => { n.title = t.value; noteChanged(); };
   const b = box.querySelector('#ne_b');
-  if (b) { const fit = () => { b.style.height = 'auto'; b.style.height = Math.min(innerHeight * .55, b.scrollHeight + 2) + 'px'; }; fit(); b.oninput = () => { n.body = b.value; fit(); noteChanged(); }; if (NE.isNew && !isMobile()) setTimeout(() => b.focus(), 50); }
+  if (b) b.addEventListener('input', e => { const p = b.selectionStart; if (b.value[p - 1] === '/' && (p === 1 || b.value[p - 2] === '\n')) { b.value = b.value.slice(0, p - 1) + b.value.slice(p); b.setSelectionRange(p - 1, p - 1); n.body = b.value; noteChanged(); menu(b, [{ head: 'Escrever com IA' }, ...AI_ACTS.filter(a => !a.need || (n.body || '').trim()).map(a => ({ label: a.e + '  ' + a.n, act: () => NE_ACT.ai(null, null, a.k) }))]); } });
+  if (b) { bulletArea(b); const fit = () => { b.style.height = 'auto'; b.style.height = Math.min(innerHeight * .55, b.scrollHeight + 2) + 'px'; }; fit(); b.oninput = () => { n.body = b.value; fit(); noteChanged(); }; if (NE.isNew && !isMobile()) setTimeout(() => b.focus(), 50); }
   box.querySelectorAll('[data-nit]').forEach(i => { i.oninput = () => { n.items[+i.dataset.nit].t = i.value; noteChanged(); }; i.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); n.items.splice(+i.dataset.nit + 1, 0, { id: uid(), t: '', done: false }); noteChanged(); drawNoteEditor(); const nx = $('#modal [data-nit="' + (+i.dataset.nit + 1) + '"]'); nx && nx.focus(); } }; });
   box.querySelectorAll('[data-nck]').forEach(c => c.onchange = () => { n.items[+c.dataset.nck].done = c.checked; noteChanged(); drawNoteEditor(); });
   box.querySelectorAll('[data-nrm]').forEach(c => c.onclick = () => { n.items.splice(+c.dataset.nrm, 1); noteChanged(); drawNoteEditor(); });
@@ -140,6 +144,7 @@ function drawNoteEditor() {
   box.querySelectorAll('[data-ntagrm]').forEach(x => x.onclick = () => { n.tags = n.tags.filter(q => q !== x.dataset.ntagrm); noteChanged(); drawNoteEditor(); });
   box.querySelectorAll('audio[data-naud]').forEach(async a => { const m = n.aud.find(q => q.id === a.dataset.naud); try { if (!NOTE_URL.has(m.id)) NOTE_URL.set(m.id, await FILES.url(m)); a.src = NOTE_URL.get(m.id); } catch (e) { a.replaceWith(Object.assign(document.createElement('span'), { className: 'mut sm', textContent: 'Áudio indisponível neste aparelho' })); } });
   box.querySelectorAll('[data-ne]').forEach(x => x.onclick = e => NE_ACT[x.dataset.ne](x, e));
+  box.querySelectorAll('[data-lbi]').forEach(x => x.onclick = () => lightbox(n.img, n.img.findIndex(q => q.id === x.dataset.lbi)));
   loadNoteImgs(box, n);
 }
 function closeNote() {
@@ -152,7 +157,15 @@ const NE_ACT = {
   pin: () => { NE.n.pin = !NE.n.pin; noteChanged(); drawNoteEditor(); },
   arch: () => { NE.n.arch = !NE.n.arch; NE.n.pin = false; put('n', NE.n); NE.isNew = false; toast(NE.n.arch ? 'Nota arquivada' : 'Nota desarquivada'); closeNote(); },
   list: () => { const n = NE.n; if (n.list) { n.body = (n.items || []).map(i => i.t).filter(Boolean).join('\n'); n.list = false; n.items = []; } else { n.items = (n.body || '').split('\n').filter(s => s.trim()).map(t => ({ id: uid(), t, done: false })); n.list = true; n.body = ''; } noteChanged(); drawNoteEditor(); },
+  ai: (x, e, act) => {
+    const n = NE.n, ta = $('#ne_b');
+    const sel = ta && ta.selectionStart !== ta.selectionEnd ? ta.value.slice(ta.selectionStart, ta.selectionEnd) : '';
+    const body = n.list ? (n.items || []).map(i => '- ' + i.t).join('\n') : n.body || '';
+    const put2 = (txt, rep) => { const p = aiPlain(txt); if (n.list) { const its = p.split('\n').map(s => s.replace(/^•\s*/, '').trim()).filter(Boolean).map(t => ({ id: uid(), t, done: false })); n.items = rep ? its : [...(n.items || []), ...its]; } else if (rep) { if (sel && ta) n.body = ta.value.slice(0, ta.selectionStart) + p + ta.value.slice(ta.selectionEnd); else n.body = p; } else { const pos = ta ? ta.selectionEnd : (n.body || '').length; n.body = (n.body || '').slice(0, pos) + ((n.body || '').slice(0, pos).trim() ? '\n' : '') + p + (n.body || '').slice(pos); } if (!n.title && act === 'title') { n.title = p.split('\n')[0]; } noteChanged(); drawNoteEditor(); };
+    aiPanel({ text: sel || body, all: [n.title, body].filter(Boolean).join('\n'), insert: t => { if (act === 'title' || (!n.title && /^[^\n]{1,80}$/.test(t.trim()) && false)) { n.title = aiPlain(t); noteChanged(); drawNoteEditor(); } else put2(t, false); }, replace: t => put2(t, true) }, act);
+  },
   img: () => ACTS.nimgadd(null, null, true),
+  draw: () => { const n = NE.n; openDraw(async f => { const m = await FILES.add(f); n.img = [...(n.img || []), m]; noteChanged(); if (NE && NE.n === n) drawNoteEditor(); }); },
   aud: x => menu(x, [{ label: 'Gravar áudio', icon: 'mic', act: () => startRec() }, { label: 'Importar arquivo de áudio', icon: 'music', act: () => pickAudio() }]),
   tag: x => noteTagPick(x, NE.n, () => { noteChanged(); drawNoteEditor(); }),
   pal: x => notePalette(x, NE.n, () => { noteChanged(); drawNoteEditor(); }),
@@ -225,7 +238,7 @@ async function startRec() {
 }
 function stopRec() { if (REC.mr && REC.mr.state !== 'inactive') REC.mr.stop(); }
 Object.assign(ACTS, {
-  qnote: b => { R.drawer = false; if (R.v !== 'notes' && !isMobile()) { } openNote(null, { list: b && b.dataset.list, img: b && b.dataset.img, rec: b && b.dataset.rec }); },
+  qnote: b => { R.drawer = false; if (R.v !== 'notes' && !isMobile()) { } openNote(null, { list: b && b.dataset.list, img: b && b.dataset.img, rec: b && b.dataset.rec, draw: b && b.dataset.draw }); },
   ntab: b => { NF.tab = b.dataset.k; render(); },
   ntag: b => { NF.tag = b.dataset.k; render(); },
   npin: b => { const n = get('n', b.dataset.id); n.pin = !n.pin; put('n', n); },

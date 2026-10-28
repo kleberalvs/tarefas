@@ -7,6 +7,7 @@ const COVERS = { none: 'Sem capa', sunset: 'Pôr do sol', ocean: 'Oceano', fores
 const FONTS = { sans: 'Sem serifa', serif: 'Serifada', mono: 'Monoespaçada', rounded: 'Arredondada' };
 const EMOJI = '📄📘📗📕📒📓📝✏️📌📎🗂️📁📅🗓️⏰✅☑️⭐🌟💡🔥🚀🎯🏁🏆💼🏠🛒🍽️☕🏋️🚶❤️💰💳📈📊🧾🎓📚🔧🛠️🎨🎵✈️🌎🌱🐾😊🤔⚠️❗❓🔒🔑'.match(/\p{Extended_Pictographic}️?/gu);
 const BTYPES = [
+  { k: 'ai', n: 'Escrever com IA', i: 'spark', kw: 'ia ai inteligencia artificial escrever gerar texto assistente ideias resumir melhorar corrigir traduzir' },
   { k: 'p', n: 'Texto', i: 'text', kw: 'texto paragrafo normal' },
   { k: 'h1', n: 'Título grande', i: 'h1', kw: 'titulo h1 cabecalho' },
   { k: 'h2', n: 'Título médio', i: 'h2', kw: 'titulo h2 subtitulo' },
@@ -22,6 +23,7 @@ const BTYPES = [
   { k: 'pb', n: 'Quebra de página', i: 'pagebreak', kw: 'quebra pagina nova folha a4' },
   { k: 'table', n: 'Tabela', i: 'table', kw: 'tabela grade colunas' },
   { k: 'img', n: 'Imagem', i: 'img', kw: 'imagem foto figura' },
+  { k: 'draw', n: 'Escrita à mão', i: 'pen', kw: 'escrita mao caneta desenho desenhar rabisco pencil' },
   { k: 'file', n: 'Arquivo', i: 'clip', kw: 'arquivo anexo pdf' },
   { k: 'task', n: 'Tarefa (cria no app)', i: 'todo', kw: 'tarefa task criar' },
   { k: 'linktask', n: 'Vincular tarefa existente', i: 'link', kw: 'vincular tarefa existente' },
@@ -29,8 +31,8 @@ const BTYPES = [
   { k: 'linkdoc', n: 'Link para documento', i: 'doc', kw: 'link documento pagina' },
   { k: 'date', n: 'Data de hoje', i: 'today', kw: 'data hoje dia' },
 ];
-const SLG = { p: 'Básico', h1: 'Básico', h2: 'Básico', h3: 'Básico', quote: 'Básico', callout: 'Básico', code: 'Básico', hr: 'Básico', pb: 'Básico', ul: 'Listas', ol: 'Listas', todo: 'Listas', toggle: 'Listas', table: 'Listas', img: 'Mídia', file: 'Mídia', task: 'Tarefas e páginas', linktask: 'Tarefas e páginas', page: 'Tarefas e páginas', linkdoc: 'Tarefas e páginas', date: 'Tarefas e páginas' };
-const SLD = { p: 'Parágrafo comum', h1: 'Título de seção', h2: 'Subtítulo', h3: 'Título menor', quote: 'Trecho em destaque', callout: 'Caixa colorida com ícone', code: 'Texto em fonte de código', hr: 'Linha separadora', pb: 'Começa uma nova folha A4', ul: 'Itens com marcador', ol: 'Itens numerados', todo: 'Itens para marcar', toggle: 'Conteúdo que abre e fecha', table: 'Linhas e colunas', img: 'Envie uma foto', file: 'Anexe um arquivo', task: 'Cria uma tarefa no app', linktask: 'Mostra uma tarefa existente', page: 'Página dentro deste documento', linkdoc: 'Atalho para outro documento', date: 'Insere a data de hoje' };
+const SLG = { ai: 'Inteligência artificial', p: 'Básico', h1: 'Básico', h2: 'Básico', h3: 'Básico', quote: 'Básico', callout: 'Básico', code: 'Básico', hr: 'Básico', pb: 'Básico', ul: 'Listas', ol: 'Listas', todo: 'Listas', toggle: 'Listas', table: 'Listas', img: 'Mídia', draw: 'Mídia', file: 'Mídia', task: 'Tarefas e páginas', linktask: 'Tarefas e páginas', page: 'Tarefas e páginas', linkdoc: 'Tarefas e páginas', date: 'Tarefas e páginas' };
+const SLD = { ai: 'Gerar, melhorar, resumir ou traduzir', p: 'Parágrafo comum', h1: 'Título de seção', h2: 'Subtítulo', h3: 'Título menor', quote: 'Trecho em destaque', callout: 'Caixa colorida com ícone', code: 'Texto em fonte de código', hr: 'Linha separadora', pb: 'Começa uma nova folha A4', ul: 'Itens com marcador', ol: 'Itens numerados', todo: 'Itens para marcar', toggle: 'Conteúdo que abre e fecha', table: 'Linhas e colunas', img: 'Envie uma foto', draw: 'Escreva ou desenhe com caneta ou dedo', file: 'Anexe um arquivo', task: 'Cria uma tarefa no app', linktask: 'Mostra uma tarefa existente', page: 'Página dentro deste documento', linkdoc: 'Atalho para outro documento', date: 'Insere a data de hoje' };
 const TEXTY = new Set(['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'todo', 'toggle', 'quote', 'callout', 'code']);
 let ED = { doc: null, caret: null };
 const IMG_URL = new Map();
@@ -104,7 +106,7 @@ function toolbarHtml() {
     ${B('color', 'palette', 'Cor do texto')}${B('hilite', 'highlight', 'Marca-texto')}<i class="tsep"></i>
     ${B('al-l', 'alignl', 'Alinhar à esquerda')}${B('al-c', 'alignc', 'Centralizar')}${B('al-r', 'alignr', 'Alinhar à direita')}${B('al-j', 'alignj', 'Justificar')}<i class="tsep"></i>
     ${B('ul', 'ul', 'Lista com marcadores')}${B('ol', 'ol', 'Lista numerada')}${B('todo', 'todo', 'Lista de verificação')}${B('outdent', 'outdent', 'Diminuir recuo')}${B('indent', 'indent', 'Aumentar recuo')}<i class="tsep"></i>
-    ${B('link', 'link', 'Inserir link')}${B('ins', 'plus', 'Inserir…')}${B('clear', 'x', 'Limpar formatação')}${B('find', 'search', 'Localizar e substituir')}
+    ${B('link', 'link', 'Inserir link')}${B('ai', 'spark', 'Escrever com IA')}${B('draw', 'pen', 'Escrita à mão')}${B('ins', 'plus', 'Inserir…')}${B('clear', 'x', 'Limpar formatação')}${B('find', 'search', 'Localizar e substituir')}
   </div>`;
 }
 VIEWS.doc = main => {
@@ -237,6 +239,8 @@ function bindToolbar(tb) {
     if (k === 'undo') return applyHist(-1);
     if (k === 'redo') return applyHist(1);
     if (k === 'find') return findReplace();
+    if (k === 'ai') { const cb0 = curBlock(); const bl = cb0 && cb0.b ? cb0.b : ED.doc.b[ED.doc.b.length - 1]; ED.ctx = { b: bl, off: 0, empty: !stripHtml(bl.text || '').trim() }; applyType('ai'); return; }
+    if (k === 'draw' && !(curBlock() || {}).b) { const lb = ED.doc.b[ED.doc.b.length - 1]; ED.ctx = { b: lb, off: 0, empty: false }; applyType('draw'); return; }
     const cb = curBlock(); if (!cb || !cb.b) { toast('Clique no texto primeiro'); return; }
     const { el, b: blk } = cb;
     if (['bold', 'italic', 'underline', 'strikeThrough', 'superscript', 'subscript'].includes(k)) { document.execCommand('styleWithCSS', false, false); document.execCommand(k); syncOne(el); histLater(); return; }
@@ -244,9 +248,10 @@ function bindToolbar(tb) {
     if (k.startsWith('al-')) { const v = { l: null, c: 'center', r: 'right', j: 'justify' }[k[3]]; if (v) blk.align = v; else delete blk.align; restructure(blk.id, caretOff(el)); return; }
     if (k === 'ul' || k === 'ol' || k === 'todo') { blk.type = blk.type === k ? 'p' : k; restructure(blk.id, caretOff(el)); return; }
     if (k === 'indent' || k === 'outdent') { blk.lvl = clamp((blk.lvl || 0) + (k === 'indent' ? 1 : -1), 0, 6); restructure(blk.id, caretOff(el)); return; }
+  if (k === 'draw') { ED.ctx = { b: blk, off: caretOff(el), empty: !el.textContent.trim() }; applyType('draw'); return; }
     if (k === 'ins') {
       ED.ctx = { b: blk, off: caretOff(el), empty: !el.textContent.trim() };
-      menu(b, ['img', 'table', 'hr', 'pb', 'callout', 'toggle', 'task', 'linktask', 'page', 'linkdoc', 'file', 'date'].map(t => { const x = BTYPES.find(y => y.k === t); return x && { label: x.n, icon: x.i, act: () => applyType(t) }; }));
+      menu(b, ['img', 'draw', 'table', 'hr', 'pb', 'callout', 'toggle', 'task', 'linktask', 'page', 'linkdoc', 'file', 'date'].map(t => { const x = BTYPES.find(y => y.k === t); return x && { label: x.n, icon: x.i, act: () => applyType(t) }; }));
     }
   });
   tb.addEventListener('change', e => {
@@ -445,6 +450,14 @@ function applyType(k) {
   if (TEXTY.has(k)) { const nb = empty ? Object.assign(b, { type: k }) : insertAfter(b, { id: uid(), type: k, text: '', lvl: b.lvl || 0 }); if (k === 'callout' && !nb.emoji) { nb.emoji = '💡'; nb.bg = nb.bg || 'yellow'; } if (k === 'toggle') nb.open = true; restructure(nb.id, empty ? 0 : 0); return; }
   if (k === 'hr' || k === 'pb') { const nb = make(k); const p = insertAfter(nb, { id: uid(), type: 'p', text: '' }); restructure(p.id, 0); return; }
   if (k === 'table') { const nb = make('table', { rows: [['Coluna 1', 'Coluna 2', 'Coluna 3'], ['', '', ''], ['', '', '']], head: true }); restructure(); setTimeout(() => { const c = $(`#blocks .blk[data-id="${nb.id}"] [data-r="1"][data-c="0"]`); if (c) setCaret(c, 0); }, 0); return; }
+  if (k === 'ai') {
+    const all = d.b.map(x => stripHtml(x.text || '')).filter(Boolean).join('\n');
+    const cur = empty ? '' : stripHtml(b.text || '');
+    const toBlocks = md => { const r = mdToDoc(md); const out = r.b.filter(x => x.type !== 'p' || x.text); if (r.title) out.unshift({ id: uid(), type: 'h2', text: esc(r.title) }); return out.length ? out : [{ id: uid(), type: 'p', text: esc(md) }]; };
+    aiPanel({ text: cur, all, insert: md => { const nbs = toBlocks(md); let last = b; if (empty && TEXTY.has(b.type)) { Object.assign(b, nbs.shift()); b.id = b.id || uid(); } nbs.forEach(x => { last = insertAfter(last, x); }); restructure(last.id, 0); histLater(); }, replace: md => { const nbs = toBlocks(md); const first = nbs.shift(); Object.assign(b, first, { id: b.id }); let last = b; nbs.forEach(x => { last = insertAfter(last, x); }); restructure(last.id, 0); histLater(); } });
+    return;
+  }
+  if (k === 'draw') { const nb = make('img'); restructure(); openDraw(async f => { toast('Salvando…', null, null, 1200); nb.file = await FILES.add(f); nb.text = ''; restructure(); }); return; }
   if (k === 'img' || k === 'file') { const nb = make(k); restructure(); setTimeout(() => { const i = $(`#blocks .blk[data-id="${nb.id}"] input[type=file]`); if (i) i.click(); }, 50); return; }
   if (k === 'task') {
     const title = empty ? '' : stripHtml(b.text);
@@ -538,9 +551,9 @@ function bindEditor(box) {
     const off = caretOff(el), txt = el.textContent, ch = txt[off - 1];
     if ((ch === '/' || ch === '@') && (off === 1 || /\s/.test(txt[off - 2])) && !el.classList.contains('code') && !el.classList.contains('ttask')) { syncOne(el); openSlash(el, ch); return; }
     /* atalhos tipo markdown no início do bloco */
-    if (TEXTY.has(b.type) && b.type !== 'code' && !el.classList.contains('tc') && ch === ' ') {
+    if (TEXTY.has(b.type) && b.type !== 'code' && !el.classList.contains('tc') && (ch === ' ' || ch === '\u00a0')) {
       const pre = txt.slice(0, off - 1);
-      const map = { '#': 'h1', '##': 'h2', '###': 'h3', '-': 'ul', '*': 'ul', '1.': 'ol', '[]': 'todo', '[ ]': 'todo', '>': 'quote', '```': 'code', '!': 'callout', '+': 'toggle' };
+      const map = { '#': 'h1', '##': 'h2', '###': 'h3', '-': 'ul', '–': 'ul', '—': 'ul', '•': 'ul', '*': 'ul', '1.': 'ol', '[]': 'todo', '[ ]': 'todo', '>': 'quote', '```': 'code', '!': 'callout', '+': 'toggle' };
       if (map[pre] && off - 1 === pre.length) {
         b.type = map[pre]; if (b.type === 'callout') { b.emoji = '💡'; b.bg = b.bg || 'yellow'; }
         el.textContent = txt.slice(off); b.text = clean(el.innerHTML); restructure(b.id, 0); return;
@@ -724,7 +737,18 @@ function styleMenu(anchor) {
 
 /* ---------- ações ---------- */
 Object.assign(ACTS, {
-  dnew: () => { const f = R.v === 'docs' && R.id && get('f', R.id) ? R.id : (R.v === 'doc' && ED.doc ? ED.doc.folder || null : null); const d = newDoc({ o: Date.now(), folder: f }); go('doc/' + d.id); },
+  dnew: () => {
+    R.drawer = false;
+    let f = R.v === 'docs' && R.id && get('f', R.id) ? R.id : (R.v === 'doc' && ED.doc ? ED.doc.folder || null : null);
+    const fols = db.f.filter(x => x.kind === 'd').map(x => [x.id, folderPathName(x)]).sort((a, b) => a[1].localeCompare(b[1]));
+    const el = modal(`<h2>${ic('doc', 20)}Novo documento</h2><form class="ndoc"><input class="in" name="t" placeholder="Título (opcional)" maxlength="200" autofocus>
+      <p class="mut sm">Salvar em</p><div class="fchips"><button type="button" class="fchip${!f ? ' on' : ''}" data-f="">${ic('doc', 15)}Documentos</button>${fols.map(([id, n]) => `<button type="button" class="fchip${f === id ? ' on' : ''}" data-f="${id}">${ic('folder', 15)}${esc(n)}</button>`).join('')}<button type="button" class="fchip add" data-newf="1">${ic('plus', 15)}Nova pasta</button></div>
+      <div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">Criar</button></div></form>`);
+    el.querySelector('[data-x]').onclick = closeModal;
+    el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { f = b.dataset.f || null; el.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); });
+    el.querySelector('[data-newf]').onclick = async () => { const t = el.querySelector('[name=t]').value; const n = await ask('Nova pasta de documentos', '', { ph: 'Ex.: Receitas' }); if (!n) { ACTS.dnew(); return; } const nf = { id: uid(), kind: 'd', name: n, par: null, o: Date.now() }; put('f', nf); R.id = null; ACTS.dnew(); const box = $('#modal .ndoc'); if (box) { box.querySelector('[name=t]').value = t; const b = box.querySelector(`[data-f="${nf.id}"]`); b && b.click(); } };
+    el.querySelector('form').onsubmit = e => { e.preventDefault(); const d = newDoc({ o: Date.now(), folder: f, title: el.querySelector('[name=t]').value.trim() }); closeModal(); go('doc/' + d.id); };
+  },
   dfav: () => { const d = ED.doc; d.fav = !d.fav; put('d', d); },
   dstyle: b => styleMenu(b),
   dexport: b => exportMenu(b, { kind: 'doc', id: ED.doc.id }),

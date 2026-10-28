@@ -324,7 +324,8 @@ function quickAdd(preset = {}) {
   const lb = box.querySelector('[data-qa=list]');
   lb.addEventListener('click', e => {
     e.stopImmediatePropagation();
-    menu(lb, db.l.filter(l => !l.arch).map(l => ({ label: l.name, color: l.color, act: () => { extraList.v = l.id; lb.querySelector('span').textContent = l.name; } })));
+    const nm = l => (l.folder && get('f', l.folder) ? folderPathName(get('f', l.folder)) + ' / ' : '') + (l.emoji ? l.emoji + ' ' : '') + l.name;
+    menu(lb, [{ head: 'Adicionar em' }, ...db.l.filter(l => !l.arch).sort((a, b) => nm(a).localeCompare(nm(b))).map(l => ({ label: nm(l), color: l.color, on: (extraList.v || base.list || db.s.defList || 'inbox') === l.id, act: () => { extraList.v = l.id; lb.querySelector('span').textContent = l.name; } }))]);
   }, true);
   setTimeout(() => box.querySelector('.qin').focus(), 50);
   return api;
@@ -349,7 +350,7 @@ function checkTask(id, el) {
     if (r.repeated) toast('Próxima: ' + fmtWhen(r.next), 'Desfazer', () => { put('t', Object.assign(t, r.before)); });
     else if (t.done) { toast('Tarefa concluída', 'Desfazer', () => { Object.assign(t, r.before); put('t', t); }); playDone(); }
   };
-  if (row && !t.done) { row.classList.add('checking'); setTimeout(go, 260); } else go();
+  if (row && !t.done) { row.classList.add('checking'); setTimeout(() => { row.classList.add('leaving'); setTimeout(go, 280); }, 320); } else go();
 }
 function playDone() {
   if (!db.s.pomo.sound) return;

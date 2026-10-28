@@ -36,6 +36,11 @@ VIEWS.settings = main => {
     ${[...NAV_TOP, ...NAV_LOW].map(id => { const p = navPref(id), [, icon, name] = NAVS[id]; return `<div class="navset"><span class="nic" style="--nc:${esc(p.c || 'var(--red)')}">${p.emoji ? `<span class="nemo">${esc(p.emoji)}</span>` : ic(icon, 18)}</span><span class="f1">${esc(p.name || name)}</span><input type="color" value="${esc(p.c || accentHex())}" data-navc="${id}" aria-label="Cor de ${esc(name)}" title="${p.c ? 'Cor personalizada' : 'Segue a cor do tema'}">${p.c ? `<button class="mini" data-act="navcreset" data-id="${id}" title="Voltar à cor do tema" aria-label="Voltar à cor do tema">↺</button>` : ''}<button class="ib" data-act="navmore" data-id="${id}" aria-label="Mais opções de ${esc(name)}">${ic('more', 18)}</button><span class="sw-t"><input type="checkbox" data-navshow="${id}" ${p.hide ? '' : 'checked'} aria-label="Mostrar ${esc(name)}"><span></span></span></div>`; }).join('')}
     <div class="row"><button class="btn ghost sm" data-act="navreset">Restaurar o menu padrão</button></div>
   </section>
+  <section class="sgrp"><h2>${ic('spark', 18)}Assistente de IA</h2>
+    <p class="hint">Use <b>/</b> numa linha vazia de uma nota ou documento (ou o botão ✨) para escrever, melhorar, corrigir, resumir e traduzir textos. Funciona de graça: sem configurar nada usa um serviço público (mais lento e limitado). Para ficar rápido e confiável, crie uma <b>chave gratuita do Google Gemini</b> em <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> e cole abaixo. A chave fica guardada só na sua conta.</p>
+    <label class="srow"><span>Chave do Gemini</span><input class="in sm" type="password" data-aik value="${esc((s.ai || {}).key || '')}" placeholder="Cole a chave aqui" autocomplete="off" style="max-width:240px"></label>
+    <div class="row"><button class="btn ghost sm" data-act="aitest">${ic('spark', 15)}Testar a IA</button></div>
+  </section>
   <section class="sgrp"><h2>${ic('todo', 18)}Tarefas</h2>
     <label class="srow"><span>Lista padrão para novas tarefas</span><select class="in sm" data-sk="defList">${db.l.filter(l => !l.arch).map(l => `<option value="${l.id}" ${s.defList === l.id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>
     <label class="srow"><span>Manter no título o texto reconhecido (datas, #etiquetas…)</span><span class="sw-t"><input type="checkbox" data-sk="keepText" ${s.keepText ? 'checked' : ''}><span></span></span></label>
@@ -76,6 +81,7 @@ VIEWS.settings = main => {
     <p class="mut sm">Versão ${APPV} · <button class="link" data-act="checkupd">Procurar atualização</button></p>
   </section>
   </div></div>`;
+  const aik = main.querySelector('[data-aik]'); if (aik) aik.onchange = () => { aiCfg().key = aik.value.trim(); put('s', s); toast(aik.value.trim() ? 'Chave salva' : 'Chave removida'); };
   main.querySelectorAll('[data-sk]').forEach(i => i.onchange = () => { s[i.dataset.sk] = i.type === 'checkbox' ? i.checked : i.value; put('s', s); if (i.dataset.sk === 'gTaskCal') toast('Novas tarefas irão para essa agenda'); });
   main.querySelectorAll('[data-navc]').forEach(i => i.onchange = () => { db.s.nav = db.s.nav || {}; db.s.nav[i.dataset.navc] = Object.assign({}, navPref(i.dataset.navc), { c: i.value }); put('s', s); });
   main.querySelectorAll('[data-navshow]').forEach(i => i.onchange = () => { db.s.nav = db.s.nav || {}; const p = Object.assign({}, navPref(i.dataset.navshow)); if (i.checked) delete p.hide; else p.hide = 1; db.s.nav[i.dataset.navshow] = p; put('s', s); });
@@ -83,6 +89,7 @@ VIEWS.settings = main => {
   main.querySelectorAll('[data-gcal]').forEach(i => i.onchange = () => { const id = i.dataset.gcal; s.gCals = (s.gCals || []).filter(x => x !== id); if (i.checked) s.gCals.push(id); GC.loaded = ''; put('s', s); });
 };
 Object.assign(ACTS, {
+  aitest: async b => { b.disabled = true; const t0 = b.innerHTML; b.textContent = 'Testando…'; try { const r = await aiGen('Responda apenas: Olá, Kleber! Estou funcionando.'); toast('IA: ' + r.trim().slice(0, 80)); } catch (e) { toast(e.message || 'Falha ao testar'); } b.disabled = false; b.innerHTML = t0; },
   sset: b => { db.s[b.dataset.k] = b.dataset.num ? +b.dataset.v : b.dataset.v; put('s', db.s); if (b.dataset.k === 'theme') applyTheme(); },
   logout: () => signOut(),
   skin: b => { db.s.skin = b.dataset.k; put('s', db.s); applyTheme(); },
@@ -127,7 +134,7 @@ function fontScale() { try { return clamp(+(localStorage.getItem('tt_fs') || 1),
 function applyFontScale() { document.documentElement.style.setProperty('--fs', fontScale()); }
 function hideSplash() {
   const s = $('#splash'); if (!s) return;
-  const wait = Math.max(0, 1100 - (performance.now() || 0));
+  const wait = Math.max(0, 1500 - (performance.now() || 0));
   setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), 600); }, wait);
 }
 function accentHex() {
