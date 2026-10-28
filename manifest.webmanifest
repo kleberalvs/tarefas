@@ -3,7 +3,7 @@
   "short_name": "Tarefas",
   "description": "Tarefas, calendário, documentos, foco e hábitos",
   "lang": "pt-BR",
-  "start_url": "./#/l/today",
+  "start_url": "./#/home",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -14,6 +14,7 @@
     {"src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "shortcuts": [
+    {"name": "Painel", "url": "./#/home"},
     {"name": "Hoje", "url": "./#/l/today"},
     {"name": "Calendário", "url": "./#/cal"},
     {"name": "Documentos", "url": "./#/docs"}

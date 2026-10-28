@@ -23,6 +23,7 @@ VIEWS.settings = main => {
   <section class="sgrp"><h2>${ic('sun', 18)}Aparência</h2>
     <div class="srow"><span>Tema</span><div class="seg">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']].map(([k, n]) => `<button class="${s.theme === k ? 'on' : ''}" data-act="sset" data-k="theme" data-v="${k}">${n}</button>`).join('')}</div></div>
     <div class="srow"><span>Semana começa</span><div class="seg">${[[0, 'Domingo'], [1, 'Segunda']].map(([k, n]) => `<button class="${s.weekStart === k ? 'on' : ''}" data-act="sset" data-k="weekStart" data-v="${k}" data-num="1">${n}</button>`).join('')}</div></div>
+    <label class="srow"><span>Ao abrir o app, mostrar</span><select class="in sm" data-sk="start"><option value="home" ${(s.start || 'home') === 'home' ? 'selected' : ''}>Painel</option><option value="l/today" ${s.start === 'l/today' ? 'selected' : ''}>Hoje</option><option value="l/inbox" ${s.start === 'l/inbox' ? 'selected' : ''}>Caixa de entrada</option><option value="cal" ${s.start === 'cal' ? 'selected' : ''}>Calendário</option><option value="docs" ${s.start === 'docs' ? 'selected' : ''}>Documentos</option></select></label>
     <label class="srow"><span>Visual compacto</span><span class="sw-t"><input type="checkbox" data-sk="compact" ${s.compact ? 'checked' : ''}><span></span></span></label>
   </section>
   <section class="sgrp"><h2>${ic('palette', 18)}Estilo de cores</h2>
@@ -113,8 +114,8 @@ function initSw() {
     setInterval(() => reg.update().catch(() => {}), 30 * 60000);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
   }).catch(e => console.warn('sw', e));
-  let reloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloading) { reloading = true; location.reload(); } });
+  let reloading = false; const hadCtrl = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtrl && !reloading) { reloading = true; location.reload(); } });
 }
 
 /* ---------- início ---------- */
@@ -128,6 +129,7 @@ function boot() {
   loadDb();
   initSnap(); pruneLog();
   applyTheme();
+  if (!/type=recovery|error_description=|access_token=/.test(location.hash)) { const st = db.s.start || 'home'; history.replaceState(null, '', location.pathname + '#/' + st); }
   parseHash();
   initUi();
   onData(local => { render(); if (local !== false) schedPush(); });

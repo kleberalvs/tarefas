@@ -15,6 +15,7 @@ const stripHtml = h => { const d = document.createElement('div'); d.innerHTML = 
 
 /* ---------- ícones (traço) ---------- */
 const IC = {
+  home: '<path d="M4 11.5L12 4l8 7.5"/><path d="M6 10v9.5a.5.5 0 0 0 .5.5H10v-5.5h4V20h3.5a.5.5 0 0 0 .5-.5V10"/>',
   inbox: '<path d="M4 13l2.2-7.2A1 1 0 0 1 7.2 5h9.6a1 1 0 0 1 1 .8L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 13h4.5l1.2 2.2h4.6l1.2-2.2H20"/>',
   today: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 9.5h16M8.5 3v4M15.5 3v4"/><text x="12" y="17.6" text-anchor="middle" font-size="7.5" font-weight="700" stroke="none" fill="currentColor" font-family="system-ui">{d}</text>',
   week: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 9.5h16M8.5 3v4M15.5 3v4M8 13h2M11 13h2M14 13h2M8 16h2M11 16h2"/>',

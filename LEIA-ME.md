@@ -4,6 +4,7 @@ App pessoal de tarefas, calendário, documentos, foco e hábitos. Funciona no ce
 
 ## O que tem
 
+- **Painel inicial**: o app sempre abre num resumo com atrasadas, tarefas de hoje e da semana, em aberto, concluídas (gráfico de 7, 14 ou 30 dias), por lista, por prioridade, hábitos e foco do dia. Dá para trocar a tela inicial em Configurações.
 - **Tarefas** com listas, pastas, seções, etiquetas, prioridades, subtarefas, itens de verificação, data de início e fim, repetição e lembretes.
 - **Texto inteligente**: digite "Dentista amanhã às 15h #saúde !alta" e o app entende data, hora, etiqueta e prioridade. Também entende "toda segunda", "dias úteis", "dia 15", "das 14h às 16h", "~lista" e "lembrar 30 min antes".
 - **Visões**: Caixa de entrada, Hoje, Amanhã, Próximos 7 dias, Todas, Concluídas, Lixeira, lista ou quadro (kanban) e Matriz de prioridades. Arraste para reordenar, mudar de seção, de lista ou de data.

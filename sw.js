@@ -1,7 +1,7 @@
 /* Service worker: abre sem internet, busca sempre a versão mais nova e mostra as notificações push. */
-const VERSAO = '2026.10.28-7';
+const VERSAO = '2026.10.28-8';
 const CACHE = 'tarefas-' + VERSAO;
-const ARQUIVOS = ['./', 'index.html', 'config.js', 'css/app.css', 'js/core.js', 'js/emoji.js', 'js/ui.js', 'js/files.js', 'js/tasks.js', 'js/detail.js', 'js/cal.js', 'js/docs.js', 'js/focus.js', 'js/sounds.js', 'js/export.js', 'js/log.js', 'js/users.js', 'js/push.js', 'js/sync.js', 'js/app.js',
+const ARQUIVOS = ['./', 'index.html', 'config.js', 'css/app.css', 'js/core.js', 'js/emoji.js', 'js/ui.js', 'js/files.js', 'js/tasks.js', 'js/home.js', 'js/detail.js', 'js/cal.js', 'js/docs.js', 'js/focus.js', 'js/sounds.js', 'js/export.js', 'js/log.js', 'js/users.js', 'js/push.js', 'js/sync.js', 'js/app.js',
   'vendor/supabase.js', 'manifest.webmanifest', 'assets/icon-192.png', 'assets/apple-touch-icon.png', 'assets/badge-96.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQUIVOS))); });
 self.addEventListener('message', e => { if (e.data === 'skip') self.skipWaiting(); });

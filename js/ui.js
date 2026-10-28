@@ -12,7 +12,7 @@ function parseHash() {
   else if (v === 'tag') { R.v = 'list'; R.id = 'tag:' + decodeURIComponent(h[1] || ''); }
   else if (v === 'doc') { R.v = 'doc'; R.id = decodeURIComponent(h[1] || ''); }
   else if (VIEWS[v]) { R.v = v; R.id = decodeURIComponent(h[1] || ''); }
-  else { R.v = 'list'; R.id = 'today'; }
+  else { R.v = 'home'; R.id = ''; }
 }
 function go(path) {
   if (location.hash !== '#/' + path) location.hash = '#/' + path;
@@ -59,16 +59,17 @@ function countFor(id) {
   if (sm && sm.f) return db.t.filter(t => live(t) && !t.par && sm.f(t)).length;
   return db.t.filter(t => live(t) && !t.par && t.list === id).length;
 }
-const NAVC = { inbox: '#3B7DD8', today: '#2E9E6B', tomorrow: '#E8A400', week: '#9150C8', cal: '#DB4035', matrix: '#E8803A', focus: '#DB4035', habits: '#2E9E6B', docs: '#5B5BD6', all: '#808080', done: '#2E9E6B', trash: '#808080', log: '#8A6A55', users: '#3B7DD8', settings: '#808080' };
+const NAVC = { home: '#DC4C3E', inbox: '#3B7DD8', today: '#2E9E6B', tomorrow: '#E8A400', week: '#9150C8', cal: '#DB4035', matrix: '#E8803A', focus: '#DB4035', habits: '#2E9E6B', docs: '#5B5BD6', all: '#808080', done: '#2E9E6B', trash: '#808080', log: '#8A6A55', users: '#3B7DD8', settings: '#808080' };
 /* itens fixos do menu: cada um pode ter cor própria e ser ocultado */
 const NAVS = {
+  home: ['home', 'home', 'Painel', {}],
   inbox: ['l/inbox', 'inbox', 'Caixa de entrada', { drop: 'list:inbox', cnt: 'inbox' }], today: ['l/today', 'today', 'Hoje', { drop: 'smart:today', cnt: 'today' }],
   tomorrow: ['l/tomorrow', 'tomorrow', 'Amanhã', { drop: 'smart:tomorrow', cnt: 'tomorrow' }], week: ['l/week', 'week', 'Próximos 7 dias', { cnt: 'week' }],
   cal: ['cal', 'cal', 'Calendário', {}], matrix: ['matrix', 'matrix', 'Matriz de prioridades', {}], focus: ['focus', 'focus', 'Foco', {}],
   habits: ['habits', 'habit', 'Hábitos', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }],
   all: ['l/all', 'all', 'Todas', {}], done: ['l/done', 'done', 'Concluídas', {}], log: ['log', 'clock', 'Histórico', {}], trash: ['l/trash', 'trash', 'Lixeira', { drop: 'trash' }],
 };
-const NAV_TOP = ['inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs'], NAV_LOW = ['all', 'done', 'log', 'trash'];
+const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs'], NAV_LOW = ['all', 'done', 'log', 'trash'];
 const navPref = id => (db.s.nav || {})[id] || {};
 function NV(id, cur, ov) {
   const p = navPref(id); if (p.hide) return '';
@@ -185,7 +186,7 @@ function editProfile() {
 function tabsHtml() {
   const t = R.v, isT = t === 'list' || t === 'matrix';
   const b = (to, icon, name, on) => `<button class="tab${on ? ' on' : ''}" data-act="go" data-to="${to}">${ic(icon, 23)}<span>${name}</span></button>`;
-  return b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + b('focus', 'focus', 'Foco', t === 'focus') + `<button class="tab${['habits', 'search', 'settings'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
+  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
 }
 /* cabeçalho padrão das telas */
 function headHtml(title, sub, right = '', opts = {}) {
@@ -576,6 +577,7 @@ const ACTS = {
     CLOUD && SES ? { label: 'Sair', icon: 'out', danger: 1, act: signOut } : null,
   ]),
   'more-tabs': b => menu(b, [
+    { label: 'Foco', icon: 'focus', act: () => go('focus') },
     { label: 'Hábitos', icon: 'habit', act: () => go('habits') },
     { label: 'Matriz de prioridades', icon: 'matrix', act: () => go('matrix') },
     { label: 'Buscar', icon: 'search', act: () => go('search') },
