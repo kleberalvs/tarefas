@@ -1369,9 +1369,9 @@ input,select,textarea,button,[contenteditable]{font-family:inherit}
 body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-feature-settings:"cv11","ss01"}
 /* saudação do Painel, mais leve */
 .hero{padding:10px 4px 14px;align-items:center}
-.hero h2{font-size:calc(25px * var(--fs,1));font-weight:600;letter-spacing:-.022em;line-height:1.2;color:var(--txt);margin:2px 0 6px}
+.hero h2{font-size:calc(25px * var(--fs,1));font-weight:600;letter-spacing:-.022em;line-height:1.2;color:var(--txt);margin:0 0 4px}
 .hero h2 em{font-style:normal;color:inherit}
-.hdate{margin:0;font-size:calc(11.5px * var(--fs,1));font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.hdate{margin:0 0 10px!important;font-size:calc(11.5px * var(--fs,1));font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
 .herotx{margin:0;font-size:calc(14.5px * var(--fs,1));color:var(--txt2);font-weight:400}
 .herotx b{font-weight:600;color:var(--txt)}
 @media (max-width:759px){.hero h2{font-size:calc(22px * var(--fs,1))}}
