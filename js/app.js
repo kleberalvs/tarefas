@@ -127,12 +127,12 @@ function afterRender() {
 }
 function boot() {
   loadDb();
-  initSnap(); pruneLog();
+  initSnap(); pruneLog(); setTimeout(checkAch, 2500);
   applyTheme();
   if (!/type=recovery|error_description=|access_token=/.test(location.hash)) { const st = db.s.start || 'home'; history.replaceState(null, '', location.pathname + '#/' + st); }
   parseHash();
   initUi();
-  onData(local => { render(); if (local !== false) schedPush(); });
+  onData(local => { render(); if (local !== false) schedPush(); checkAch(); });
   render(true);
   startSync();
   initSw();

@@ -992,3 +992,36 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
   .hgrid{grid-template-columns:1fr}
   .hcardx{padding:14px}
 }
+
+/* ---------- perfil e conquistas ---------- */
+.pmed{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--mut);background:var(--hover2);border-radius:10px;padding:1px 7px;flex:none}
+.me{max-width:1000px;margin:0 auto;padding:0 32px 120px;display:flex;flex-direction:column;gap:16px}
+.mehero{display:flex;align-items:center;gap:20px;padding:22px 24px;border-radius:20px;border:1px solid var(--line);background:radial-gradient(120% 140% at 0% 0%,var(--redsoft),transparent 60%),var(--card);box-shadow:var(--sh1)}
+.avatar.xl{width:92px;height:92px;font-size:34px}
+.mehero h2{font-size:24px;font-weight:800;letter-spacing:-.02em}.mehero p{margin:2px 0 10px}
+.lvl{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.lvlb{background:var(--red);color:var(--onacc);font-weight:800;font-size:12px;padding:3px 10px;border-radius:12px}
+.achprog{height:8px;border-radius:4px;background:var(--hover2);overflow:hidden}.achprog.big{height:10px;max-width:420px}
+.achprog i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--red3),var(--red));transition:width .5s var(--ease)}
+.achsec{border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:var(--sh1);padding:16px 18px}
+.achsec header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.achsec header b{display:block;font-size:15px}
+.achemo{width:42px;height:42px;border-radius:12px;background:var(--redsoft);display:flex;align-items:center;justify-content:center;font-size:21px;flex:none}
+.achcnt{font-weight:800;color:var(--mut);font-size:13px}
+.achp{margin:4px 0 10px}
+.medals{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.mdl{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:10px 4px;border-radius:14px;transition:.15s}
+.mdl:hover{background:var(--hover)}
+.mdl b{font-size:13px;margin-top:2px}.mdl span{font-size:11px;color:var(--mut)}
+.mdl.off{opacity:.55}
+.medal{filter:drop-shadow(0 3px 6px rgba(0,0,0,.18))}.medal.lock{filter:grayscale(1)}
+.achpop{position:fixed;left:50%;top:calc(18px + var(--safe-t));transform:translateX(-50%);z-index:120;animation:achin .5s var(--ease)}
+.achpop.out{opacity:0;transform:translate(-50%,-20px);transition:.5s}
+@keyframes achin{from{opacity:0;transform:translate(-50%,-30px) scale(.9)}}
+.achcard{display:flex;align-items:center;gap:14px;background:var(--elev);border:1px solid var(--line);border-radius:20px;padding:12px 18px 12px 12px;box-shadow:var(--sh2);min-width:300px}
+.achcard .medal{animation:spinin .8s var(--ease)}
+@keyframes spinin{from{transform:rotateY(180deg) scale(.6)}}
+.achtx{display:flex;flex-direction:column;flex:1}.achtx b{font-size:16px}.achtx span:last-child{font-size:13px;color:var(--txt2)}
+.conf{position:absolute;left:50%;top:50%;width:8px;height:12px;border-radius:2px;animation:conf var(--d) ease-out forwards;pointer-events:none}
+@keyframes conf{to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
+@media (max-width:759px){.me{padding:0 14px 120px}.mehero{padding:16px;gap:14px}.avatar.xl{width:70px;height:70px;font-size:26px}.mehero h2{font-size:20px}.medals{grid-template-columns:repeat(3,1fr)}.achcard{min-width:0;width:calc(100vw - 32px)}}

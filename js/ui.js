@@ -124,7 +124,7 @@ function sideHtml() {
   const nm = (db.s.name || '').trim();
   return `
   <div class="prof">
-    <button class="pbtn0" data-act="profile" aria-label="Editar nome e foto">${avatarHtml()}<span class="pname"><b>${esc(nm || 'Toque para pôr seu nome')}</b><span class="psub"><i class="sdot ${esc(SYNC.cls)}" id="sync" title="${esc(SYNC.txt)}"></i><span id="syncline2">${esc(SYNC.txt)}</span></span></span></button>
+    <button class="pbtn0" data-act="go" data-to="me" aria-label="Abrir perfil e conquistas">${avatarHtml()}<span class="pname"><b>${esc(nm || 'Toque para pôr seu nome')}</b><span class="psub"><i class="sdot ${esc(SYNC.cls)}" id="sync" title="${esc(SYNC.txt)}"></i><span id="syncline2">${esc(SYNC.txt)}</span></span></span>${(() => { try { const n = Object.keys(db.s.ach || {}).length; return n ? `<span class="pmed" title="${n} medalhas">🏅${n}</span>` : ''; } catch (e) { return ''; } })()}</button>
     <button class="ib" data-act="go" data-to="search" aria-label="Buscar">${ic('search')}</button>
     <button class="ib hide-m" data-act="side" aria-label="Recolher barra lateral">${ic('side')}</button>
   </div>
@@ -577,6 +577,7 @@ const ACTS = {
     CLOUD && SES ? { label: 'Sair', icon: 'out', danger: 1, act: signOut } : null,
   ]),
   'more-tabs': b => menu(b, [
+    { label: 'Perfil e conquistas', icon: 'star', act: () => go('me') },
     { label: 'Foco', icon: 'focus', act: () => go('focus') },
     { label: 'Hábitos', icon: 'habit', act: () => go('habits') },
     { label: 'Matriz de prioridades', icon: 'matrix', act: () => go('matrix') },
