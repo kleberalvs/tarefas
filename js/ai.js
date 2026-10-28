@@ -17,6 +17,23 @@ const AI_ACTS = [
   { k: 'en', n: 'Traduzir para inglês', e: '🇺🇸', p: 'Traduza para o inglês:\n\n', need: 1 },
   { k: 'title', n: 'Sugerir um título', e: '🏷️', p: 'Sugira um único título curto (sem aspas) para o texto abaixo:\n\n', need: 1 },
 ];
+/* modelos gratuitos em ordem de preferência; se um estiver sobrecarregado (503) ou no limite (429), tenta o próximo */
+const AI_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function gFetch(path, body, signal) {
+  const key = (aiCfg().key || '').trim(), first = aiCfg().model, models = [...new Set([first, ...AI_MODELS].filter(Boolean))];
+  let last = '';
+  for (let round = 0; round < 2; round++) for (const m of models) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:${path}${path.includes('?') ? '&' : '?'}key=${encodeURIComponent(key)}`, { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.ok) { if (aiCfg().model !== m) aiCfg().okModel = m; return res; }
+    const t = await res.text().catch(() => '');
+    if (res.status === 400 && /API key/i.test(t) || res.status === 403) throw new Error('A chave do Gemini foi recusada. Confira se colou a chave inteira.');
+    if (res.status === 404) { last = 'modelo indisponível'; continue; }
+    if ([429, 500, 502, 503, 504].includes(res.status)) { last = res.status === 429 ? 'limite gratuito atingido' : 'Google sobrecarregado'; await sleep(600 + round * 1500); continue; }
+    throw new Error('Gemini: erro ' + res.status + ' ' + t.slice(0, 140));
+  }
+  throw new Error(last === 'limite gratuito atingido' ? 'Limite gratuito do Gemini atingido por agora. Tente de novo em alguns minutos.' : 'Os servidores do Gemini estão muito ocupados agora. Tente de novo em alguns instantes.');
+}
 function aiCfg() { return (db.s.ai = db.s.ai || {}); }
 async function aiLocal() {
   try {
@@ -37,12 +54,7 @@ async function aiGen(prompt, onTok, signal) {
     const r = await s.prompt(prompt); onTok && onTok(r); return r;
   }
   if (cfg.key) {
-    const model = cfg.model || 'gemini-flash-latest';
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(cfg.key)}`, {
-      method: 'POST', signal, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: AI_SYS }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: .7 } }),
-    });
-    if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(res.status === 400 || res.status === 403 ? 'Chave do Gemini inválida ou sem permissão' : res.status === 429 ? 'Limite gratuito do Gemini atingido por agora. Tente em instantes.' : 'Falha na IA (' + res.status + ') ' + t.slice(0, 120)); }
+    const res = await gFetch('streamGenerateContent?alt=sse', { systemInstruction: { parts: [{ text: AI_SYS }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: .7 } }, signal);
     const rd = res.body.getReader(), dec = new TextDecoder(); let buf = '', acc = '';
     for (;;) {
       const { value, done } = await rd.read(); if (done) break;

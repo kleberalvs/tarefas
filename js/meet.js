@@ -6,12 +6,7 @@ const MEET_SEG = 4 * 60 * 1000; /* cada trecho de 4 min é transcrito durante a 
 const meetKey = () => (aiCfg().key || '').trim();
 async function gemini(parts, opts = {}) {
   const key = meetKey(); if (!key) throw new Error('Para o assistente de reuniões, coloque a chave gratuita do Google Gemini em Configurações → Assistente de IA.');
-  const model = opts.model || aiCfg().model || 'gemini-flash-latest';
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: opts.signal,
-    body: JSON.stringify({ systemInstruction: opts.sys ? { parts: [{ text: opts.sys }] } : undefined, contents: [{ role: 'user', parts }], generationConfig: { temperature: opts.temp ?? .3 } }),
-  });
-  if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(res.status === 429 ? 'Limite gratuito do Gemini atingido por agora' : res.status === 400 || res.status === 403 ? 'A chave do Gemini foi recusada' : 'Gemini: erro ' + res.status + ' ' + t.slice(0, 120)); }
+  const res = await gFetch('generateContent', { systemInstruction: opts.sys ? { parts: [{ text: opts.sys }] } : undefined, contents: [{ role: 'user', parts }], generationConfig: { temperature: opts.temp ?? .3 } }, opts.signal);
   const j = await res.json();
   return ((((j.candidates || [])[0] || {}).content || {}).parts || []).map(p => p.text || '').join('').trim();
 }
