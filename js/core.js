@@ -60,6 +60,10 @@ const IC = {
   dl: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/>',
   up: '<path d="M12 20V9M7.5 13.5L12 9l4.5 4.5M5 4.5h14"/>',
   edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l3 3"/>',
+  archive: '<rect x="3.5" y="4.5" width="17" height="4" rx="1"/><path d="M5 8.5v10a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-10M10 12.5h4"/>',
+  note: '<path d="M5.5 3.5h13a1 1 0 0 1 1 1v10l-5 5h-9a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14.5 19.5v-4a1 1 0 0 1 1-1h4M8.5 8.5h7M8.5 12h5"/>',
+  mic: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3"/>',
+  type: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
   copy: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
   moon: '<path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/>',
@@ -295,12 +299,12 @@ function smartTokensHtml(p) {
 
 /* ---------- dados ----------
    t tarefas · l listas · f pastas · g etiquetas · d documentos · h hábitos · p sessões de foco · s configurações */
-const KINDS = ['t', 'l', 'f', 'g', 'd', 'h', 'p', 'a', 'z'];
+const KINDS = ['t', 'l', 'f', 'g', 'd', 'h', 'p', 'a', 'z', 'n'];
 const COLORS = ['#DB4035', '#E8803A', '#D9A21B', '#7EA04D', '#2E9E6B', '#1E8E9E', '#3B7DD8', '#5B5BD6', '#9150C8', '#C84E9C', '#8A6A55', '#808080'];
 const PRIO = [{ n: 'Nenhuma', c: 'var(--mut)' }, { n: 'Baixa', c: '#3B7DD8' }, { n: 'Média', c: '#E8803A' }, { n: 'Alta', c: '#DB4035' }];
 const DEF_S = () => ({ id: 'cfg', theme: 'auto', weekStart: 0, defList: 'inbox', keepText: false, side: true, pomo: { focus: 25, short: 5, long: 15, every: 4, auto: false, sound: true, amb: 'none', ambOnly: true, vol: 60, alarm: 'bell' }, gClient: '', gCals: null, gTaskCal: '', gPush: true, hideDone: true, compact: false, u: 0 });
 let db = null;
-function blank() { return { t: [], l: [], f: [], g: [], d: [], h: [], p: [], a: [], z: [], s: DEF_S(), v: 1 }; }
+function blank() { return { t: [], l: [], f: [], g: [], d: [], h: [], p: [], a: [], z: [], n: [], s: DEF_S(), v: 1 }; }
 function loadDb() {
   try { db = JSON.parse(localStorage.getItem('tt_db') || 'null'); } catch (e) { db = null; }
   if (!db) { db = blank(); seed(); KINDS.forEach(k => db[k].forEach(x => x.sd = 1)); }

@@ -66,10 +66,10 @@ const NAVS = {
   inbox: ['l/inbox', 'inbox', 'Caixa de entrada', { drop: 'list:inbox', cnt: 'inbox' }], today: ['l/today', 'today', 'Hoje', { drop: 'smart:today', cnt: 'today' }],
   tomorrow: ['l/tomorrow', 'tomorrow', 'Amanhã', { drop: 'smart:tomorrow', cnt: 'tomorrow' }], week: ['l/week', 'week', 'Próximos 7 dias', { cnt: 'week' }],
   cal: ['cal', 'cal', 'Calendário', {}], matrix: ['matrix', 'matrix', 'Matriz de prioridades', {}], focus: ['focus', 'focus', 'Foco', {}],
-  habits: ['habits', 'habit', 'Hábitos', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }],
+  habits: ['habits', 'habit', 'Hábitos', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }], notes: ['notes', 'note', 'Notas rápidas', {}],
   all: ['l/all', 'all', 'Todas', {}], done: ['l/done', 'done', 'Concluídas', {}], log: ['log', 'clock', 'Histórico', {}], trash: ['l/trash', 'trash', 'Lixeira', { drop: 'trash' }],
 };
-const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs'], NAV_LOW = ['all', 'done', 'log', 'trash'];
+const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs', 'notes'], NAV_LOW = ['all', 'done', 'log', 'trash'];
 const navPref = id => (db.s.nav || {})[id] || {};
 function NV(id, cur, ov) {
   const p = navPref(id); if (p.hide) return '';
@@ -129,7 +129,7 @@ function sideHtml() {
     <button class="ib hide-m" data-act="side" aria-label="Recolher barra lateral">${ic('side')}</button>
   </div>
   <button class="addbtn" data-act="quick"><span class="addic">${ic('plus', 16)}</span><span>Adicionar tarefa</span><kbd class="hide-m">Q</kbd></button>
-  <button class="addbtn doc" data-act="dnew"><span class="addic">${ic('doc', 15)}</span><span>Novo documento</span><kbd class="hide-m">D</kbd></button>
+  <button class="addbtn doc" data-act="dnew"><span class="addic">${ic('doc', 15)}</span><span>Novo documento</span><kbd class="hide-m">D</kbd></button><button class="addbtn doc" data-act="qnote"><span class="addic">${ic('note', 15)}</span><span>Nota rápida</span><kbd class="hide-m">K</kbd></button>
   <nav class="snav">${NAV_TOP.map(n => NV(n, cur, ov)).join('')}</nav>
   <div class="sgroup" data-drop="folder:"><div class="sgh"><span>Listas</span><button class="mini" data-act="newlist" aria-label="Nova lista" title="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" data-k="l" aria-label="Nova pasta de listas" title="Nova pasta">${ic('folder', 16)}</button></div>${lh || '<p class="hint">Nenhuma lista ainda</p>'}</div>
   <div class="sgroup" data-drop="dfold:"><div class="sgh"><span>Pastas de documentos</span><button class="mini" data-act="newfolder" data-k="d" aria-label="Nova pasta de documentos" title="Nova pasta">${ic('plus', 16)}</button></div>${dh || '<p class="hint">Crie pastas para organizar documentos</p>'}</div>
@@ -186,7 +186,7 @@ function editProfile() {
 function tabsHtml() {
   const t = R.v, isT = t === 'list' || t === 'matrix';
   const b = (to, icon, name, on) => `<button class="tab${on ? ' on' : ''}" data-act="go" data-to="${to}">${ic(icon, 23)}<span>${name}</span></button>`;
-  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
+  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets', 'notes'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
 }
 /* cabeçalho padrão das telas */
 function headHtml(title, sub, right = '', opts = {}) {
@@ -580,6 +580,7 @@ const ACTS = {
   ]),
   'more-tabs': b => menu(b, [
     { label: 'Perfil', icon: 'users', act: () => go('me') },
+    { label: 'Notas rápidas', icon: 'note', act: () => go('notes') },
     { label: 'Conquistas', icon: 'star', act: () => go('ach') },
     { label: 'Pets: ' + (petCfg().on ? 'ligados 🐈' : 'desligados'), icon: 'habit', act: () => ACTS.petstoggle() },
     { label: 'Foco', icon: 'focus', act: () => go('focus') },
@@ -628,9 +629,9 @@ function initUi() {
   });
   $('#scrim').onclick = () => { closePop(); };
   $('#dscrim').onclick = () => { R.drawer = false; render(); };
-  $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+  $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') { if (typeof NE !== 'undefined' && NE) closeNote(); else closeModal(); } });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { if (POP) closePop(); else if ($('#modal').classList.contains('on')) closeModal(); else if (R.sel) closeTask(); else if (R.drawer) { R.drawer = false; render(); } return; }
+    if (e.key === 'Escape') { if (POP) closePop(); else if ($('#modal').classList.contains('on')) { if (typeof NE !== 'undefined' && NE) closeNote(); else closeModal(); } else if (R.sel) closeTask(); else if (R.drawer) { R.drawer = false; render(); } return; }
     const a = document.activeElement, typing = a && (/INPUT|TEXTAREA|SELECT/.test(a.tagName) || a.isContentEditable);
     if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'q' || e.key === 'n') { e.preventDefault(); quickAdd(); }
@@ -638,6 +639,7 @@ function initUi() {
     else if (e.key === 'h') go('l/today');
     else if (e.key === 'c') go('cal');
     else if (e.key === 'd') { const d = newDoc({ o: Date.now() }); go('doc/' + d.id); }
+    else if (e.key === 'k') openNote(null);
   });
   initDnd();
   initSwipe();

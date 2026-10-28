@@ -2,8 +2,8 @@
 'use strict';
 const SNAP = new Map();
 const LOG_SKIP = new Set(['u', 'o', 'gc', 'gcDirty', 'gcOn', 'sd', 'c']);
-const KN = { t: 'tarefa', l: 'lista', f: 'pasta', g: 'etiqueta', d: 'documento', h: 'hábito' };
-const FN = { title: 'título', name: 'nome', notes: 'descrição', due: 'prazo', start: 'início', prio: 'prioridade', list: 'lista', sec: 'seção', tags: 'etiquetas', chk: 'itens', rep: 'repetição', rem: 'lembrete', att: 'anexos', cover: 'capa', ln: 'vínculos', par: 'posição', b: 'conteúdo', style: 'estilo', icon: 'ícone', emoji: 'ícone', color: 'cor', folder: 'pasta', view: 'visualização', arch: 'arquivamento', fav: 'favorito', log: 'marcações', goal: 'meta', freq: 'frequência', open: 'aberta/fechada', kind: 'tipo', del: 'lixeira', done: 'conclusão', hist: 'ocorrências' };
+const KN = { t: 'tarefa', l: 'lista', f: 'pasta', g: 'etiqueta', d: 'documento', h: 'hábito', n: 'nota' };
+const FN = { title: 'título', name: 'nome', notes: 'descrição', due: 'prazo', start: 'início', prio: 'prioridade', list: 'lista', sec: 'seção', tags: 'etiquetas', chk: 'itens', rep: 'repetição', rem: 'lembrete', att: 'anexos', cover: 'capa', ln: 'vínculos', par: 'posição', b: 'conteúdo', style: 'estilo', icon: 'ícone', emoji: 'ícone', color: 'cor', folder: 'pasta', view: 'visualização', arch: 'arquivamento', fav: 'favorito', log: 'marcações', goal: 'meta', freq: 'frequência', open: 'aberta/fechada', kind: 'tipo', del: 'lixeira', done: 'conclusão', hist: 'ocorrências', body: 'texto', img: 'imagens', aud: 'áudios', pin: 'fixação', bg: 'fundo', bgImg: 'foto de fundo', items: 'itens', font: 'letra', big: 'tamanho' };
 function deviceName() { const u = navigator.userAgent; return /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : 'Computador'; }
 function initSnap() { SNAP.clear(); KINDS.forEach(k => { if (k === 'a' || k === 'p') return; db[k].forEach(x => SNAP.set(k + ':' + x.id, JSON.stringify(x))); }); }
 function snapSet(k, x) { if (k === 'a' || k === 'p' || k === 's') return; if (x) SNAP.set(k + ':' + x.id, JSON.stringify(x)); }

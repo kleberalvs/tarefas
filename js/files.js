@@ -40,7 +40,7 @@ const FILES = (() => {
   /* envia anexos que ficaram só no aparelho (ex.: criados offline) */
   async function flush() {
     if (!cloudOk()) return;
-    const owners = [...db.t.map(t => ['t', t, t.att || []]), ...db.d.map(d => ['d', d, (d.b || []).filter(b => b.file).map(b => b.file)])];
+    const owners = [...db.n.map(n => ['n', n, [...(n.img || []), ...(n.aud || []), ...(n.bgImg ? [n.bgImg] : [])]]), ...db.t.map(t => ['t', t, t.att || []]), ...db.d.map(d => ['d', d, (d.b || []).filter(b => b.file).map(b => b.file)])];
     for (const [k, o, list] of owners) {
       let ch = false;
       for (const m of list) {
