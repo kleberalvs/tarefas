@@ -82,8 +82,8 @@ function rastCat(P, m = {}, RS = 1.5, hs = 1) {
   else { set(ex, ey + 1, 'c', 0); set(ex + 1, ey + 1, 'c', 0); set(ex + 2, ey + 1, 'c', 0); }
   const [nx, ny] = G(5.1, .3); set(nx, ny, 'n', .7); set(nx - 1, ny, 'n', .5);
   const [mx, my] = G(4.4, 2.1);
-  if (m.mouth) { set(mx, my, 'k', 0); set(mx + 1, my, 'k', 0); set(mx, my + 1, 'p', .5); set(mx + 1, my + 1, 'k', 0); }
-  if (m.tongue) { const [qx, qy] = G(5, 2.5); set(qx, qy, 'p', .8); set(qx, qy + 1, 'p', .5); }
+  if (m.mouth) { [[13, 15], [13, 16], [18, 15], [18, 16], [14, 17], [15, 17], [16, 17], [17, 17]].forEach(([x, y]) => S(x, y, 'm')); [14, 15, 16, 17].forEach(x => { S(x, 15, 'k2'); S(x, 16, 'k2'); }); S(15, 16, 'p'); S(16, 16, 'p'); }
+  if (m.tongue) { S(15, 16, 'p'); S(16, 16, 'p'); S(15, 17, 'p'); S(16, 17, 'p'); S(14, 17, 'm'); S(17, 17, 'm'); S(15, 18, 'm'); S(16, 18, 'm'); }
   const wh = [G(4.2, 1.2), G(4.4, 1.8)];
   return { g, lum, wh, by: by * RS, bry: bry * RS, hx: hx * RS, hy: hy * RS };
 }
@@ -234,83 +234,86 @@ const CUTE = {
   marrom: { b: '#A47A52', s: '#835D3B', w: '#F1E2CC', v: '#D8C2A3', d: '#6A4A2E', stripe: 1 },
 };
 /* metade esquerda do gato sentado de frente (a coluna 9 é o centro); o lado direito é espelhado */
-const FRONT_L = [
-  '...oo.....', '...obo....', '..obpbo...', '..obppbo..', '.obpppbooo', '.obppbbbbb', 'obbbbbbbbb', 'obbbbbbbbb',
-  'obbbhkbbbb', 'obbbkkbbbb', 'obbwkkwwpp', 'obbwwwwwwm', 'obwwwwwmwm', '.owwwwwwmw', '.obwwwwwww', '..obwwwwww',
-  '..obbwwwww', '.obbbwwwww', '.obbbwwwww', 'obbbbbwwww', 'obbbbowwwo', 'obsbbowwwo', 'obssbowwwo', 'obssbowwwo',
-  'ossssowwwo', '.ooooooooo',
+/* gato fofo, sempre de frente: metade esquerda (colunas 0–15), espelhada para a direita */
+const KH = [ /* cabeça: 19 linhas */
+  '...oo...........', '..obbo..........', '..obpbo.........', '..obppbo........', '.obpppbo........', '.obpppbboooooooo',
+  '.obppbbbbbbbbbbb', 'obbbbbbbbbbbbbbb', 'obbbbbbbbbbbbbbb', 'obbbbbbbbbbbbbbb', 'obbbbkkbbbbbbbbb', 'obbbkhkkbbbbbbbb',
+  'obbbkkkkbbbbbbbb', 'obbbkkkhbbbbbbbb', 'obbbbkkbbbbbwwwn', 'obqqbbbbbbbwmwwm', 'obqqbbbbbbbwwmmw', '.obbbbbbbbbbwwww', '..oobbbbbbbbbbbb',
 ];
-const FRONT_TAILS = [
-  ['..oo..', '.obbo.', '.obbo.', '.obo..', '.obo..', '.obo..', 'obbo..', 'obo...', 'obo...', 'bo....', 'bo....'],
-  ['...oo.', '..obbo', '..obbo', '..obo.', '.obbo.', '.obo..', 'obbo..', 'obo...', 'obo...', 'bo....', 'bo....'],
-  ['......', '......', '......', '......', '......', '......', '......', '...oo.', '..obbo', 'oobbo.', 'bbbo..'],
+const KB_SIT = [ /* corpo sentado: 10 linhas */
+  '....obbbwwwwwwww', '...obbbbwwwwwwww', '...obbbbbwwwwwww', '..obbbbbbwwwwwww', '..obbbbbbwwwwwww',
+  '..obsbbbbowwwwww', '..obssbbbowwwwww', '..obssbbbowwwwwo', '..ossssbowwvwwvo', '...ooooooooooooo',
 ];
-function frontGrid(m = {}) {
-  const W = 25, H = 26, g = Array.from({ length: H }, () => Array(W).fill('.'));
-  FRONT_L.forEach((r, y) => [...r].forEach((ch, x) => { g[y][x] = ch; g[y][18 - x] = ch; }));
-  g[8][13] = 'h'; g[8][14] = 'k';
-  const tl = FRONT_TAILS[m.tail || 0];
-  tl.forEach((r, i) => [...r].forEach((ch, x) => { if (ch !== '.') { const y = 13 + i; if (g[y][18 + x] === '.' || ch !== 'o') g[y][18 + x] = ch === 'b' ? 't' : ch; } }));
-  const S = (x, y, c) => { if (g[y] && x >= 0 && x < W) g[y][x] = c; };
-  const eyes = rows => [4, 13].forEach(x => rows.forEach((r, i) => { S(x, 8 + i, r[0]); S(x + 1, 8 + i, r[1]); }));
-  if (m.blink || m.eyes === 'closed') eyes(['bb', 'kk', 'ww']);
-  else if (m.eyes === 'happy') { eyes(['bb', 'bb', 'ww']); [4, 13].forEach(x => { S(x - 1, 9, 'k'); S(x, 8, 'k'); S(x + 1, 8, 'k'); S(x + 2, 9, 'k'); }); S(2, 10, 'p'); S(16, 10, 'p'); }
-  else if (m.look === -1) eyes(['kh', 'kk', 'kk']);
-  if (m.mouth) { S(8, 12, 'k'); S(9, 12, 'k'); S(10, 12, 'k'); S(8, 13, 'k'); S(9, 13, 'p'); S(10, 13, 'k'); S(9, 14, 'k'); }
-  if (m.tongue) { S(9, 13, 'p'); S(9, 14, 'p'); S(8, 13, 'w'); S(10, 13, 'w'); }
-  if (m.ear) { S(3, 0, '.'); S(4, 0, '.'); S(3, 1, '.'); S(2, 2, 'o'); S(3, 2, 'o'); S(4, 1, 'o'); }
+const KB_LOAF = [ /* corpo deitado (pãozinho): 7 linhas */
+  '...obbbbwwwwwwww', '..obbbbbbwwwwwww', '.obbbbbbbbwwwwww', 'obsbbbbbbbbbbbbb', 'obssbbbbowwwwobb', 'osssssbbowvwvobb', '.ooooooooooooooo',
+];
+const KTAIL = { /* cauda do lado direito, colunas 28–37 */
+  sit: [[18, ['.......oo.', '......obbo', '......obbo', '.......obo', '.......obo', '.......obo', '......obbo', '.....obbo.', '...oobbo..', '..obbbo...', '..obbo....', '..ooo.....']],
+        [18, ['........oo', '.......obo', '.......obo', '.......obo', '.......obo', '......obbo', '......obo.', '.....obbo.', '...oobbo..', '..obbbo...', '..obbo....', '..ooo.....']]],
+  loaf: [[26, ['..........', '......oo..', '..ooooobo.', '.obbbbbbo.', 'oooooooo..']], [26, ['........o.', '.......obo', '..ooooobo.', '.obbbbbbo.', 'oooooooo..']]],
+};
+const CUTE_FACE = { blush: '#F6A3AE' };
+function kawaiiGrid(m = {}) {
+  const loaf = m.fmode === 'loaf', W = 38, H = 32, g = Array.from({ length: H }, () => Array(W).fill('.'));
+  const rows = KH.concat(loaf ? KB_LOAF : KB_SIT), oy = H - 2 - rows.length + 1 + (loaf ? 0 : 0);
+  rows.forEach((r, i) => [...r].forEach((ch, x) => { const y = oy + i; if (y < 0 || y >= H) return; g[y][x] = ch; g[y][31 - x] = ch; }));
+  const S = (x, y, c) => { y += oy; if (g[y] && x >= 0 && x < W) g[y][x] = c; };
+  /* brilho dos olhos sempre do mesmo lado */
+  S(25, 11, 'h'); S(26, 11, 'k'); S(24, 13, 'k'); S(27, 13, 'h');
+  /* cauda */
+  const tl = KTAIL[loaf ? 'loaf' : 'sit'][m.tail ? 1 : 0];
+  tl[1].forEach((r, i) => [...r].forEach((ch, x) => { if (ch === '.') return; const y = loaf ? oy + 21 + i : tl[0] + i + oy - 2; const X = 28 + x; if (!g[y] || X >= W) return; if (g[y][X] === '.') g[y][X] = ch === 'b' ? 't' : ch; }));
+  /* olhos */
+  const eye = (x0, rows) => rows.forEach((r, i) => [...r].forEach((ch, j) => { if (ch !== ' ') S(x0 + j, 10 + i, ch); }));
+  const both = (L, R) => { eye(4, L); eye(24, R || L.map(r => [...r].reverse().join(''))); };
+  const ex = m.eyes;
+  if (m.blink || ex === 'closed') both(['bbbb', 'bbbb', 'kbbk', 'bkkb', 'bbbb']);
+  else if (ex === 'happy') both(['bbbb', 'bkkb', 'kbbk', 'bbbb', 'bbbb']);
+  else if (ex === 'sleepy') both(['bbbb', 'bbbb', 'kkkk', 'bkkb', 'bbbb']);
+  else if (ex === 'wide') both(['bkkb', 'khhk', 'khhk', 'kkkk', 'bkkb']);
+  else if (ex === 'wink') { eye(24, ['bbbb', 'bkkb', 'kbbk', 'bbbb', 'bbbb']); }
+  if (ex === 'happy' || ex === 'closed') { S(1, 15, 'q'); S(30, 15, 'q'); }
+  /* boca */
+  if (m.mouth) { [[13, 15], [14, 15], [17, 15], [18, 15], [13, 16], [18, 16], [14, 17], [17, 17], [15, 18], [16, 18]].forEach(([x, y]) => S(x, y, 'm')); [[14, 16], [15, 16], [16, 16], [17, 16], [15, 15], [16, 15]].forEach(([x, y]) => S(x, y, 'k2')); S(15, 17, 'p'); S(16, 17, 'p'); }
+  if (m.tongue) { S(15, 16, 'p'); S(16, 16, 'p'); S(15, 17, 'p'); S(16, 17, 'p'); S(14, 17, 'm'); S(17, 17, 'm'); S(15, 18, 'm'); S(16, 18, 'm'); }
+  /* patinha levantada (lambendo) */
+  if (m.paw && !loaf) { ['.oooo.', 'owvwvo', 'owwwwo', 'owwwwo', '.owwo.', '.owwo.', '.owwo.', '.owwo.'].forEach((r, i) => [...r].forEach((ch, j) => { if (ch !== '.') S(8 + j, 16 + i, ch); })); }
+  /* passinhos ao andar */
+  if (m.walkf && !loaf) { const up = m.walkf === 1 ? [9, 14] : [17, 22]; for (let x = up[0]; x <= up[1]; x++) { S(x, 28, '.'); if (g[oy + 27][x] !== '.' && g[oy + 27][x] !== 'o') S(x, 27, 'o'); } }
   return g;
 }
-function cuteColor(k, ch, x, y, front) {
+function cuteColor2(k, ch, x, y) {
   const C = CUTE[k] || CUTE.laranja;
-  if (ch === 'o') return '#1C1A1A'; if (ch === 'k') return C.dark && !front ? '#111' : '#1C1A1A'; if (ch === 'h') return '#FFFFFF'; if (ch === 'p') return '#F2A3AE';
-  if (ch === 'm') return '#1C1A1A';
+  if (ch === 'o' || ch === 'm') return '#2A1E1E'; if (ch === 'h') return '#FFFFFF'; if (ch === 'p') return '#F28C9B'; if (ch === 'q') return CUTE_FACE.blush; if (ch === 'k2') return '#6E2B33';
+  if (ch === 'n') return '#F5939F';
+  if (ch === 'E' || ch === 'k' || ch === 'g') return C.dark ? (ch === 'g' ? '#FFFFFF' : C.eye) : ch === 'g' ? '#7A6A6A' : '#2A1E1E';
   const sh = ch === 's' || ch === 'v';
-  if (C.calico && front) {
-    if ((ch === 'b' || ch === 's') && y <= 9 && x <= 8) return sh ? C.xs : C.x;
-    if ((ch === 'b' || ch === 's') && y <= 7 && x >= 12) return sh ? C.ys : C.y;
-    if ((ch === 'b' || ch === 's') && y >= 16 && x >= 13) return sh ? C.ys : C.y;
-    if (ch === 't') return y < 18 ? C.y : C.x;
+  if (C.calico) {
+    if ((ch === 'b' || ch === 's') && y <= 12 && x <= 12) return sh ? C.xs : C.x;
+    if ((ch === 'b' || ch === 's') && y <= 9 && x >= 20) return sh ? C.ys : C.y;
+    if ((ch === 'b' || ch === 's') && y >= 21 && x >= 20) return sh ? C.ys : C.y;
+    if (ch === 't') return y < 24 ? C.y : C.x;
   }
-  if (C.points && front && (ch === 'b' || ch === 's') && (y <= 9 || y >= 22)) return sh ? C.xs : C.x;
+  if (C.points && (ch === 'b' || ch === 's') && y <= 19) return sh ? C.xs : C.x;
   if (C.points && ch === 't') return C.x;
-  if (C.stripe && ch === 'b' && front && ((y >= 5 && y <= 6 && (x === 8 || x === 10 || x === 9 && y === 5)) || (y >= 17 && y % 2 === 0 && (x === 2 || x === 16)))) return C.d;
+  if (C.stripe && ch === 'b' && ((y >= 7 && y <= 9 && (x === 12 || x === 19 || (x === 15 || x === 16) && y <= 8)) || (y >= 22 && y % 2 === 1 && (x <= 5 || x >= 26)))) return C.d;
   if (C.stripe && ch === 't' && y % 2 === 0) return C.d;
-  if (ch === 'w') return C.w; if (ch === 'v') return C.v; if (ch === 's') return C.s;
+  if (ch === 'w') return C.dark ? C.b : C.w; if (ch === 'v') return C.dark ? C.s : C.v; if (ch === 's') return C.s;
   return C.b;
 }
 function paintCute(cv, k, P, m = {}) {
-  const C = CUTE[k] || CUTE.laranja, ctx = cv.getContext('2d');
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  const ctx = cv.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   const img = ctx.createImageData(cv.width, cv.height), D = img.data, Wc = cv.width;
-  const put = (x, y, hex) => { if (x < 0 || y < 0 || x >= cv.width || y >= cv.height) return; const n = parseInt(hex.slice(1), 16), i = (y * Wc + x) * 4; D[i] = n >> 16; D[i + 1] = (n >> 8) & 255; D[i + 2] = n & 255; D[i + 3] = 255; };
-  if (m.front) {
-    const g = frontGrid(m), ox = Math.round((Wc - 25) / 2) + 1, oy = cv.height - 26 - 3 + (m.bob || 0);
-    g.forEach((r, y) => r.forEach((ch, x) => { if (ch === '.') return; let col = cuteColor(k, ch, x, y, true); if (C.dark && ch === 'k' && !m.blink && m.eyes !== 'closed' && m.eyes !== 'happy' && y >= 8 && y <= 9) col = C.eye; put(ox + x, oy + y, col); }));
-  } else {
-    const R = rastCat(P, m, 1, 1.22), g = R.g, W = CW;
-    const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= CH) ? '' : g[y * W + x];
-    for (let y = 0; y < CH; y++) for (let x = 0; x < W; x++) {
-      const c = g[y * W + x];
-      if (!c) { if (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) put(x, y, '#1C1A1A'); continue; }
-      const dark = R.lum[y * W + x] < .36;
-      let col;
-      if (c === 'E' || c === 'k' || c === 'c') col = C.dark && c === 'E' ? C.eye : '#1C1A1A';
-      else if (c === 'h') col = '#FFFFFF'; else if (c === 'p' || c === 'n') col = '#F2A3AE';
-      else if (c === 'M' || c === 'C' || c === 'P') col = dark ? C.v : C.w;
-      else if (c === 'F') col = C.points ? C.xs : C.s;
-      else if (C.calico) col = c === 'T' ? C.x : (c === 'b' && x < 17 && y < R.by + 1) ? (dark ? C.ys : C.y) : ((c === 'H' || c === 'R') && x < R.hx) ? C.x : dark ? C.s : C.b;
-      else if (C.points && 'HRLT'.includes(c)) col = dark ? C.xs : C.x;
-      else if (C.stripe && ((c === 'b' && (x + (y >> 1)) % 4 === 0 && y < R.by) || (c === 'T' && (x + y) % 3 === 0))) col = C.d;
-      else col = dark ? C.s : C.b;
-      put(x, y, col);
-    }
-  }
+  const g = kawaiiGrid(m), ox = Math.round(Wc / 2 - 16), oy = (m.bob || 0) - 1;
+  g.forEach((r, y) => r.forEach((ch, x) => {
+    if (ch === '.') return; const X = ox + x, Y = oy + y; if (X < 0 || Y < 0 || X >= Wc || Y >= cv.height) return;
+    const n = parseInt(cuteColor2(k, ch, x, y).slice(1), 16), i = (Y * Wc + X) * 4; D[i] = n >> 16; D[i + 1] = (n >> 8) & 255; D[i + 2] = n & 255; D[i + 3] = 255;
+  }));
   ctx.putImageData(img, 0, 0);
 }
 function petStyle() { return (db.s.pets && db.s.pets.style) || 'fofo'; }
 function drawPet(cv, k, P, m) { if (petStyle() === 'fofo') { if (cv.width !== CW) { cv.width = CW; cv.height = CH; } paintCute(cv, k, P, m); cv.classList.remove('real'); return; } if (petStyle() === 'pixel') { if (cv.width !== GW) { cv.width = GW; cv.height = GH; } paintCat(cv, k, P, m); } else { const K = Math.round(CW * Math.min(8, Math.max(4, (cv._sc || 3) * Math.min(2, devicePixelRatio || 1)))); if (cv.width !== K) { cv.width = K; cv.height = Math.round(K * CH / CW); } paintCatReal(cv, k, P, m); } cv.classList.toggle('real', petStyle() !== 'pixel'); }
-function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; cv._sc = 2; drawPet(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], { front: pose === 'sit' || typeof pose !== 'string' }); return cv; }
+function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; cv._sc = 2; drawPet(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], { fmode: pose === 'lie' || pose === 'sleep' ? 'loaf' : 'sit', blush: 1 }); return cv; }
 function catImg(k, pose, size = 88) { const cv = catCanvas(k, pose); return `<img class="petimg" src="${cv.toDataURL()}" width="${size}" height="${Math.round(size * CH / CW)}" alt="">`; }
 
 /* ---------- gatos na tela ---------- */
@@ -369,7 +372,7 @@ function makePet(c, slot, saved) {
       if (w.left <= 0 || p.X <= 0 || p.X >= W) { p.walk = null; savePos(); w.done(); }
     }
     if (p.pose === 'groom') { P.fn[5] += Math.sin(t * .55) * 1.1; P.fn[3] += Math.sin(t * .55) * .6; p.m.tongue = Math.sin(t * .55) > .2; }
-    drawPet(cv, p.k, P, Object.assign({}, p.m, { front: !p.tw && !p.walk && (p.pose === 'sit' || p.pose === 'groom'), eyes: p.pose === 'groom' ? 'closed' : p.m.eyes, tail: Math.sin(t * .13) > .35 ? 1 : 0, bob: Math.sin(t * .11) > .7 ? 1 : 0, blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
+    drawPet(cv, p.k, P, Object.assign({}, p.m, { fmode: p.pose === 'lie' || p.pose === 'sleep' ? 'loaf' : 'sit', eyes: p.m.eyes || (p.pose === 'sleep' || p.pose === 'groom' || p.pose === 'stretch' ? 'closed' : p.pose === 'hang' ? 'wide' : p.pose === 'lie' && Math.sin(t * .02) > .3 ? 'sleepy' : undefined), paw: p.pose === 'groom', walkf: p.walk ? (Math.floor(p.walk.ph / 1.5) % 2) + 1 : 0, tail: Math.sin(t * (p.pose === 'sleep' ? .05 : .13)) > .35 ? 1 : 0, bob: p.walk ? (Math.floor(p.walk.ph / 1.5) % 2) : (Math.sin(t * .11) > .75 ? 1 : 0), blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
   };
   /* comportamento */
   const wait = (ms, fn) => T(fn, ms);
