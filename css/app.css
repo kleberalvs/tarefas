@@ -757,7 +757,7 @@ button.frow:hover{background:var(--hover)}
 .avctl input[type=range]{accent-color:var(--red)}
 
 /* ---------- entrada ---------- */
-#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(90% 60% at 50% 0%,var(--redsoft),transparent 70%),var(--side);z-index:99;padding:20px;padding-top:calc(20px + var(--safe-t))}
+#login{position:fixed;inset:0;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(380px,1fr);background:var(--bg);z-index:99}
 .lcard{width:100%;max-width:380px;background:var(--bg);border-radius:22px;padding:30px 28px;box-shadow:var(--sh2);display:flex;flex-direction:column;animation:pin .25s var(--ease)}
 .lic{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(--red3),var(--red2));color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 20px color-mix(in srgb,var(--red) 35%,transparent)}
 .lcard h1{font-size:calc(25px * var(--fs,1));font-weight:800;letter-spacing:-.02em}.lcard>p{margin:4px 0 8px}
@@ -941,8 +941,8 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 
 /* ---------- painel ---------- */
 .home{max-width:1120px;margin:0 auto;padding:0 32px 120px;display:flex;flex-direction:column;gap:16px}
-.hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 24px;border-radius:20px;border:1px solid var(--line);background:radial-gradient(120% 140% at 0% 0%,var(--redsoft),transparent 60%),var(--card);box-shadow:var(--sh1)}
-.hero h2{font-size:calc(24px * var(--fs,1));font-weight:800;letter-spacing:-.02em}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:6px 4px 10px}
+.hero h2{font-size:calc(30px * var(--fs,1));font-weight:800;letter-spacing:-.03em;line-height:1.15}.hero h2 em{font-style:normal;color:var(--red)}
 .hero p{margin:3px 0 0}.herotx{margin-top:10px!important;font-size:calc(15px * var(--fs,1));color:var(--txt2)}.herotx .red{color:var(--red)}
 .ring{position:relative;width:112px;height:112px;flex:none}
 .ring svg{width:100%;height:100%}
@@ -1066,3 +1066,42 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 .ptag{display:inline-flex;align-items:center;gap:3px;min-height:26px;padding:0 4px 0 9px;border-radius:13px;background:color-mix(in srgb,var(--c) 13%,transparent);color:var(--c);font-size:calc(12.5px * var(--fs,1));font-weight:600}
 .ptag button{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;opacity:.6}.ptag button:hover{opacity:1;background:color-mix(in srgb,var(--c) 20%,transparent)}
 @media (hover:none){.pclr{opacity:1}}
+
+/* ---------- logotipo ---------- */
+.lgmark{width:72px;height:72px;display:block}
+.lgbg{fill:var(--red)}
+.lgbox{fill:none;stroke:var(--onacc);stroke-width:3.2;opacity:.9}
+.lgchk{fill:none;stroke:var(--onacc);stroke-width:4.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:30;stroke-dashoffset:30;animation:draw .55s .25s var(--ease) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+/* ---------- abertura ---------- */
+#splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+#splash .lgmark{width:84px;height:84px;animation:pop2 .6s var(--ease);filter:drop-shadow(0 12px 28px color-mix(in srgb,var(--red) 35%,transparent))}
+@keyframes pop2{from{transform:scale(.6);opacity:0}}
+.spw{font:800 calc(26px * var(--fs,1))/1 var(--font);letter-spacing:-.03em;color:var(--txt);opacity:0;animation:up .5s .3s var(--ease) forwards}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.spbar{width:120px;height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:6px;opacity:0;animation:up .4s .5s forwards}
+.spbar i{display:block;height:100%;width:40%;border-radius:2px;background:var(--red);animation:slide 1s ease-in-out infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+#splash.out{opacity:0;transform:scale(1.04);pointer-events:none}
+/* ---------- tela de entrada ---------- */
+.lhero{position:relative;overflow:hidden;background:linear-gradient(150deg,var(--red3),var(--red) 45%,var(--red2));display:flex;align-items:center;justify-content:center;color:var(--onacc);padding:40px}
+.lhin{position:relative;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:420px}
+.lhin .lgmark{width:76px;height:76px}
+.lhin .lgbg{fill:rgba(255,255,255,.18)}
+[data-skin=grafite][data-theme=dark] .lhin .lgbg,[data-skin=noite] .lhin .lgbg{fill:rgba(0,0,0,.15)}
+.lhin h2{font-size:calc(46px * var(--fs,1));font-weight:800;letter-spacing:-.035em;line-height:1}
+.lhin p{margin:0;font-size:calc(18px * var(--fs,1));opacity:.85}
+.lorb{position:absolute;border-radius:50%;background:rgba(255,255,255,.10);animation:float 9s ease-in-out infinite}
+.o1{width:420px;height:420px;right:-140px;top:-120px}.o2{width:260px;height:260px;left:-90px;bottom:-80px;animation-delay:-3s}.o3{width:120px;height:120px;right:18%;bottom:14%;animation-delay:-6s;background:rgba(255,255,255,.07)}
+@keyframes float{50%{transform:translate(14px,-18px)}}
+.lform{display:flex;align-items:center;justify-content:center;padding:40px 28px;padding-bottom:calc(40px + var(--safe-b))}
+#login .lcard{max-width:380px;width:100%;background:none;box-shadow:none;padding:0;animation:up .5s var(--ease)}
+#login .lcard h1{font-size:calc(28px * var(--fs,1));letter-spacing:-.025em}
+#login .lcard .lic{display:none}
+@media (max-width:759px){
+  #login{grid-template-columns:1fr;grid-template-rows:auto 1fr;overflow-y:auto}
+  .lhero{padding:calc(36px + var(--safe-t)) 26px 54px;min-height:34vh;align-items:flex-end;justify-content:flex-start}
+  .lhin{gap:10px}.lhin .lgmark{width:58px;height:58px}.lhin h2{font-size:calc(36px * var(--fs,1))}.lhin p{font-size:calc(15px * var(--fs,1))}
+  .lform{align-items:flex-start;margin-top:-24px;background:var(--bg);border-radius:24px 24px 0 0;position:relative;z-index:3;padding:30px 22px calc(30px + var(--safe-b))}
+  .hero h2{font-size:calc(24px * var(--fs,1))}
+}

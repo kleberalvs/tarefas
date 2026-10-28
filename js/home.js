@@ -56,7 +56,7 @@ VIEWS.home = main => {
   const mini = (arr, empty, max = 6) => arr.length ? arr.slice(0, max).map(t => rowHtml(t, { showList: 1, show: Object.assign({}, SHOW_DEF, { cover: 0 }) })).join('') + (arr.length > max ? `<p class="hint pad">+ ${arr.length - max} tarefa(s)</p>` : '') : `<p class="hint pad">${empty}</p>`;
   main.innerHTML = headHtml('Painel', '', `<button class="btn red sm" data-act="quick">${ic('plus', 16)}<span>Tarefa</span></button>`) + `<div class="scroll"><div class="home">
     <section class="hero">
-      <div><h2>${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}${nm ? ', ' + esc(nm) : ''}</h2><p class="mut">${esc(fmtLong(T))}</p>
+      <div><h2>${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}${nm ? `, <em>${esc(nm)}</em>` : ''}</h2><p class="mut">${esc(fmtLong(T))}</p>
         <p class="herotx">${over.length ? `Você tem <b class="red">${plural(over.length, 'tarefa atrasada', 'tarefas atrasadas')}</b> e ` : 'Você tem '}<b>${plural(todayT.length, 'tarefa', 'tarefas')} para hoje</b>.${doneToday ? ` Já concluiu ${doneToday} hoje.` : ''}</p></div>
       <div class="ring"><svg viewBox="0 0 120 120" role="img" aria-label="Progresso de hoje: ${pct}%"><circle cx="60" cy="60" r="50" class="rbg"/><circle cx="60" cy="60" r="50" class="rfg" stroke-dasharray="${(2 * Math.PI * 50).toFixed(1)}" stroke-dashoffset="${(2 * Math.PI * 50 * (1 - pct / 100)).toFixed(1)}" transform="rotate(-90 60 60)"/></svg><div><b>${pct}%</b><span>do dia</span></div></div>
     </section>

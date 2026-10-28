@@ -124,6 +124,11 @@ function initSw() {
 /* ---------- início ---------- */
 function fontScale() { try { return clamp(+(localStorage.getItem('tt_fs') || 1), .8, 1.4); } catch (e) { return 1; } }
 function applyFontScale() { document.documentElement.style.setProperty('--fs', fontScale()); }
+function hideSplash() {
+  const s = $('#splash'); if (!s) return;
+  const wait = Math.max(0, 1100 - (performance.now() || 0));
+  setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), 600); }, wait);
+}
 function accentHex() {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--red').trim();
   if (/^#[0-9a-f]{6}$/i.test(v)) return v;
@@ -145,6 +150,7 @@ function boot() {
   initUi();
   onData(local => { render(); if (local !== false) schedPush(); checkAch(); });
   render(true);
+  hideSplash();
   startSync();
   initSw();
   checkReminders();

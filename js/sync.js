@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.28-13';
+const APPV = '2026.10.28-14';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -165,14 +165,15 @@ async function enter(s) {
   if (typeof pushRefresh === 'function') pushRefresh();
   render(true);
 }
+const LOGO_SVG = '<svg class="lgmark" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="17" class="lgbg"/><rect x="17" y="17" width="30" height="30" rx="9" class="lgbox"/><path d="M24.5 32.5l5.5 5.5 10-11" class="lgchk"/></svg>';
 function loginShell(inner) {
   let d = $('#login');
   if (!d) { d = document.createElement('div'); d.id = 'login'; document.body.appendChild(d); }
-  d.innerHTML = `<div class="lcard"><div class="lic">${ic('check', 34)}</div>${inner}</div>`;
+  d.innerHTML = `<div class="lhero"><div class="lhin">${LOGO_SVG}<h2>Tarefas</h2><p>Seu dia organizado, com calma.</p></div><span class="lorb o1"></span><span class="lorb o2"></span><span class="lorb o3"></span></div><div class="lform"><div class="lcard">${inner}</div></div>`;
   return d;
 }
 function showLogin(msg) {
-  const d = loginShell(`<h1>Tarefas</h1><p class="mut">Entre com seu e-mail e senha.</p>
+  const d = loginShell(`<h1>Bem-vindo de volta</h1><p class="mut">Entre com seu e-mail e senha.</p>
     <form id="lgf"><label class="lab">E-mail<input class="in" type="email" id="lg_e" autocomplete="username" required value="${esc(localStorage.getItem('tt_who') || '')}"></label>
     <label class="lab">Senha<span class="pwbox"><input class="in" type="password" id="lg_s" autocomplete="current-password" required><button type="button" class="mini" data-eye aria-label="Mostrar senha">${ic('eye', 16)}</button></span></label>
     <button class="btn red big" id="lg_b">Entrar</button><p id="lg_m" class="err">${esc(msg || '')}</p></form>
