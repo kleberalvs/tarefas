@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.27-1';
+const APPV = '2026.10.28-1';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -17,17 +17,18 @@ function cj(o) {
 function recs() { const m = {}; KINDS.forEach(k => db[k].forEach(x => m[k + ':' + x.id] = x)); m['s:cfg'] = db.s; return m; }
 const getRec = k => k === 's:cfg' ? db.s : get(k[0], k.slice(2));
 function place(d, kind, x) {
+  if (d === db && typeof snapSet === 'function') snapSet(kind, x);
   if (kind === 's') { const keep = { side: d.s.side, theme: d.s.theme }; d.s = Object.assign(DEF_S(), x); if (d === db) Object.assign(d.s, keep); return; }
   if (!d[kind]) return;
   const i = d[kind].findIndex(q => q.id === x.id);
   if (i >= 0) d[kind][i] = x; else d[kind].push(x);
 }
-function drop(d, kind, id) { if (d[kind] && kind !== 's') d[kind] = d[kind].filter(q => q.id !== id); }
+function drop(d, kind, id) { if (d === db && typeof snapDel === 'function') snapDel(kind, id); if (d[kind] && kind !== 's') d[kind] = d[kind].filter(q => q.id !== id); }
 function setSync(s, t) {
   const map = { local: ['local', 'Modo local: dados só neste aparelho', 'wifi'], ok: ['ok', 'Sincronizado', 'check'], busy: ['busy', 'Sincronizando…', 'sync'], pend: ['pend', 'Alterações pendentes', 'sync'], off: ['off', 'Sem internet: salvo no aparelho', 'wifi'], err: ['err', 'Falha ao sincronizar', 'info'] }[s];
   SYNC.cls = map[0]; SYNC.txt = t || map[1]; SYNC.icon = map[2];
-  const e = $('#sync'); if (e) { e.className = 'sync ' + SYNC.cls; e.title = SYNC.txt; e.innerHTML = ic(SYNC.icon, 16); }
-  const e2 = $('#syncline'); if (e2) e2.textContent = SYNC.txt;
+  const e = $('#sync'); if (e) { e.className = 'sdot ' + SYNC.cls; e.title = SYNC.txt; }
+  ['#syncline', '#syncline2'].forEach(x => { const e2 = $(x); if (e2) e2.textContent = SYNC.txt; });
 }
 function schedPush() {
   if (!CLOUD || !SES) return;
@@ -84,7 +85,7 @@ async function pull() {
     KINDS.forEach(k => db[k] = db[k].filter(x => !x.sd));
     rows.forEach(r => { const k = r.kind + ':' + r.id, l = getRec(k); if (!l || r.kind === 's' || (r.data.u || 0) >= (l.u || 0)) place(db, r.kind, r.data); synced[k] = cj(r.data); });
     if (!db.l.some(l => l.id === 'inbox')) db.l.unshift({ id: 'inbox', name: 'Caixa de entrada', color: '#808080', view: 'list', sec: [], o: -1, u: 0 });
-    persistSynced(); IX = null; saveLocal(); render(true); schedPush(); return;
+    persistSynced(); IX = null; saveLocal(); if (typeof initSnap === 'function') initSnap(); render(true); schedPush(); return;
   }
   if (first) { KINDS.forEach(k => db[k].forEach(x => { if (x.sd) delete x.sd; })); }
   const cur = recs(), cjl = {};
@@ -136,11 +137,14 @@ async function pullSafe() { try { await pull(); setSync('ok'); } catch (e) { con
 const unlock = () => document.documentElement.classList.remove('lock');
 async function startSync() {
   if (!CLOUD) { unlock(); setSync('local'); return; }
-  SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'tt-auth' } });
+  const recovery = /type=recovery/.test(location.hash);
+  SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit', storageKey: 'tt-auth' } });
+  SB.auth.onAuthStateChange((ev, ses) => { if (ev === 'PASSWORD_RECOVERY') { unlock(); showNewPassword(); } if (ses) SES = ses; });
   let s = null;
   try { s = (await SB.auth.getSession()).data.session; } catch (e) {}
+  if (recovery) { unlock(); showNewPassword(); return; }
+  if (/error_description=/.test(location.hash)) { const m = decodeURIComponent((location.hash.match(/error_description=([^&]+)/) || [])[1] || '').replace(/\+/g, ' '); history.replaceState(null, '', location.pathname); showLogin(/expired|invalid/i.test(m) ? 'O link expirou. Peça um novo em "Esqueceu a senha?".' : m); return; }
   if (s) return enter(s);
-  if (localStorage.getItem('tt_local') === '1') { unlock(); setSync('local'); return; }
   if (!navigator.onLine && localStorage.getItem('tt_who')) { WHO = localStorage.getItem('tt_who'); unlock(); setSync('off'); return; }
   showLogin();
 }
@@ -156,19 +160,24 @@ async function enter(s) {
   await pullSafe();
   schedPush();
   FILES.flush().catch(() => {});
-  SB.auth.onAuthStateChange((ev, ses) => { if (ses) SES = ses; if (ev === 'SIGNED_OUT') { SES = null; } });
+  checkAdmin();
+  if (typeof pushRefresh === 'function') pushRefresh();
   render(true);
 }
-function showLogin() {
-  if ($('#login')) return;
-  const d = document.createElement('div'); d.id = 'login';
-  d.innerHTML = `<form class="lcard"><div class="lic">${ic('check', 34)}</div><h1>Tarefas</h1><p class="mut">Entre para sincronizar seu celular e seu computador.</p>
-    <label class="lab">E-mail<input class="in" type="email" id="lg_e" autocomplete="username" required></label>
-    <label class="lab">Senha<input class="in" type="password" id="lg_s" autocomplete="current-password" required></label>
-    <button class="btn red big" id="lg_b">Entrar</button><p id="lg_m" class="err"></p>
-    <button type="button" class="link" id="lg_local">Usar sem conta (só neste aparelho)</button></form>`;
-  document.body.appendChild(d);
-  d.querySelector('#lg_local').onclick = () => { localStorage.setItem('tt_local', '1'); d.remove(); unlock(); setSync('local'); render(true); };
+function loginShell(inner) {
+  let d = $('#login');
+  if (!d) { d = document.createElement('div'); d.id = 'login'; document.body.appendChild(d); }
+  d.innerHTML = `<div class="lcard"><div class="lic">${ic('check', 34)}</div>${inner}</div>`;
+  return d;
+}
+function showLogin(msg) {
+  const d = loginShell(`<h1>Tarefas</h1><p class="mut">Entre com seu e-mail e senha.</p>
+    <form id="lgf"><label class="lab">E-mail<input class="in" type="email" id="lg_e" autocomplete="username" required value="${esc(localStorage.getItem('tt_who') || '')}"></label>
+    <label class="lab">Senha<span class="pwbox"><input class="in" type="password" id="lg_s" autocomplete="current-password" required><button type="button" class="mini" data-eye aria-label="Mostrar senha">${ic('eye', 16)}</button></span></label>
+    <button class="btn red big" id="lg_b">Entrar</button><p id="lg_m" class="err">${esc(msg || '')}</p></form>
+    <button type="button" class="link" id="lg_forgot">Esqueceu a senha?</button>`);
+  d.querySelector('[data-eye]').onclick = () => { const i = $('#lg_s'); i.type = i.type === 'password' ? 'text' : 'password'; };
+  d.querySelector('#lg_forgot').onclick = () => showForgot($('#lg_e').value);
   d.querySelector('form').onsubmit = async ev => {
     ev.preventDefault();
     const b = $('#lg_b'); b.disabled = true; b.textContent = 'Entrando…'; $('#lg_m').textContent = '';
@@ -178,8 +187,53 @@ function showLogin() {
       await enter(data.session);
     } catch (e) {
       b.disabled = false; b.textContent = 'Entrar';
-      $('#lg_m').textContent = /invalid|credentials/i.test(e.message || '') ? 'E-mail ou senha incorretos.' : navigator.onLine ? 'Não foi possível entrar: ' + (e.message || 'erro') : 'Sem conexão com a internet.';
+      const m = e.message || '';
+      $('#lg_m').textContent = /invalid|credentials/i.test(m) ? 'E-mail ou senha incorretos.' : /banned/i.test(m) ? 'Este acesso está bloqueado. Fale com o administrador.' : navigator.onLine ? 'Não foi possível entrar: ' + m : 'Sem conexão com a internet.';
     }
+  };
+}
+function showForgot(email) {
+  const d = loginShell(`<h1>Recuperar senha</h1><p class="mut">Informe seu e-mail. Vamos enviar um link para você criar uma senha nova.</p>
+    <form><label class="lab">E-mail<input class="in" type="email" id="fg_e" required value="${esc(email || '')}"></label>
+    <button class="btn red big" id="fg_b">Enviar link</button><p id="fg_m" class="err"></p></form>
+    <button type="button" class="link" id="fg_back">Voltar para entrar</button>`);
+  d.querySelector('#fg_back').onclick = () => showLogin();
+  d.querySelector('form').onsubmit = async ev => {
+    ev.preventDefault();
+    const b = $('#fg_b'); b.disabled = true; b.textContent = 'Enviando…';
+    try {
+      const { error } = await SB.auth.resetPasswordForEmail($('#fg_e').value.trim(), { redirectTo: location.origin + location.pathname });
+      if (error) throw error;
+      d.querySelector('.lcard').innerHTML = `<div class="lic">${ic('check', 34)}</div><h1>Verifique seu e-mail</h1><p class="mut">Se esse e-mail tiver acesso, você vai receber um link em alguns minutos. Abra o link neste aparelho para criar a senha nova.</p><button class="btn red big" id="fg_ok">Voltar</button>`;
+      $('#fg_ok').onclick = () => showLogin();
+    } catch (e) { b.disabled = false; b.textContent = 'Enviar link'; $('#fg_m').textContent = /rate|limit/i.test(e.message || '') ? 'Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo.' : 'Não foi possível enviar: ' + (e.message || 'erro'); }
+  };
+}
+function showNewPassword() {
+  const d = loginShell(`<h1>Crie uma senha nova</h1><p class="mut">Use pelo menos 8 caracteres.</p>
+    <form><label class="lab">Senha nova<input class="in" type="password" id="np_1" autocomplete="new-password" minlength="8" required></label>
+    <label class="lab">Repita a senha<input class="in" type="password" id="np_2" autocomplete="new-password" minlength="8" required></label>
+    <button class="btn red big" id="np_b">Salvar senha</button><p id="np_m" class="err"></p></form>`);
+  d.querySelector('form').onsubmit = async ev => {
+    ev.preventDefault();
+    if ($('#np_1').value !== $('#np_2').value) { $('#np_m').textContent = 'As senhas não são iguais.'; return; }
+    const b = $('#np_b'); b.disabled = true;
+    const { error } = await SB.auth.updateUser({ password: $('#np_1').value });
+    if (error) { b.disabled = false; $('#np_m').textContent = 'Não foi possível salvar: ' + error.message; return; }
+    history.replaceState(null, '', location.pathname + '#/l/today');
+    const s = (await SB.auth.getSession()).data.session;
+    toast('Senha alterada'); if (s) enter(s); else showLogin('Senha alterada. Entre com a senha nova.');
+  };
+}
+async function changePassword() {
+  const el = modal(`<h2>Alterar minha senha</h2><form><label class="lab">Senha nova<input class="in" type="password" name="a" minlength="8" required autocomplete="new-password" autofocus></label><label class="lab">Repita a senha nova<input class="in" type="password" name="b" minlength="8" required autocomplete="new-password"></label><p class="err" data-m></p><div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">Salvar</button></div></form>`);
+  el.querySelector('[data-x]').onclick = closeModal;
+  el.querySelector('form').onsubmit = async e => {
+    e.preventDefault(); const f = e.target;
+    if (f.a.value !== f.b.value) { el.querySelector('[data-m]').textContent = 'As senhas não são iguais.'; return; }
+    const { error } = await SB.auth.updateUser({ password: f.a.value });
+    if (error) { el.querySelector('[data-m]').textContent = 'Não foi possível alterar: ' + error.message; return; }
+    closeModal(); toast('Senha alterada');
   };
 }
 async function signOut() {
@@ -191,6 +245,16 @@ async function signOut() {
   location.reload();
 }
 function goLogin() { localStorage.removeItem('tt_local'); if (!SB) location.reload(); else showLogin(); }
+let IS_ADMIN = false, ADMIN_FREE = false;
+async function checkAdmin() {
+  try {
+    const { data, error } = await SB.rpc('tarefas_sou_admin');
+    if (error) throw error;
+    IS_ADMIN = !!data;
+    if (!IS_ADMIN) { const r = await SB.rpc('tarefas_admin_livre'); ADMIN_FREE = !r.error && !!r.data; }
+  } catch (e) { IS_ADMIN = false; ADMIN_FREE = false; }
+  render();
+}
 addEventListener('online', () => { if (SES) { pullSafe(); schedPush(); FILES.flush().catch(() => {}); } });
 addEventListener('offline', () => { if (SES) setSync('off'); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SES) pullSafe(); });

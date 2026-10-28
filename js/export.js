@@ -106,14 +106,22 @@ const blobToDataUrl = b => new Promise(r => { const f = new FileReader(); f.onlo
 const PCOLS = { gray: ['#787774', '#f1f1ef'], brown: ['#9f6b53', '#f4eeee'], orange: ['#d9730d', '#fbecdd'], yellow: ['#b8860b', '#fbf3db'], green: ['#448361', '#edf3ec'], blue: ['#337ea9', '#e7f3f8'], purple: ['#9065b0', '#f6f3f9'], pink: ['#c14c8a', '#faf1f5'], red: ['#d44c47', '#fdebec'] };
 const PBGC = { plain: '#ffffff', paper: '#fbf8f1', gray: '#f4f4f2', sand: '#f6efe3', mint: '#eef7f1', sky: '#eef4fb', lavender: '#f3f0fa', rose: '#fbf0f2', night: '#1f2023' };
 const PFONT = { sans: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif", serif: "'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif", mono: "'SF Mono',Menlo,Consolas,'Liberation Mono',monospace", rounded: "ui-rounded,'SF Pro Rounded','Nunito','Segoe UI',system-ui,sans-serif" };
-async function docToHtml(d, forPrint) {
-  const s = Object.assign({ bg: 'plain', font: 'sans', size: 'm' }, d.style || {});
+const COVER_CSS = { sunset: 'linear-gradient(120deg,#ff9a76,#f6416c 55%,#a83279)', ocean: 'linear-gradient(120deg,#43c6ac,#2f80ed 60%,#1f3b73)', forest: 'linear-gradient(120deg,#a8e063,#3c8d40 55%,#134e2a)', sand: 'linear-gradient(120deg,#f8e1b4,#e7b980 55%,#c58a55)', berry: 'linear-gradient(120deg,#f5a3c7,#c2185b 55%,#6a1b4d)', graphite: 'linear-gradient(120deg,#8e9eab,#4b5563 55%,#1f2937)', aurora: 'linear-gradient(120deg,#00c9a7,#845ec2 50%,#ff6f91)' };
+const FONT_LINK = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Inter:wght@400;600;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Nunito:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Slab:wght@400;700&family=Source+Code+Pro:wght@400;600&display=swap">';
+async function docToHtml(d, forPrint, opts = {}) {
+  const s = Object.assign({ bg: 'plain', font: 'sans', size: 'm', lh: '1.6', margin: 'n' }, d.style || {});
+  const a4 = forPrint || s.page === 'a4', mg = (typeof MARGINS !== 'undefined' && MARGINS[s.margin]) || [20, 22];
   const imgs = {};
   for (const b of (d.b || [])) if (b.type === 'img' && b.file) { try { imgs[b.file.id] = await blobToDataUrl(await FILES.blob(b.file)); } catch (e) {} }
+  let coverBg = '';
+  const c = s.cover;
+  if (c && c.file) { try { coverBg = `url(${await blobToDataUrl(await FILES.blob(c.file))}) center ${+s.coverY || 50}%/cover no-repeat`; } catch (e) {} }
+  else if (typeof c === 'string' && COVER_CSS[c]) coverBg = COVER_CSS[c];
+  const full = !!(s.coverFull && coverBg);
   let body = '', n = 0, listOpen = null;
   const close = () => { if (listOpen) { body += `</${listOpen}>`; listOpen = null; } };
   (d.b || []).forEach((b, i, arr) => {
-    const st = (b.color ? `color:${PCOLS[b.color][0]};` : '') + (b.bg ? `background:${PCOLS[b.bg][1]};padding:4px 8px;border-radius:6px;` : '') + (b.lvl ? `margin-left:${b.lvl * 24}px;` : '');
+    const st = (b.color ? `color:${PCOLS[b.color][0]};` : '') + (b.bg ? `background:${PCOLS[b.bg][1]};padding:4px 8px;border-radius:6px;` : '') + (b.lvl ? `margin-left:${b.lvl * 24}px;` : '') + (b.align ? `text-align:${b.align};` : '');
     const t = inlineHtml(b.text), A = st ? ` style="${st}"` : '';
     const lt = b.type === 'ul' || b.type === 'todo' || b.type === 'task' ? 'ul' : b.type === 'ol' ? 'ol' : null;
     if (lt !== listOpen) { close(); if (lt) { body += `<${lt}${lt === 'ul' && (b.type === 'todo' || b.type === 'task') ? ' class="todo"' : ''}>`; listOpen = lt; } }
@@ -127,31 +135,65 @@ async function docToHtml(d, forPrint) {
       case 'callout': body += `<div class="callout" style="background:${PCOLS[b.bg || 'yellow'][1]}">${esc(b.emoji || '💡')} <span>${t}</span></div>`; break;
       case 'code': body += `<pre><code>${b.text || ''}</code></pre>`; break;
       case 'hr': body += '<hr>'; break;
-      case 'img': body += b.file && imgs[b.file.id] ? `<figure><img src="${imgs[b.file.id]}" alt=""><figcaption>${t}</figcaption></figure>` : ''; break;
+      case 'pb': body += '<div class="pb"></div>'; break;
+      case 'img': body += b.file && imgs[b.file.id] ? `<figure class="isz-${esc(b.size || 'l')}"><img src="${imgs[b.file.id]}" alt=""><figcaption>${t}</figcaption></figure>` : ''; break;
       case 'file': body += b.file ? `<p>📎 ${esc(b.file.name)} <small>(${fmtSize(b.file.size)})</small></p>` : ''; break;
       case 'page': { const p = get('d', b.ref); body += `<p>📄 ${esc(p ? p.title || 'Sem título' : '')}</p>`; break; }
-      case 'table': body += `<table>${(b.rows || []).map((r, ri) => `<tr>${r.map(c => ri === 0 && b.head !== false ? `<th>${inlineHtml(c)}</th>` : `<td>${inlineHtml(c)}</td>`).join('')}</tr>`).join('')}</table>`; break;
+      case 'table': body += `<table>${(b.rows || []).map((r, ri) => `<tr>${r.map(c2 => ri === 0 && b.head !== false ? `<th>${inlineHtml(c2)}</th>` : `<td>${inlineHtml(c2)}</td>`).join('')}</tr>`).join('')}</table>`; break;
       default: body += `<p${A}>${t || '&nbsp;'}</p>`;
     }
     if (b.st === 'card' || b.st === 'focus') body = body.replace(/<(p|h\d|blockquote)([^>]*)>([^]*)<\/\1>$/, `<div class="${b.st}"><$1$2>$3</$1></div>`);
   });
   close();
-  const dark = s.bg === 'night', fs = { s: 15, m: 16.5, l: 18.5 }[s.size] || 16.5;
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.title || 'Documento')}</title><style>
-  @page{margin:18mm}
-  body{margin:0;background:${forPrint ? '#fff' : PBGC[s.bg] || '#fff'};color:${dark && !forPrint ? '#e8e8e8' : '#202020'};font:${fs}px/1.6 ${PFONT[s.font] || PFONT.sans};-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  main{max-width:${s.width === 'wide' ? 900 : s.width === 'narrow' ? 600 : 720}px;margin:0 auto;padding:${forPrint ? '0' : '48px 24px'}}
-  h1.title{font-size:2.1em;line-height:1.2;margin:.2em 0 .6em}h1{font-size:1.75em;margin:1.2em 0 .4em}h2{font-size:1.4em;margin:1.1em 0 .3em}h3{font-size:1.15em;margin:1em 0 .3em}
-  p{margin:.35em 0}blockquote{border-left:3px solid ${s.accent || '#DB4035'};margin:.8em 0;padding:.2em 0 .2em 1em;color:#555}
-  .callout{display:flex;gap:.6em;padding:.8em 1em;border-radius:10px;margin:.8em 0}
-  pre{background:#f5f5f4;border-radius:8px;padding:12px 14px;overflow:auto;font:.88em/1.5 ${PFONT.mono};white-space:pre-wrap}code{font-family:${PFONT.mono};background:#f1f1ef;padding:.1em .3em;border-radius:4px;font-size:.9em}pre code{background:none;padding:0}
+  const dark = s.bg === 'night' && !forPrint, fs = { s: 13.5, m: 15, l: 17 }[s.size] || 15;
+  const pageBg = forPrint ? '#fff' : (PBGC[s.bg] || '#fff');
+  const title = `${d.icon && d.icon !== '📄' ? esc(d.icon) + ' ' : ''}${esc(d.title || 'Sem título')}`;
+  const head = full ? `<section class="fcover" style="background:${coverBg}"><div class="fct"><h1>${title}</h1><p>${new Date(d.u || d.c).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div></section>`
+    : `${coverBg ? `<div class="cover ch-${esc(s.coverH || 'm')}" style="background:${coverBg}"></div>` : ''}<h1 class="title">${title}</h1><div class="meta">Atualizado em ${new Date(d.u || d.c).toLocaleString('pt-BR')}</div>`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.title || 'Documento')}</title>${FONT_LINK}<style>
+  @page{size:A4;margin:${mg[0]}mm ${mg[1]}mm}
+  ${full ? '@page:first{margin:0}' : ''}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:${a4 && !forPrint ? '#e9e8e5' : pageBg};-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{color:${dark ? '#e8e8e8' : '#202020'};font:${fs}px/${s.lh || 1.6} ${PFONT[s.font] || PFONT.sans}}
+  main{${a4 && !forPrint ? `width:210mm;min-height:297mm;margin:24px auto;padding:${mg[0]}mm ${mg[1]}mm;background:${pageBg};box-shadow:0 4px 24px rgba(0,0,0,.12)` : forPrint ? 'padding:0' : `max-width:${s.width === 'wide' ? 900 : s.width === 'narrow' ? 600 : 720}px;margin:0 auto;padding:48px 24px`}}
+  .cover{height:${{ s: 28, m: 42, l: 62 }[s.coverH || 'm']}mm;border-radius:8px;margin:0 0 6mm}
+  .fcover{height:297mm;width:210mm;margin:${forPrint ? '0' : `-${mg[0]}mm -${mg[1]}mm ${mg[0]}mm`};position:relative;break-after:page;page-break-after:always;display:flex;align-items:flex-end}
+  .fcover .fct{width:100%;padding:24mm 22mm;background:linear-gradient(to top,rgba(0,0,0,.6),transparent);color:#fff}
+  .fcover h1{font-size:34pt;line-height:1.1;margin:0 0 4mm;text-shadow:0 2px 12px rgba(0,0,0,.35)}.fcover p{margin:0;font-size:12pt;opacity:.9}
+  h1.title{font-size:2.1em;line-height:1.2;margin:.2em 0 .3em}h1{font-size:1.7em;margin:1.1em 0 .4em;break-after:avoid}h2{font-size:1.38em;margin:1em 0 .3em;break-after:avoid}h3{font-size:1.15em;margin:.9em 0 .3em;break-after:avoid}
+  p{margin:.35em 0}blockquote{border-left:3px solid ${s.accent || '#DB4035'};margin:.8em 0;padding:.2em 0 .2em 1em;color:#555;font-style:italic}
+  .callout{display:flex;gap:.6em;padding:.8em 1em;border-radius:10px;margin:.8em 0;break-inside:avoid}
+  pre{background:#f5f5f4;border-radius:8px;padding:12px 14px;font:.86em/1.5 ${PFONT.mono};white-space:pre-wrap;break-inside:avoid}code{font-family:${PFONT.mono};background:#f1f1ef;padding:.1em .3em;border-radius:4px;font-size:.9em}pre code{background:none;padding:0}
   ul.todo{list-style:none;padding-left:.2em}ul.todo li.ok{color:#8a8a8a;text-decoration:line-through}.box{font-size:1.1em}
-  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.95em}th,td{border:1px solid #ddd;padding:6px 10px;text-align:left;vertical-align:top}th{background:#f6f6f4}
-  figure{margin:1em 0;text-align:center}figure img{max-width:100%;border-radius:8px}figcaption{color:#777;font-size:.85em}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.95em;break-inside:auto}tr{break-inside:avoid}th,td{border:1px solid #ddd;padding:6px 10px;text-align:left;vertical-align:top}th{background:#f6f6f4}
+  figure{margin:1em 0;text-align:center;break-inside:avoid}figure img{max-width:100%;border-radius:6px}figure.isz-s img{max-width:45%}figure.isz-m img{max-width:75%}figcaption{color:#777;font-size:.85em}
   hr{border:0;border-top:1px solid #ddd;margin:1.4em 0}a{color:${s.accent || '#DB4035'}}.mention{background:#f3f3f1;border-radius:4px;padding:0 .3em}
-  .card{border:1px solid #e5e5e5;border-radius:10px;padding:.6em 1em;margin:.6em 0}.focus{font-size:1.25em;font-weight:600}
-  small{color:#888}.meta{color:#888;font-size:.85em;margin-bottom:2em}
-  </style></head><body><main><h1 class="title">${d.icon && d.icon !== '📄' ? esc(d.icon) + ' ' : ''}${esc(d.title || 'Sem título')}</h1><div class="meta">Atualizado em ${new Date(d.u || d.c).toLocaleString('pt-BR')}</div>${body}</main></body></html>`;
+  .card{border:1px solid #e5e5e5;border-radius:10px;padding:.6em 1em;margin:.6em 0;break-inside:avoid}.focus{font-size:1.25em;font-weight:600}
+  .pb{break-after:page;page-break-after:always;height:0}
+  small{color:#888}.meta{color:#888;font-size:.85em;margin-bottom:1.6em}
+  </style></head><body><main>${head}${body}</main>${opts.tail || ''}</body></html>`;
+}
+/* PDF de verdade, gerado no próprio aparelho (A4), sem a janela de impressão */
+async function downloadPdf(d) {
+  toast('Gerando PDF…', null, null, 4000);
+  const mg = (MARGINS[(d.style || {}).margin] || MARGINS.n);
+  const name = safeName(d.title || 'documento') + '.pdf';
+  const full = !!(d.style && d.style.coverFull && hasCover(d));
+  const script = `<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script><script>
+    window.onload=function(){setTimeout(function(){
+      var m=document.querySelector('main');
+      html2pdf().set({margin:[${mg[0]},${mg[1]},${mg[0]},${mg[1]}],filename:${JSON.stringify(name)},image:{type:'jpeg',quality:.95},html2canvas:{scale:2,useCORS:true,backgroundColor:null},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],before:'.pbb',after:['.pb','.fcover'],avoid:['figure','tr','.callout','pre','.card']}}).from(m).save().then(function(){parent.postMessage('pdf-ok','*')}).catch(function(e){parent.postMessage('pdf-err:'+e,'*')});
+    },600)};<\/script>`;
+  let html = await docToHtml(d, true, { tail: script });
+  if (full) html = html.replace('.fcover{height:297mm;width:210mm;margin:0', `.fcover{height:${297 - 2 * mg[0]}mm;width:auto;margin:0`);
+  const f = document.createElement('iframe');
+  f.style.cssText = `position:fixed;left:-10000px;top:0;width:${210 - 2 * mg[1]}mm;height:297mm;border:0`;
+  document.body.appendChild(f);
+  const done = e => { if (typeof e.data === 'string' && e.data.startsWith('pdf-')) { removeEventListener('message', done); setTimeout(() => f.remove(), 1500); toast(e.data === 'pdf-ok' ? 'PDF baixado' : 'Não foi possível gerar o PDF aqui. Use “PDF (imprimir)”.'); } };
+  addEventListener('message', done);
+  f.srcdoc = html;
+  setTimeout(() => { if (f.isConnected) { f.remove(); removeEventListener('message', done); toast('Sem conexão para gerar o PDF. Use “PDF (imprimir)”.'); } }, 45000);
 }
 function printHtml(html) {
   const f = document.createElement('iframe');
@@ -179,7 +221,11 @@ function runsXml(html, base = {}) {
     if (c.tagName === 'BR') { out.push('<w:r><w:br/></w:r>'); return; }
     const style = c.getAttribute && c.getAttribute('style') || '';
     const col = style.match(/(?:^|;)\s*color:\s*([^;]+)/i), bg = style.match(/background(?:-color)?:\s*([^;]+)/i);
+    const fz = style.match(/font-size:\s*([\d.]+)(px|pt)/i), ff = style.match(/font-family:\s*'?([^;',]+)/i);
     if (col) s.color = cssHex(col[1]); if (bg) s.shade = cssHex(bg[1]);
+    if (fz) s.sz = Math.round((fz[2] === 'pt' ? +fz[1] : +fz[1] * .75) * 2);
+    if (ff) s.font = ff[1].trim();
+    if (c.tagName === 'SUP') s.va = 'superscript'; if (c.tagName === 'SUB') s.va = 'subscript';
     walk(c, s);
   });
   walk(frag(html), base);
@@ -190,25 +236,38 @@ function runXml(t, s) {
   let p = '';
   if (s.b) p += '<w:b/>'; if (s.i) p += '<w:i/>'; if (s.u) p += '<w:u w:val="single"/>'; if (s.s) p += '<w:strike/>';
   if (s.code) p += '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>';
+  else if (s.font) p += `<w:rFonts w:ascii="${xml(s.font)}" w:hAnsi="${xml(s.font)}"/>`;
   if (s.color) p += `<w:color w:val="${s.color}"/>`;
   if (s.shade && s.shade !== '000000') p += `<w:shd w:val="clear" w:color="auto" w:fill="${s.shade}"/>`;
   if (s.sz) p += `<w:sz w:val="${s.sz}"/>`;
+  if (s.va) p += `<w:vertAlign w:val="${s.va}"/>`;
   return `<w:r>${p ? `<w:rPr>${p}</w:rPr>` : ''}<w:t xml:space="preserve">${xml(t.replace(/\u00a0/g, ' '))}</w:t></w:r>`;
 }
 const pXml = (runs, o = {}) => `<w:p><w:pPr>${o.style ? `<w:pStyle w:val="${o.style}"/>` : ''}${o.ind ? `<w:ind w:left="${o.ind}" w:hanging="${o.hang || 0}"/>` : ''}${o.shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.shade}"/>` : ''}${o.align ? `<w:jc w:val="${o.align}"/>` : ''}</w:pPr>${runs}</w:p>`;
 async function imgInfo(blob) { return new Promise(res => { const u = URL.createObjectURL(blob), im = new Image(); im.onload = () => { res({ w: im.naturalWidth, h: im.naturalHeight }); URL.revokeObjectURL(u); }; im.onerror = () => res({ w: 600, h: 400 }); im.src = u; }); }
 async function docToDocx(d) {
   const media = [], rels = [];
-  let body = pXml(runXml((d.icon && d.icon !== '📄' ? d.icon + ' ' : '') + (d.title || 'Sem título'), {}), { style: 'Title' });
+  let body = '';
+  const addImg = async (blob, ext, maxIn = 6.2) => {
+    const { w, h } = await imgInfo(blob), max = maxIn * 914400, cx = Math.min(max, w * 9525), cy = Math.round(cx * h / w), k = media.length + 1, rid = 'rIdImg' + k;
+    media.push({ name: `word/media/image${k}.${ext}`, data: new Uint8Array(await blob.arrayBuffer()) });
+    rels.push(`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image${k}.${ext}"/>`);
+    return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${k}" name="Imagem ${k}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${k}" name="image${k}.${ext}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+  };
+  const cv = d.style && d.style.cover;
+  if (cv && cv.file) { try { const bl = await FILES.blob(cv.file); const ext = (cv.file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg'); if (['png', 'jpg', 'gif'].includes(ext)) body += await addImg(bl, ext, 6.3); } catch (e) {} }
+  body += pXml(runXml((d.icon && d.icon !== '📄' ? d.icon + ' ' : '') + (d.title || 'Sem título'), {}), { style: 'Title' });
+  if (d.style && d.style.coverFull) body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
   let n = 0;
   for (let i = 0; i < (d.b || []).length; i++) {
     const b = d.b[i], arr = d.b, base = b.color ? { color: cssHex(PCOLS[b.color][0]) } : {};
-    const sh = b.bg ? cssHex(PCOLS[b.bg][1]) : null, ind = (b.lvl || 0) * 360;
+    const sh = b.bg ? cssHex(PCOLS[b.bg][1]) : null, ind = (b.lvl || 0) * 360, al = b.align ? { center: 'center', right: 'right', justify: 'both' }[b.align] : null;
+    if (b.type === 'pb') { body += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; continue; }
     n = b.type === 'ol' ? (i && arr[i - 1].type === 'ol' ? n + 1 : 1) : 0;
     switch (b.type) {
-      case 'h1': body += pXml(runsXml(b.text, base), { style: 'Heading1', shade: sh }); break;
-      case 'h2': body += pXml(runsXml(b.text, base), { style: 'Heading2', shade: sh }); break;
-      case 'h3': body += pXml(runsXml(b.text, base), { style: 'Heading3', shade: sh }); break;
+      case 'h1': body += pXml(runsXml(b.text, base), { style: 'Heading1', shade: sh, align: al }); break;
+      case 'h2': body += pXml(runsXml(b.text, base), { style: 'Heading2', shade: sh, align: al }); break;
+      case 'h3': body += pXml(runsXml(b.text, base), { style: 'Heading3', shade: sh, align: al }); break;
       case 'ul': body += pXml(runXml('•\t', {}) + runsXml(b.text, base), { ind: 360 + ind, hang: 360, shade: sh }); break;
       case 'ol': body += pXml(runXml(n + '.\t', {}) + runsXml(b.text, base), { ind: 360 + ind, hang: 360, shade: sh }); break;
       case 'todo': body += pXml(runXml((b.checked ? '☑' : '☐') + '\t', {}) + runsXml(b.text, Object.assign({}, base, b.checked ? { s: 1, color: '8A8A8A' } : {})), { ind: 360 + ind, hang: 360 }); break;
@@ -239,7 +298,7 @@ async function docToDocx(d) {
           rows.map((r, ri) => `<w:tr>${r.map(c => `<w:tc><w:tcPr>${ri === 0 && b.head !== false ? '<w:shd w:val="clear" w:color="auto" w:fill="F2F2F0"/>' : ''}</w:tcPr>${pXml(runsXml(c, ri === 0 && b.head !== false ? { b: 1 } : {}) || runXml(' ', {}))}</w:tc>`).join('')}</w:tr>`).join('') + '</w:tbl>' + pXml('');
         break;
       }
-      default: body += pXml(runsXml(b.text, base), { ind, shade: sh, style: b.st === 'focus' ? 'Subtitle' : null });
+      default: body += pXml(runsXml(b.text, base), { ind, shade: sh, style: b.st === 'focus' ? 'Subtitle' : null, align: al });
     }
   }
   return buildDocx(body, rels, media);
@@ -409,7 +468,7 @@ async function exportAll(f) {
 function exportMenu(anchor, o) {
   const F = (label, icon, fn, hint) => ({ label, icon, act: fn, hint });
   let items = [];
-  if (o.kind === 'doc') { const d = get('d', o.id); items = [{ head: 'Exportar documento' }, F('PDF (imprimir)', 'file', () => exportDoc(d, 'pdf'), '.pdf'), F('Word', 'doc', () => exportDoc(d, 'docx'), '.docx'), F('Markdown', 'hash', () => exportDoc(d, 'md'), '.md'), F('Markdown + imagens', 'img', () => exportDoc(d, 'mdzip'), '.zip'), F('Página web', 'eye', () => exportDoc(d, 'html'), '.html'), F('Texto simples', 'text', () => exportDoc(d, 'txt'), '.txt'), F('JSON', 'code', () => exportDoc(d, 'json'), '.json'), { sep: 1 }, F('Copiar como Markdown', 'copy', () => exportDoc(d, 'copy')), F('Copiar como texto', 'copy', () => exportDoc(d, 'copytxt'))]; }
+  if (o.kind === 'doc') { const d = get('d', o.id); items = [{ head: 'Exportar documento' }, F('Baixar PDF (folha A4)', 'dl', () => downloadPdf(d), '.pdf'), F('PDF pela impressão', 'print', () => exportDoc(d, 'pdf'), '.pdf'), F('Word', 'doc', () => exportDoc(d, 'docx'), '.docx'), F('Markdown', 'hash', () => exportDoc(d, 'md'), '.md'), F('Markdown + imagens', 'img', () => exportDoc(d, 'mdzip'), '.zip'), F('Página web', 'eye', () => exportDoc(d, 'html'), '.html'), F('Texto simples', 'text', () => exportDoc(d, 'txt'), '.txt'), F('JSON', 'code', () => exportDoc(d, 'json'), '.json'), { sep: 1 }, F('Copiar como Markdown', 'copy', () => exportDoc(d, 'copy')), F('Copiar como texto', 'copy', () => exportDoc(d, 'copytxt'))]; }
   else if (o.kind === 'task') { const t = get('t', o.id); const one = [t, ...subsOf(t.id)]; items = [{ head: 'Exportar tarefa' }, F('Markdown', 'hash', () => download(safeName(t.title) + '.md', tasksMd(t.title, one), 'text/markdown'), '.md'), F('PDF (imprimir)', 'file', () => printHtml(tasksHtml(t.title, one)), '.pdf'), F('Word', 'doc', () => download(safeName(t.title) + '.docx', tasksDocx(t.title, one)), '.docx'), F('Calendário', 'cal', () => download(safeName(t.title) + '.ics', ics(one, t.title), 'text/calendar'), '.ics'), F('Copiar como texto', 'copy', () => navigator.clipboard.writeText(tasksMd(t.title, one)).then(() => toast('Copiado')))]; }
   else if (o.kind === 'list' || o.kind === 'scope') { const id = o.id; items = [{ head: 'Exportar ' + scopeName(id) }, F('Excel', 'table', () => exportScope(id, 'xlsx'), '.xlsx'), F('CSV', 'table', () => exportScope(id, 'csv'), '.csv'), F('PDF (imprimir)', 'file', () => exportScope(id, 'pdf'), '.pdf'), F('Word', 'doc', () => exportScope(id, 'docx'), '.docx'), F('Markdown', 'hash', () => exportScope(id, 'md'), '.md'), F('Página web', 'eye', () => exportScope(id, 'html'), '.html'), F('Texto', 'text', () => exportScope(id, 'txt'), '.txt'), F('Calendário', 'cal', () => exportScope(id, 'ics'), '.ics'), F('JSON', 'code', () => exportScope(id, 'json'), '.json'), { sep: 1 }, F('Copiar como Markdown', 'copy', () => exportScope(id, 'copy'))]; }
   else if (o.kind === 'cal') items = [{ head: 'Exportar calendário' }, F('Arquivo de calendário', 'cal', () => exportAll('ics'), '.ics'), F('Excel (todas as tarefas)', 'table', () => exportScope('all*', 'xlsx'), '.xlsx'), F('PDF da agenda', 'file', () => printHtml(tasksHtml('Agenda', db.t.filter(t => live(t) && (t.due || t.start)).sort((a, b) => sortTasks(a, b)))), '.pdf')];

@@ -17,15 +17,15 @@ function fStart() {
   if (FS.mode === 'watch') { FS.start = Date.now() - (FS.left || 0) * 1000; }
   else FS.end = Date.now() + fLeft() * 1000;
   if (!FS.began) FS.began = Date.now();
-  FS.run = true; saveFS(); askNotify(); render(true);
+  FS.run = true; saveFS(); askNotify(); syncTimer(); ambientFollow(); render(true);
 }
-function fPause() { if (!FS.run) return; FS.left = fLeft(); FS.run = false; saveFS(); render(true); }
+function fPause() { if (!FS.run) return; FS.left = fLeft(); FS.run = false; saveFS(); syncTimer(); ambientFollow(); render(true); }
 function fStop(log) {
   if (log && FS.began) {
     const secs = FS.mode === 'watch' ? fLeft() : modeLen(FS.mode) - fLeft();
     if ((FS.mode === 'focus' || FS.mode === 'watch') && secs >= 60) put('p', { id: uid(), start: FS.began, end: Date.now(), dur: Math.round(secs / 60), task: FS.task, type: FS.mode });
   }
-  FS.run = false; FS.left = null; FS.began = 0; FS.start = 0; saveFS(); render(true);
+  FS.run = false; FS.left = null; FS.began = 0; FS.start = 0; saveFS(); syncTimer(); ambientFollow(); render(true);
 }
 function fSet(m) { if (FS.run && !confirm('Interromper a sessão atual?')) return; if (FS.run || FS.began) fStop(true); FS.mode = m; FS.left = null; saveFS(); render(true); }
 function fFinish() {
@@ -33,9 +33,9 @@ function fFinish() {
   if (was === 'focus') { put('p', { id: uid(), start: FS.began || Date.now() - modeLen('focus') * 1000, end: Date.now(), dur: db.s.pomo.focus, task: FS.task, type: 'focus' }); FS.n = (FS.n || 0) + 1; }
   const next = was === 'focus' ? (FS.n % (db.s.pomo.every || 4) === 0 ? 'long' : 'short') : 'focus';
   notify(was === 'focus' ? 'Sessão de foco concluída' : 'Pausa encerrada', was === 'focus' ? 'Hora de uma ' + FMODES[next].toLowerCase() + '.' : 'Vamos voltar ao foco?');
-  beep(3);
-  FS.mode = next; FS.run = false; FS.left = null; FS.began = 0; saveFS();
-  if (db.s.pomo.auto) fStart(); else render(true);
+  playAlarm();
+  FS.mode = next; FS.run = false; FS.left = null; FS.began = 0; saveFS(); syncTimer();
+  if (db.s.pomo.auto) fStart(); else { ambientFollow(); render(true); }
 }
 function startFocusOn(id) { if (FS.run) fStop(true); FS.task = id; FS.mode = 'focus'; FS.left = null; saveFS(); go('focus'); setTimeout(fStart, 50); }
 function beep(n = 1) {
@@ -88,11 +88,28 @@ VIEWS.focus = main => {
       <div class="stat"><b>${fmtDur(st.total)}</b><span>no total</span></div>
     </div>
     <section class="fsec"><h3>Últimos 7 dias</h3><div class="bars">${st.week.map(w => `<div class="bar"><span class="bv" style="height:${Math.round(w.m / wmax * 100)}%" title="${fmtDur(w.m)}"></span><span class="bl">${wdShort[pd(w.d).getDay()]}</span><span class="bn">${w.m ? fmtDur(w.m) : ''}</span></div>`).join('')}</div></section>
+    <section class="fsec sounds"><h3>${ic('music', 18)}Som ambiente</h3>
+      <div class="ambs">${AMBIENTS.map(a => `<button class="amb${(db.s.pomo.amb || 'none') === a.k ? ' on' : ''}" data-act="famb" data-k="${a.k}"><span>${a.e}</span>${a.n}</button>`).join('')}</div>
+      <div class="srow"><span>Volume</span><input type="range" min="0" max="100" value="${db.s.pomo.vol ?? 60}" data-fvol aria-label="Volume" class="vol"></div>
+      <label class="srow"><span>Tocar só durante as sessões de foco</span><span class="sw-t"><input type="checkbox" data-fonly ${db.s.pomo.ambOnly !== false ? 'checked' : ''}><span></span></span></label>
+      <div class="srow"><span>${AMB_PREVIEW ? 'Tocando agora' : 'Ouvir o som escolhido agora'}</span><button class="btn ghost sm" data-act="fprev">${AMB_PREVIEW ? ic('pause', 16) + 'Parar' : ic('play', 16) + 'Ouvir'}</button></div>
+      <div class="srow"><span>Som do alarme</span><span class="row"><select class="in sm" data-falarm>${ALARMS.map(a => `<option value="${a.k}" ${(db.s.pomo.alarm || 'bell') === a.k ? 'selected' : ''}>${a.n}</option>`).join('')}</select><button class="ib" data-act="falarm" aria-label="Ouvir alarme">${ic('play', 16)}</button></span></div>
+    </section>
     ${top.length ? `<section class="fsec"><h3>Tarefas com mais foco</h3>${top.map(([id, m]) => { const x = get('t', id); return x ? `<button class="frow" data-act="topen" data-id="${id}"><span>${esc(x.title)}</span><b>${fmtDur(m)}</b></button>` : ''; }).join('')}</section>` : ''}
     ${recent.length ? `<section class="fsec"><h3>Sessões recentes</h3>${recent.map(p => { const x = p.task && get('t', p.task); return `<div class="frow"><span>${esc(fmtDay(ymd(new Date(p.start))))} ${hm(new Date(p.start))} · ${esc(x ? x.title : FMODES[p.type] || 'Foco')}</span><b>${fmtDur(p.dur)}</b></div>`; }).join('')}<button class="link" data-act="fexport">Exportar sessões (CSV)</button></section>` : ''}
   </div></div>`;
+  bindFocusSounds(main);
 };
+function bindFocusSounds(main) {
+  const v = main.querySelector('[data-fvol]'); if (v) v.oninput = () => { setVolume(+v.value); saveVol(); };
+  const o = main.querySelector('[data-fonly]'); if (o) o.onchange = () => { db.s.pomo.ambOnly = o.checked; put('s', db.s); ambientFollow(); };
+  const a = main.querySelector('[data-falarm]'); if (a) a.onchange = () => { db.s.pomo.alarm = a.value; put('s', db.s); playAlarm(a.value); };
+}
+const saveVol = debounce(() => put('s', db.s), 500);
 Object.assign(ACTS, {
+  famb: b => { db.s.pomo.amb = b.dataset.k; put('s', db.s); if (b.dataset.k !== 'none' && !FS.run) AMB_PREVIEW = true; if (b.dataset.k === 'none') AMB_PREVIEW = false; SND.cur = '__'; ambientFollow(); },
+  fprev: () => { AMB_PREVIEW = !AMB_PREVIEW; if (AMB_PREVIEW && (db.s.pomo.amb || 'none') === 'none') { db.s.pomo.amb = 'rain'; put('s', db.s); } SND.cur = AMB_PREVIEW ? '__' : SND.cur; ambientFollow(); render(true); },
+  falarm: () => playAlarm(db.s.pomo.alarm || 'bell'),
   fmode: b => fSet(b.dataset.m),
   fstart: fStart, fpause: fPause,
   fstop: () => fStop(true),
@@ -230,6 +247,7 @@ ctxMenu = function (spec, anchor, at) {
 function askNotify() { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {}); }
 function notify(title, body, tag) {
   toast(title + (body ? ' — ' + body : ''));
+  if (typeof pushOn === 'function' && pushOn()) return;   /* este aparelho já recebe pelo push */
   try {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(r => r.showNotification(title, { body, tag, icon: 'assets/icon-192.png', badge: 'assets/icon-192.png' })).catch(() => new Notification(title, { body, tag }));
@@ -246,7 +264,7 @@ function checkReminders() {
     if (!at || !tOnly(at)) return;
     t.rem.forEach(m => {
       const when = pd(at).getTime() - m * 60000, key = t.id + '|' + at + '|' + m;
-      if (when <= now && now - when < 6 * 3600000) { if (!FIRED[key]) notify(t.title, (m ? fmtDur(m) + ' para começar · ' : 'Agora · ') + fmtWhen(at), key); keep[key] = 1; }
+      if (when <= now && now - when < 6 * 3600000) { if (!FIRED[key] && now - when < 15 * 60000) { notify(t.title, (m ? fmtDur(m) + ' para começar · ' : 'Agora · ') + fmtWhen(at), key); playAlarm('chime'); } keep[key] = 1; }
     });
   });
   db.h.forEach(h => {

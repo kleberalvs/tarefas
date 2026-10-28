@@ -59,54 +59,112 @@ function countFor(id) {
   if (sm && sm.f) return db.t.filter(t => live(t) && !t.par && sm.f(t)).length;
   return db.t.filter(t => live(t) && !t.par && t.list === id).length;
 }
+const NAVC = { inbox: '#3B7DD8', today: '#2E9E6B', tomorrow: '#E8A400', week: '#9150C8', cal: '#DB4035', matrix: '#E8803A', focus: '#DB4035', habits: '#2E9E6B', docs: '#5B5BD6', all: '#808080', done: '#2E9E6B', trash: '#808080', log: '#8A6A55', users: '#3B7DD8', settings: '#808080' };
 function navItem(href, icon, name, opts = {}) {
-  const on = opts.on;
   const cnt = opts.count ? `<span class="cnt${opts.red ? ' red' : ''}">${opts.count}</span>` : '';
-  const dot = opts.color ? `<span class="ldot" style="background:${esc(opts.color)}"></span>` : ic(icon, 20);
-  return `<a class="nav${on ? ' on' : ''}" href="#/${href}" ${opts.drop ? `data-drop="${opts.drop}"` : ''} ${opts.ctx ? `data-ctx="${opts.ctx}"` : ''}>${dot}<span class="nm">${esc(name)}</span>${cnt}${opts.ctx ? `<button class="mini more" data-act="ctx" data-ctx="${opts.ctx}" aria-label="Opções de ${esc(name)}">${ic('more', 16)}</button>` : ''}</a>`;
+  const lead = opts.emoji ? `<span class="nemo">${esc(opts.emoji)}</span>` : opts.color ? `<span class="ldot" style="background:${esc(opts.color)}"></span>` : `<span class="nic" style="--nc:${opts.nc || 'var(--mut)'}">${ic(icon, 19)}</span>`;
+  return `<a class="nav${opts.on ? ' on' : ''}" href="#/${href}" style="--lvl:${opts.lvl || 0}" ${opts.drop ? `data-drop="${opts.drop}"` : ''} ${opts.drag ? `data-drag="${opts.drag}"` : ''} ${opts.ctx ? `data-ctx="${opts.ctx}"` : ''}>${lead}<span class="nm">${esc(name)}</span>${cnt}${opts.ctx ? `<button class="mini more" data-act="ctx" data-ctx="${opts.ctx}" aria-label="Opções de ${esc(name)}">${ic('more', 16)}</button>` : ''}</a>`;
+}
+const folderKids = (id, kind) => db.f.filter(f => (f.kind || 'l') === kind && (f.par || null) === id).sort((a, b) => (a.o || 0) - (b.o || 0));
+function avatarHtml(cls = '') {
+  const s = db.s, nm = (s.name || (WHO ? WHO.split('@')[0] : '') || 'Eu').trim();
+  const ini = nm.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  return `<span class="avatar ${cls}">${s.avatar ? `<img src="${esc(s.avatar)}" alt="">` : `<span>${esc(ini)}</span>`}</span>`;
 }
 function sideHtml() {
   const cur = R.v === 'list' ? R.id : R.v;
   const ov = db.t.filter(overdue).length;
   const lists = db.l.filter(l => l.id !== 'inbox' && !l.arch).sort((a, b) => (a.o || 0) - (b.o || 0));
-  const folders = db.f.slice().sort((a, b) => (a.o || 0) - (b.o || 0));
-  const li = l => navItem('l/' + l.id, 'list', l.name, { on: cur === l.id, count: countFor(l.id), color: l.color || '#808080', drop: 'list:' + l.id, ctx: 'list:' + l.id });
-  let lh = '';
-  folders.forEach(f => {
-    const ch = lists.filter(l => l.folder === f.id);
-    lh += `<div class="fold${f.open === false ? ' shut' : ''}"><div class="fhead" data-ctx="folder:${f.id}"><button class="mini" data-act="fold" data-id="${f.id}" aria-label="${f.open === false ? 'Abrir' : 'Fechar'} pasta ${esc(f.name)}">${ic('chev', 14)}</button>${ic('folder', 18)}<span class="nm">${esc(f.name)}</span><button class="mini more" data-act="ctx" data-ctx="folder:${f.id}" aria-label="Opções da pasta">${ic('more', 16)}</button></div><div class="fbody">${ch.map(li).join('') || '<p class="hint">Pasta vazia</p>'}</div></div>`;
-  });
-  lh += lists.filter(l => !l.folder || !get('f', l.folder)).map(li).join('');
+  const li = (l, lvl) => navItem('l/' + l.id, 'list', l.name, { on: cur === l.id, count: countFor(l.id), color: l.emoji ? null : (l.color || '#808080'), emoji: l.emoji, drop: 'list:' + l.id, drag: 'l:' + l.id, ctx: 'list:' + l.id, lvl });
+  const fold = (f, lvl, kind) => {
+    const subs = folderKids(f.id, kind);
+    const items = kind === 'l' ? lists.filter(l => l.folder === f.id) : [];
+    const nDocs = kind === 'd' ? db.d.filter(d => !d.del && d.folder === f.id).length : 0;
+    const on = kind === 'd' && R.v === 'docs' && R.id === f.id;
+    const inner = subs.map(x => fold(x, lvl + 1, kind)).join('') + items.map(l => li(l, lvl + 1)).join('');
+    return `<div class="fold${f.open === false ? ' shut' : ''}"><div class="fhead${on ? ' on' : ''}" style="--lvl:${lvl}" data-ctx="folder:${f.id}" data-drop="${kind === 'd' ? 'dfold' : 'folder'}:${f.id}" data-drag="f:${f.id}">
+      <button class="mini fcar" data-act="fold" data-id="${f.id}" aria-label="${f.open === false ? 'Abrir' : 'Fechar'} pasta ${esc(f.name)}">${ic('chev', 14)}</button>
+      ${f.emoji ? `<span class="nemo">${esc(f.emoji)}</span>` : `<span class="nic" style="--nc:${esc(f.color || 'var(--mut)')}">${ic('folder', 19)}</span>`}
+      ${kind === 'd' ? `<span class="nm" data-act="go" data-to="docs/${f.id}">${esc(f.name)}</span>` : `<span class="nm" data-act="fold" data-id="${f.id}">${esc(f.name)}</span>`}${nDocs ? `<span class="cnt">${nDocs}</span>` : ''}
+      <button class="mini more" data-act="ctx" data-ctx="folder:${f.id}" aria-label="Opções da pasta">${ic('more', 16)}</button></div>
+      <div class="fbody">${inner || `<p class="hint" style="--lvl:${lvl + 1}">${kind === 'd' ? 'Arraste documentos para cá' : 'Arraste listas para cá'}</p>`}</div></div>`;
+  };
+  const lh = folderKids(null, 'l').map(f => fold(f, 0, 'l')).join('') + lists.filter(l => !l.folder || !get('f', l.folder)).map(l => li(l, 0)).join('');
+  const dh = folderKids(null, 'd').map(f => fold(f, 0, 'd')).join('');
   const tags = db.g.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+  const nm = (db.s.name || '').trim();
   return `
-  <div class="shead">
-    <button class="who" data-act="account">${ic('check', 18)}<span>${esc(WHO ? WHO.split('@')[0] : 'Tarefas')}</span></button>
-    <span id="sync" class="sync ${esc(SYNC.cls)}" title="${esc(SYNC.txt)}">${ic(SYNC.icon, 16)}</span>
+  <div class="prof">
+    <button class="pbtn0" data-act="profile" aria-label="Editar nome e foto">${avatarHtml()}<span class="pname"><b>${esc(nm || 'Toque para pôr seu nome')}</b><span class="psub"><i class="sdot ${esc(SYNC.cls)}" id="sync" title="${esc(SYNC.txt)}"></i><span id="syncline2">${esc(SYNC.txt)}</span></span></span></button>
     <button class="ib" data-act="go" data-to="search" aria-label="Buscar">${ic('search')}</button>
     <button class="ib hide-m" data-act="side" aria-label="Recolher barra lateral">${ic('side')}</button>
   </div>
-  <button class="addbtn" data-act="quick">${ic('plus', 18)}<span>Adicionar tarefa</span></button>
+  <button class="addbtn" data-act="quick"><span class="addic">${ic('plus', 16)}</span><span>Adicionar tarefa</span><kbd class="hide-m">Q</kbd></button>
   <nav class="snav">
-    ${navItem('l/inbox', 'inbox', 'Caixa de entrada', { on: cur === 'inbox', count: countFor('inbox'), drop: 'list:inbox' })}
-    ${navItem('l/today', 'today', 'Hoje', { on: cur === 'today', count: countFor('today'), red: ov > 0, drop: 'smart:today' })}
-    ${navItem('l/tomorrow', 'tomorrow', 'Amanhã', { on: cur === 'tomorrow', count: countFor('tomorrow'), drop: 'smart:tomorrow' })}
-    ${navItem('l/week', 'week', 'Próximos 7 dias', { on: cur === 'week', count: countFor('week') })}
-    ${navItem('cal', 'cal', 'Calendário', { on: cur === 'cal' })}
-    ${navItem('matrix', 'matrix', 'Matriz de prioridades', { on: cur === 'matrix' })}
-    ${navItem('focus', 'focus', 'Foco', { on: cur === 'focus' })}
-    ${navItem('habits', 'habit', 'Hábitos', { on: cur === 'habits' })}
-    ${navItem('docs', 'doc', 'Documentos', { on: cur === 'docs' || cur === 'doc' })}
+    ${navItem('l/inbox', 'inbox', 'Caixa de entrada', { on: cur === 'inbox', count: countFor('inbox'), drop: 'list:inbox', nc: NAVC.inbox })}
+    ${navItem('l/today', 'today', 'Hoje', { on: cur === 'today', count: countFor('today'), red: ov > 0, drop: 'smart:today', nc: NAVC.today })}
+    ${navItem('l/tomorrow', 'tomorrow', 'Amanhã', { on: cur === 'tomorrow', count: countFor('tomorrow'), drop: 'smart:tomorrow', nc: NAVC.tomorrow })}
+    ${navItem('l/week', 'week', 'Próximos 7 dias', { on: cur === 'week', count: countFor('week'), nc: NAVC.week })}
+    ${navItem('cal', 'cal', 'Calendário', { on: cur === 'cal', nc: NAVC.cal })}
+    ${navItem('matrix', 'matrix', 'Matriz de prioridades', { on: cur === 'matrix', nc: NAVC.matrix })}
+    ${navItem('focus', 'focus', 'Foco', { on: cur === 'focus', nc: NAVC.focus })}
+    ${navItem('habits', 'habit', 'Hábitos', { on: cur === 'habits', nc: NAVC.habits })}
+    ${navItem('docs', 'doc', 'Documentos', { on: (cur === 'docs' && !R.id) || cur === 'doc', drop: 'dfold:', nc: NAVC.docs })}
   </nav>
-  <div class="sgroup"><div class="sgh"><span>Listas</span><button class="mini" data-act="newlist" aria-label="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" aria-label="Nova pasta">${ic('folder', 16)}</button></div>${lh || '<p class="hint">Nenhuma lista ainda</p>'}</div>
+  <div class="sgroup" data-drop="folder:"><div class="sgh"><span>Listas</span><button class="mini" data-act="newlist" aria-label="Nova lista" title="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" data-k="l" aria-label="Nova pasta de listas" title="Nova pasta">${ic('folder', 16)}</button></div>${lh || '<p class="hint">Nenhuma lista ainda</p>'}</div>
+  <div class="sgroup" data-drop="dfold:"><div class="sgh"><span>Pastas de documentos</span><button class="mini" data-act="newfolder" data-k="d" aria-label="Nova pasta de documentos" title="Nova pasta">${ic('plus', 16)}</button></div>${dh || '<p class="hint">Crie pastas para organizar documentos</p>'}</div>
   <div class="sgroup"><div class="sgh"><span>Etiquetas</span><button class="mini" data-act="newtag" aria-label="Nova etiqueta">${ic('plus', 16)}</button></div>
-    ${tags.map(g => `<a class="nav${cur === 'tag:' + g.id ? ' on' : ''}" href="#/tag/${g.id}" data-drop="tag:${g.id}" data-ctx="tag:${g.id}"><span class="tagic" style="color:${esc(g.color)}">${ic('tag', 18)}</span><span class="nm">${esc(g.name)}</span><span class="cnt">${countFor('tag:' + g.id) || ''}</span><button class="mini more" data-act="ctx" data-ctx="tag:${g.id}" aria-label="Opções da etiqueta">${ic('more', 16)}</button></a>`).join('') || '<p class="hint">Use #etiqueta ao digitar uma tarefa</p>'}
+    ${tags.map(g => `<a class="nav${cur === 'tag:' + g.id ? ' on' : ''}" href="#/tag/${g.id}" data-drop="tag:${g.id}" data-ctx="tag:${g.id}">${g.emoji ? `<span class="nemo">${esc(g.emoji)}</span>` : `<span class="nic" style="--nc:${esc(g.color)}">${ic('tag', 18)}</span>`}<span class="nm">${esc(g.name)}</span><span class="cnt">${countFor('tag:' + g.id) || ''}</span><button class="mini more" data-act="ctx" data-ctx="tag:${g.id}" aria-label="Opções da etiqueta">${ic('more', 16)}</button></a>`).join('') || '<p class="hint">Use #etiqueta ao digitar uma tarefa</p>'}
   </div>
   <nav class="snav low">
-    ${navItem('l/all', 'all', 'Todas', { on: cur === 'all' })}
-    ${navItem('l/done', 'done', 'Concluídas', { on: cur === 'done' })}
-    ${navItem('l/trash', 'trash', 'Lixeira', { on: cur === 'trash', drop: 'trash' })}
-    ${navItem('settings', 'gear', 'Configurações', { on: cur === 'settings' })}
+    ${navItem('l/all', 'all', 'Todas', { on: cur === 'all', nc: NAVC.all })}
+    ${navItem('l/done', 'done', 'Concluídas', { on: cur === 'done', nc: NAVC.done })}
+    ${navItem('log', 'clock', 'Histórico', { on: cur === 'log', nc: NAVC.log })}
+    ${navItem('l/trash', 'trash', 'Lixeira', { on: cur === 'trash', drop: 'trash', nc: NAVC.trash })}
+    ${typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? navItem('users', 'users', 'Usuários', { on: cur === 'users', nc: NAVC.users }) : ''}
+    ${navItem('settings', 'gear', 'Configurações', { on: cur === 'settings', nc: NAVC.settings })}
   </nav>`;
+}
+/* perfil: nome e foto (recortada no centro) */
+function editProfile() {
+  const s = db.s;
+  let img = null, zoom = 1, ox = 0, oy = 0, data = s.avatar || null;
+  const el = modal(`<h2>Seu perfil</h2><div class="profed">
+    <div class="avbox"><canvas width="240" height="240" aria-label="Pré-visualização da foto"></canvas></div>
+    <div class="avctl">
+      <label class="btn ghost sm filebtn">${ic('img', 16)}Escolher foto<input type="file" accept="image/*" hidden></label>
+      <label class="lab">Zoom<input type="range" min="1" max="3" step="0.01" value="1" data-z></label>
+      <label class="lab">Posição horizontal<input type="range" min="-1" max="1" step="0.01" value="0" data-x></label>
+      <label class="lab">Posição vertical<input type="range" min="-1" max="1" step="0.01" value="0" data-y></label>
+      <button class="link" data-rm>Remover foto</button>
+    </div></div>
+    <label class="lab">Nome que aparece no topo<input class="in" name="nm" value="${esc(s.name || '')}" maxlength="40" placeholder="Ex.: Kleber"></label>
+    <div class="row end"><button class="btn ghost" data-cancel>Cancelar</button><button class="btn red" data-save>Salvar</button></div>`);
+  const cv = el.querySelector('canvas'), cx = cv.getContext('2d');
+  const draw = () => {
+    cx.clearRect(0, 0, 240, 240);
+    cx.save(); cx.beginPath(); cx.arc(120, 120, 120, 0, Math.PI * 2); cx.clip();
+    if (img) {
+      const sc = Math.max(240 / img.width, 240 / img.height) * zoom, w = img.width * sc, h = img.height * sc;
+      const mx = (w - 240) / 2, my = (h - 240) / 2;
+      cx.drawImage(img, -mx + ox * mx, -my + oy * my, w, h);
+    } else { cx.fillStyle = '#DB4035'; cx.fillRect(0, 0, 240, 240); cx.fillStyle = '#fff'; cx.font = '700 90px system-ui'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(((el.querySelector('[name=nm]').value || 'Eu').trim()[0] || 'E').toUpperCase(), 120, 126); }
+    cx.restore();
+  };
+  if (data) { img = new Image(); img.onload = draw; img.src = data; } else draw();
+  el.querySelector('input[type=file]').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { img = new Image(); img.onload = () => { zoom = 1; ox = oy = 0; el.querySelector('[data-z]').value = 1; el.querySelector('[data-x]').value = 0; el.querySelector('[data-y]').value = 0; draw(); }; img.src = r.result; }; r.readAsDataURL(f); };
+  el.querySelector('[data-z]').oninput = e => { zoom = +e.target.value; draw(); };
+  el.querySelector('[data-x]').oninput = e => { ox = -e.target.value; draw(); };
+  el.querySelector('[data-y]').oninput = e => { oy = -e.target.value; draw(); };
+  el.querySelector('[name=nm]').oninput = () => { if (!img) draw(); };
+  el.querySelector('[data-rm]').onclick = () => { img = null; draw(); };
+  el.querySelector('[data-cancel]').onclick = closeModal;
+  el.querySelector('[data-save]').onclick = () => {
+    s.name = el.querySelector('[name=nm]').value.trim();
+    if (img) { const out = document.createElement('canvas'); out.width = out.height = 256; const o = out.getContext('2d'); o.drawImage(cv, 0, 0, 240, 240, 0, 0, 256, 256); s.avatar = out.toDataURL('image/jpeg', .86); }
+    else s.avatar = null;
+    put('s', s); closeModal(); toast('Perfil atualizado');
+  };
 }
 function tabsHtml() {
   const t = R.v, isT = t === 'list' || t === 'matrix';
@@ -198,32 +256,69 @@ function colorRow(cur, name = 'color') {
 }
 
 /* ---------- listas, pastas e etiquetas ---------- */
-function editList(l) {
+/* campo de ícone (emoji) usado nos formulários */
+function iconField(cur) { return `<div class="row"><button type="button" class="emobtn" data-emo>${cur ? esc(cur) : ic('plus', 18)}</button><span class="mut sm">Ícone (emoji) — opcional</span><input type="hidden" name="emoji" value="${esc(cur || '')}"></div>`; }
+function bindIconField(el) {
+  const b = el.querySelector('[data-emo]'); if (!b) return;
+  b.onclick = () => emojiPicker(b, e => { el.querySelector('[name=emoji]').value = e || ''; b.innerHTML = e ? esc(e) : ic('plus', 18); }, { none: 1 });
+}
+function folderOptions(kind, sel, exclude) {
+  const out = [];
+  const walk = (par, lvl) => folderKids(par, kind).forEach(f => { if (exclude && (f.id === exclude)) return; out.push(`<option value="${f.id}" ${sel === f.id ? 'selected' : ''}>${'  '.repeat(lvl)}${esc((f.emoji ? f.emoji + ' ' : '') + f.name)}</option>`); walk(f.id, lvl + 1); });
+  walk(null, 0);
+  return out.join('');
+}
+function editList(l, preset = {}) {
   const isNew = !l;
-  l = l || { id: uid(), name: '', color: COLORS[db.l.length % COLORS.length], view: 'list', sec: [], o: db.l.length + 1 };
+  l = l || Object.assign({ id: uid(), name: '', color: COLORS[db.l.length % COLORS.length], view: 'list', sec: [], o: db.l.length + 1 }, preset);
   const el = modal(`<h2>${isNew ? 'Nova lista' : 'Editar lista'}</h2><form>
-    <label class="lab">Nome<input class="in" name="n" value="${esc(l.name)}" required maxlength="80" autofocus></label>
+    <label class="lab">Nome<input class="in" name="n" value="${esc(l.name)}" required maxlength="80" autofocus placeholder="Ex.: Casa, Estudos 📚"></label>
+    <span class="lab">Ícone</span>${iconField(l.emoji)}
     <span class="lab">Cor</span>${colorRow(l.color)}
-    <label class="lab">Pasta<select class="in" name="f"><option value="">Sem pasta</option>${db.f.map(f => `<option value="${f.id}" ${l.folder === f.id ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}</select></label>
+    <label class="lab">Pasta<select class="in" name="f"><option value="">Sem pasta</option>${folderOptions('l', l.folder)}</select></label>
     <label class="lab">Visualização<select class="in" name="v"><option value="list" ${l.view !== 'board' ? 'selected' : ''}>Lista</option><option value="board" ${l.view === 'board' ? 'selected' : ''}>Quadro (kanban)</option></select></label>
     <div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">${isNew ? 'Criar' : 'Salvar'}</button></div></form>`);
+  bindIconField(el);
   el.querySelector('[data-x]').onclick = closeModal;
   el.querySelector('form').onsubmit = e => {
     e.preventDefault();
     const f = new FormData(e.target);
-    l.name = f.get('n').trim(); l.color = f.get('color') || l.color; l.folder = f.get('f') || null; l.view = f.get('v');
+    l.name = f.get('n').trim(); l.color = f.get('color') || l.color; l.folder = f.get('f') || null; l.view = f.get('v'); l.emoji = f.get('emoji') || null;
     if (l.view === 'board' && !(l.sec || []).length) l.sec = [{ id: uid(), name: 'A fazer' }, { id: uid(), name: 'Em andamento' }, { id: uid(), name: 'Feito' }];
     put('l', l); closeModal();
     if (isNew) go('l/' + l.id);
   };
 }
-async function newFolder() { const n = await ask('Nova pasta', '', { ph: 'Ex.: Projetos' }); if (n) put('f', { id: uid(), name: n, o: db.f.length + 1, open: true }); }
+function editFolder(f, kind = 'l', par = null) {
+  const isNew = !f;
+  f = f || { id: uid(), name: '', kind, par, o: db.f.length + 1, open: true };
+  kind = f.kind || 'l';
+  const el = modal(`<h2>${isNew ? (kind === 'd' ? 'Nova pasta de documentos' : 'Nova pasta de listas') : 'Editar pasta'}</h2><form>
+    <label class="lab">Nome<input class="in" name="n" value="${esc(f.name)}" required maxlength="60" autofocus placeholder="Ex.: Projetos"></label>
+    <span class="lab">Ícone</span>${iconField(f.emoji)}
+    <span class="lab">Cor do ícone</span>${colorRow(f.color || '')}
+    <label class="lab">Dentro de<select class="in" name="p"><option value="">Nenhuma (raiz)</option>${folderOptions(kind, f.par, f.id)}</select></label>
+    <div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">${isNew ? 'Criar' : 'Salvar'}</button></div></form>`);
+  bindIconField(el);
+  el.querySelector('[data-x]').onclick = closeModal;
+  el.querySelector('form').onsubmit = e => {
+    e.preventDefault();
+    const d = new FormData(e.target), p = d.get('p') || null;
+    if (p && folderAncestors(p).includes(f.id)) { toast('Não dá para colocar a pasta dentro dela mesma'); return; }
+    f.name = d.get('n').trim(); f.emoji = d.get('emoji') || null; f.color = d.get('color') || null; f.par = p;
+    put('f', f); closeModal();
+    if (isNew && kind === 'd') go('docs/' + f.id);
+  };
+}
+function folderAncestors(id) { const out = []; let x = get('f', id), k = 0; while (x && k++ < 30) { out.push(x.id); x = x.par ? get('f', x.par) : null; } return out; }
+async function newFolder(kind = 'l', par = null) { editFolder(null, kind, par); }
 function editTag(g) {
   const isNew = !g;
   g = g || { id: uid(), name: '', color: COLORS[db.g.length % COLORS.length] };
-  const el = modal(`<h2>${isNew ? 'Nova etiqueta' : 'Editar etiqueta'}</h2><form><label class="lab">Nome<input class="in" name="n" value="${esc(g.name)}" required maxlength="40" autofocus></label><span class="lab">Cor</span>${colorRow(g.color)}<div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">Salvar</button></div></form>`);
+  const el = modal(`<h2>${isNew ? 'Nova etiqueta' : 'Editar etiqueta'}</h2><form><label class="lab">Nome<input class="in" name="n" value="${esc(g.name)}" required maxlength="40" autofocus></label><span class="lab">Ícone</span>${iconField(g.emoji)}<span class="lab">Cor</span>${colorRow(g.color)}<div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">Salvar</button></div></form>`);
+  bindIconField(el);
   el.querySelector('[data-x]').onclick = closeModal;
-  el.querySelector('form').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target); g.name = f.get('n').trim().replace(/^#/, '').replace(/\s+/g, '-'); g.color = f.get('color') || g.color; put('g', g); closeModal(); };
+  el.querySelector('form').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target); g.name = f.get('n').trim().replace(/^#/, '').replace(/\s+/g, '-'); g.color = f.get('color') || g.color; g.emoji = f.get('emoji') || null; put('g', g); closeModal(); };
 }
 function ctxMenu(spec, anchor, at) {
   const [k, id] = spec.split(':');
@@ -231,6 +326,8 @@ function ctxMenu(spec, anchor, at) {
     const l = get('l', id); if (!l) return;
     menu(anchor, [
       { label: 'Editar lista', icon: 'edit', act: () => editList(l) },
+      { label: 'Trocar ícone…', icon: 'star', act: () => emojiPicker(anchor, e => { l.emoji = e; put('l', l); }, { none: 1 }) },
+      { label: 'Mover para pasta…', icon: 'folder', act: () => menu(anchor, [{ label: 'Sem pasta', on: !l.folder, act: () => { l.folder = null; put('l', l); } }, ...db.f.filter(f => (f.kind || 'l') === 'l').map(f => ({ label: (f.emoji ? f.emoji + ' ' : '') + f.name, icon: 'folder', on: l.folder === f.id, act: () => { l.folder = f.id; put('l', l); } }))], { at }) },
       { label: 'Exportar…', icon: 'export', act: () => exportMenu(anchor, { kind: 'list', id }) },
       { label: 'Duplicar', icon: 'copy', act: () => { const n = clone(l); n.id = uid(); n.name += ' (cópia)'; put('l', n, { silent: true }); db.t.filter(t => t.list === id && !t.del).forEach(t => { const c = clone(t); c.id = uid(); c.list = n.id; c.gc = null; put('t', c, { silent: true }); }); changed(); toast('Lista duplicada'); } },
       { label: 'Arquivar', icon: 'arch', act: () => { l.arch = true; put('l', l); toast('Lista arquivada', 'Desfazer', () => { l.arch = false; put('l', l); }); } },
@@ -239,11 +336,19 @@ function ctxMenu(spec, anchor, at) {
     ], { at });
   } else if (k === 'folder') {
     const f = get('f', id); if (!f) return;
+    const kind = f.kind || 'l';
     menu(anchor, [
-      { label: 'Renomear', icon: 'edit', act: async () => { const n = await ask('Renomear pasta', f.name); if (n) { f.name = n; put('f', f); } } },
-      { label: 'Nova lista nesta pasta', icon: 'plus', act: () => { editList(); setTimeout(() => { const s = $('#modal select[name=f]'); if (s) s.value = id; }, 20); } },
+      { label: 'Editar pasta', icon: 'edit', act: () => editFolder(f) },
+      { label: 'Nova subpasta', icon: 'folder', act: () => editFolder(null, kind, id) },
+      kind === 'l' ? { label: 'Nova lista nesta pasta', icon: 'plus', act: () => editList(null, { folder: id }) } : { label: 'Novo documento nesta pasta', icon: 'plus', act: () => { const d = newDoc({ folder: id, o: Date.now() }); go('doc/' + d.id); } },
       { sep: 1 },
-      { label: 'Desfazer pasta', icon: 'trash', danger: 1, act: () => { db.l.filter(l => l.folder === id).forEach(l => { l.folder = null; put('l', l, { silent: true }); }); hardDel('f', id); } },
+      { label: 'Excluir pasta (mantém o conteúdo)', icon: 'trash', danger: 1, act: async () => {
+        if (!await confirmBox('Excluir a pasta "' + f.name + '"?', 'O que estiver dentro vai para a pasta de cima.')) return;
+        db.l.filter(l => l.folder === id).forEach(l => { l.folder = f.par || null; put('l', l, { silent: true }); });
+        db.d.filter(d => d.folder === id).forEach(d => { d.folder = f.par || null; put('d', d, { silent: true }); });
+        db.f.filter(x => x.par === id).forEach(x => { x.par = f.par || null; put('f', x, { silent: true }); });
+        hardDel('f', id);
+      } },
     ], { at });
   } else if (k === 'tag') {
     const g = get('g', id); if (!g) return;
@@ -254,7 +359,31 @@ function ctxMenu(spec, anchor, at) {
     ], { at });
   }
 }
-
+/* arrastar listas e pastas */
+DROPS.push((src, dst, before) => {
+  const [sk, sid] = [src.slice(0, src.indexOf(':')), src.slice(src.indexOf(':') + 1)];
+  const [dk, did] = [dst.slice(0, dst.indexOf(':')), dst.slice(dst.indexOf(':') + 1)];
+  if (sk === 'l') {
+    const l = get('l', sid); if (!l) return true;
+    if (dk === 'folder') { l.folder = did || null; put('l', l); toast(did ? 'Lista movida para ' + get('f', did).name : 'Lista fora das pastas'); return true; }
+    if (dk === 'list' && did !== sid && did !== 'inbox') {
+      const t = get('l', did); l.folder = t.folder || null;
+      const sib = db.l.filter(x => x.id !== sid && (x.folder || null) === (l.folder || null)).sort((a, b) => (a.o || 0) - (b.o || 0));
+      const i = sib.indexOf(t); sib.splice(before ? i : i + 1, 0, l);
+      sib.forEach((x, k) => { x.o = k + 1; put('l', x, { silent: true }); }); changed(); return true;
+    }
+    return true;
+  }
+  if (sk === 'f') {
+    const f = get('f', sid); if (!f) return true;
+    if ((dk === 'folder' || dk === 'dfold')) {
+      if ((dk === 'dfold') !== ((f.kind || 'l') === 'd')) { toast('Pastas de listas e de documentos ficam separadas'); return true; }
+      if (did && folderAncestors(did).includes(f.id)) { toast('Não dá para colocar a pasta dentro dela mesma'); return true; }
+      f.par = did || null; put('f', f); return true;
+    }
+    return true;
+  }
+});
 /* ---------- seletor de data ----------
    v = { date:'YYYY-MM-DD'|null, time:'HH:MM'|null, end:'HH:MM'|null, sdate: início, rep, rem:[min] } */
 function datePicker(anchor, v, onSave, opts = {}) {
@@ -389,7 +518,7 @@ function initDnd() {
   };
   document.addEventListener('pointerdown', e => {
     const src = e.target.closest('[data-drag]');
-    if (!src || e.button > 0 || e.target.closest('button:not([data-handle]),input,textarea,select,a[href],[contenteditable=true]')) return;
+    if (!src || e.button > 0 || e.target.closest('button:not([data-handle]),input,textarea,select,a[href]:not([data-drag]),[contenteditable=true]')) return;
     st = { x: e.clientX, y: e.clientY, src, touch: e.pointerType !== 'mouse', handle: !!e.target.closest('[data-handle]') };
     if (st.touch) timer = setTimeout(() => { if (st) begin(st.e || e, src); }, st.handle ? 120 : 420);
   });
@@ -404,6 +533,7 @@ function initDnd() {
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', () => { if (!DND.on) { clearTimeout(timer); st = null; } else end(); });
   document.addEventListener('touchmove', e => { if (DND.on) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('[data-drag], #blocks')) e.preventDefault(); });
   document.addEventListener('click', e => { if (DND.justDropped && Date.now() - DND.justDropped < 300) { e.preventDefault(); e.stopPropagation(); } }, true);
   document.addEventListener('contextmenu', e => { if (DND.on || (st && st.touch)) e.preventDefault(); });
 }
@@ -415,7 +545,8 @@ const ACTS = {
   drawer: () => { R.drawer = !R.drawer; render(); },
   fold: b => { const f = get('f', b.dataset.id); f.open = f.open === false; put('f', f); },
   newlist: () => editList(),
-  newfolder: () => newFolder(),
+  newfolder: b => newFolder(b.dataset.k || 'l', b.dataset.par || null),
+  profile: () => editProfile(),
   newtag: () => editTag(),
   ctx: (b, e) => { e.preventDefault(); e.stopPropagation(); ctxMenu(b.dataset.ctx, b); },
   quick: () => { R.drawer = false; render(); quickAdd(); },
@@ -471,4 +602,34 @@ function initUi() {
     else if (e.key === 'd') go('docs');
   });
   initDnd();
+  initSwipe();
+}
+/* celular: deslizar a tarefa para a direita conclui; para a esquerda abre data (ou exclui, se for longe) */
+function initSwipe() {
+  let s = null;
+  document.addEventListener('touchstart', e => {
+    const row = e.target.closest('.tlist .trow:not(.card):not(.ghostrow)');
+    if (!row || e.touches.length > 1 || e.target.closest('button,input,[contenteditable=true]') || !row.querySelector('[data-act=tcheck]')) return;
+    s = { row, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!s || DND.on) return;
+    const t = e.touches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (!s.on) { if (Math.abs(dy) > 10) { s = null; return; } if (Math.abs(dx) > 14) { s.on = true; s.row.classList.add('swiping'); } else return; }
+    s.dx = dx;
+    s.row.style.transform = `translateX(${Math.max(-220, Math.min(160, dx))}px)`;
+    s.row.dataset.sw = dx > 70 ? 'done' : dx < -150 ? 'del' : dx < -70 ? 'date' : '';
+  }, { passive: true });
+  document.addEventListener('touchend', () => {
+    if (!s) return;
+    const { row, dx, on } = s; s = null;
+    if (!on) return;
+    const act = row.dataset.sw, id = row.querySelector('[data-act=tcheck]').dataset.id;
+    row.style.transition = 'transform .18s'; row.style.transform = ''; row.classList.remove('swiping'); row.dataset.sw = '';
+    setTimeout(() => { row.style.transition = ''; }, 200);
+    DND.justDropped = Date.now();
+    if (act === 'done') checkTask(id, row);
+    else if (act === 'del') deleteTask(get('t', id));
+    else if (act === 'date') { const t = get('t', id); datePicker(row, taskToDp(t), v => { dpToTask(t, v); put('t', t); gcalPushTask(t); }); }
+  });
 }

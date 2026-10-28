@@ -95,6 +95,15 @@ const IC = {
   highlight: '<path d="M14.5 5l4.5 4.5-8 8H6.5V13z"/><path d="M4 21h16"/>',
   timer: '<circle cx="12" cy="13.5" r="7"/><path d="M12 10v3.5M9.5 3h5"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/>',
+  users: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A4.5 4.5 0 0 1 21 18.5"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16 7l2.5 2.5M14 9l2 2"/>',
+  cover: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 11h17"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/>',
+  music: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+  print: '<path d="M7 9V3.5h10V9M7 17H4.5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H17"/><rect x="7" y="14" width="10" height="6.5" rx="1"/>',
+  alignl: '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>', alignc: '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>', alignr: '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>', alignj: '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
+  indent: '<path d="M4 6h16M10 10h10M10 14h10M4 18h16M4 9.5l3 2.5-3 2.5"/>', outdent: '<path d="M4 6h16M10 10h10M10 14h10M4 18h16M7 9.5L4 12l3 2.5"/>',
+  sup: '<path d="M4 7l8 10M12 7l-8 10M16 9.5a2 2 0 1 1 3.4 1.4L16 14h4"/>', sub: '<path d="M4 6l8 10M12 6l-8 10M16 15.5a2 2 0 1 1 3.4 1.4L16 20h4"/>',
+  pagebreak: '<path d="M6 3.5v5h12v-5M6 20.5v-5h12v5M3 12h2M8 12h2M13 12h2M18 12h3"/>',
   arch: '<rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2"/><path d="M5.5 9v9.5a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9M10 13h4"/>',
 };
 const ic = (n, s = 20, extra = '') => `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${(IC[n] || '').replace('{d}', new Date().getDate())}</svg>`;
@@ -284,12 +293,12 @@ function smartTokensHtml(p) {
 
 /* ---------- dados ----------
    t tarefas · l listas · f pastas · g etiquetas · d documentos · h hábitos · p sessões de foco · s configurações */
-const KINDS = ['t', 'l', 'f', 'g', 'd', 'h', 'p'];
+const KINDS = ['t', 'l', 'f', 'g', 'd', 'h', 'p', 'a', 'z'];
 const COLORS = ['#DB4035', '#E8803A', '#D9A21B', '#7EA04D', '#2E9E6B', '#1E8E9E', '#3B7DD8', '#5B5BD6', '#9150C8', '#C84E9C', '#8A6A55', '#808080'];
 const PRIO = [{ n: 'Nenhuma', c: 'var(--mut)' }, { n: 'Baixa', c: '#3B7DD8' }, { n: 'Média', c: '#E8803A' }, { n: 'Alta', c: '#DB4035' }];
-const DEF_S = () => ({ id: 'cfg', theme: 'auto', weekStart: 0, defList: 'inbox', keepText: false, side: true, pomo: { focus: 25, short: 5, long: 15, every: 4, auto: false, sound: true }, gClient: '', gCals: null, gTaskCal: '', gPush: true, hideDone: true, compact: false, u: 0 });
+const DEF_S = () => ({ id: 'cfg', theme: 'auto', weekStart: 0, defList: 'inbox', keepText: false, side: true, pomo: { focus: 25, short: 5, long: 15, every: 4, auto: false, sound: true, amb: 'none', ambOnly: true, vol: 60, alarm: 'bell' }, gClient: '', gCals: null, gTaskCal: '', gPush: true, hideDone: true, compact: false, u: 0 });
 let db = null;
-function blank() { return { t: [], l: [], f: [], g: [], d: [], h: [], p: [], s: DEF_S(), v: 1 }; }
+function blank() { return { t: [], l: [], f: [], g: [], d: [], h: [], p: [], a: [], z: [], s: DEF_S(), v: 1 }; }
 function loadDb() {
   try { db = JSON.parse(localStorage.getItem('tt_db') || 'null'); } catch (e) { db = null; }
   if (!db) { db = blank(); seed(); KINDS.forEach(k => db[k].forEach(x => x.sd = 1)); }
@@ -316,13 +325,14 @@ function put(k, o, opt = {}) {
   if (!o.id) o.id = uid();
   if (!opt.keepU) o.u = Date.now();
   if (k === 's') { db.s = o; changed(); return o; }
+  if (!opt.nolog && typeof logChange === 'function') logChange(k, o);
   const arr = db[k], i = arr.findIndex(x => x.id === o.id);
   if (i >= 0) arr[i] = o; else arr.push(o);
   if (!opt.silent) changed();
   return o;
 }
 function putMany(k, list) { list.forEach(o => put(k, o, { silent: true })); changed(); }
-function hardDel(k, id) { db[k] = db[k].filter(x => x.id !== id); changed(); }
+function hardDel(k, id, opt = {}) { const o = get(k, id); if (o && !opt.nolog && typeof logChange === 'function') logChange(k, null, o); db[k] = db[k].filter(x => x.id !== id); changed(); }
 const clone = o => JSON.parse(JSON.stringify(o));
 function purgeTrash() {
   const lim = Date.now() - 30 * 864e5;
@@ -461,7 +471,9 @@ function clean(html) {
       if (c.tagName === 'SPAN' || c.tagName === 'MARK') {
         const st = c.getAttribute('style') || '', o = [];
         const col = st.match(/(?:^|;)\s*color:\s*([#a-z0-9(),.\s%]+)/i), bg = st.match(/background(?:-color)?:\s*([#a-z0-9(),.\s%]+)/i);
+        const fs = st.match(/font-size:\s*(\d{1,3}(?:\.\d+)?(?:px|pt|em|rem|%))/i), ff = st.match(/font-family:\s*([\w\s"',\-]{2,80})/i);
         if (col) o.push('color:' + col[1].trim()); if (bg) o.push('background:' + bg[1].trim());
+        if (fs) o.push('font-size:' + fs[1]); if (ff) o.push('font-family:' + ff[1].trim().replace(/"/g, "'"));
         if (o.length) keep.style = o.join(';');
         ['data-date', 'data-ref', 'data-kind', 'class'].forEach(a => { const v = c.getAttribute(a); if (v && /^[\w\- :T]+$/.test(v)) keep[a] = v; });
         if (c.getAttribute('contenteditable') === 'false') keep.contenteditable = 'false';

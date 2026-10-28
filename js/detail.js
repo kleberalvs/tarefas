@@ -40,11 +40,13 @@ function renderDetail(det) {
     <button class="ib hide-m" data-act="dclose" aria-label="Fechar">${ic('x')}</button>
   </header>
   <div class="dscroll">
+    ${t.cover ? `<div class="tcover"><img alt="Capa da tarefa" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"><div class="tcbtns"><label class="btn ghost sm">${ic('img', 16)}Trocar<input type="file" accept="image/*" hidden data-f="cover"></label><button class="btn ghost sm" data-act="tcovrm">Remover</button></div></div>` : ''}
     ${t.par ? `<button class="link dparent" data-act="topen" data-id="${t.par}">${ic('left', 14)} ${esc((get('t', t.par) || {}).title || 'Tarefa principal')}</button>` : ''}
     <textarea class="dtitle" data-keep rows="1" placeholder="Título da tarefa" aria-label="Título">${esc(t.title)}</textarea>
     <div class="dnotes rich" data-keep contenteditable="true" data-ph="Descrição, ideias, links…" aria-label="Descrição">${clean(t.notes)}</div>
 
     <div class="props">
+      ${t.cover ? '' : `<div class="prop"><span class="pl">${ic('cover', 18)}Capa</span><div class="pv"><label class="chipb filebtn">${ic('img', 14)}<span>Adicionar foto de capa</span><input type="file" accept="image/*" hidden data-f="cover"></label></div></div>`}
       <div class="prop"><span class="pl">${ic('sub', 18)}Início</span><div class="pv"><input type="date" class="in sm" data-keep data-f="sD" value="${sD}" aria-label="Data de início"><input type="time" class="in sm" data-keep data-f="sT" value="${sT}" aria-label="Hora de início" ${sD ? '' : 'disabled'}></div></div>
       <div class="prop"><span class="pl">${ic('cal', 18)}Fim / prazo</span><div class="pv"><input type="date" class="in sm${overdue(t) ? ' red' : ''}" data-keep data-f="eD" value="${eD}" aria-label="Data de fim"><input type="time" class="in sm" data-keep data-f="eT" value="${eT}" aria-label="Hora de fim" ${eD ? '' : 'disabled'}></div></div>
       <div class="prop"><span class="pl">${ic('repeat', 18)}Repetir</span><div class="pv"><button class="chipb" data-act="drep">${esc(t.rep ? repText(t.rep) : 'Não repete')}</button></div></div>
@@ -88,6 +90,28 @@ function renderDetail(det) {
     </footer>
   </div></div>`;
   bindDetail(det, t);
+  loadTaskImgs(det);
+}
+/* imagens de capa das tarefas (detalhe, quadro e lista) */
+async function loadTaskImgs(root) {
+  root.querySelectorAll('img[data-timg]').forEach(async img => {
+    const t = get('t', img.dataset.tid), m = t && t.cover; if (!m) return;
+    try { if (!IMG_URL.has(m.id)) IMG_URL.set(m.id, await FILES.url(m)); img.src = IMG_URL.get(m.id); } catch (e) { img.closest('.tcover,.ccov,.rthumb') && img.closest('.tcover,.ccov,.rthumb').classList.add('noimg'); }
+  });
+}
+/* reduz fotos grandes antes de enviar (economiza espaço e dados) */
+function shrinkImage(file, max = 1600) {
+  return new Promise(res => {
+    if (!/^image\/(jpeg|png|webp)/.test(file.type) || file.size < 400000) return res(file);
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+      c.toBlob(b => res(b ? new File([b], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file), 'image/jpeg', .86);
+    };
+    im.onerror = () => res(file); im.src = u;
+  });
 }
 function bindDetail(det, t) {
   const ti = det.querySelector('.dtitle');
@@ -127,6 +151,12 @@ function bindDetail(det, t) {
     }
     if (f === 'rem') { t.rem = v === '' ? [] : [+v]; put('t', t); }
     if (f === 'gc') { if (inp.checked) { t.gcOn = true; put('t', t); gcalPushTask(t, true); } else { t.gcOn = false; await gcalDeleteTask(t); delete t.gc; put('t', t); render(true); } }
+    if (f === 'cover') {
+      const file = inp.files && inp.files[0]; if (!file) return;
+      if (!/^image\//.test(file.type)) { toast('Escolha uma imagem'); return; }
+      try { toast('Enviando capa…', null, null, 1200); const small = await shrinkImage(file, 1600); const m = await FILES.add(small); const old = t.cover; t.cover = m; put('t', t); if (old) FILES.remove(old); render(true); } catch (e) { toast(e.message || 'Falha ao enviar'); }
+      return;
+    }
     if (f === 'files') {
       const list = Array.from(inp.files || []);
       if (!list.length) return;
@@ -146,6 +176,7 @@ function bindDetail(det, t) {
 }
 Object.assign(ACTS, {
   dclose: () => closeTask(),
+  tcovrm: () => { const t = get('t', R.sel); if (t && t.cover) { const m = t.cover; t.cover = null; put('t', t); FILES.remove(m); } },
   dcheck: b => checkTask(R.sel),
   dprio: b => { const t = get('t', R.sel); menu(b, [3, 2, 1, 0].map(p => ({ label: 'Prioridade ' + PRIO[p].n.toLowerCase(), color: PRIO[p].c, on: (t.prio || 0) === p, act: () => { t.prio = p; put('t', t); } })), { right: 1 }); },
   dsetprio: b => { const t = get('t', R.sel); t.prio = +b.dataset.p; put('t', t); },

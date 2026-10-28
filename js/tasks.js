@@ -85,10 +85,11 @@ function metaHtml(t, opts = {}) {
 function rowHtml(t, opts = {}) {
   const subs = subsOf(t.id), open = OPEN_SUBS.has(t.id);
   const lvl = opts.lvl || 0;
-  return `<div class="trow p${t.prio || 0}${t.done ? ' done' : ''}${R.sel === t.id ? ' sel' : ''}${opts.card ? ' card' : ''}" style="--lvl:${lvl}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}">
+  const cov = t.cover ? (opts.card ? `<div class="ccov"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></div>` : `<span class="rthumb"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></span>`) : '';
+  return `<div class="trow p${t.prio || 0}${t.done ? ' done' : ''}${R.sel === t.id ? ' sel' : ''}${opts.card ? ' card' : ''}${t.cover && opts.card ? ' hascov' : ''}" style="--lvl:${lvl}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}">${opts.card ? cov : ''}
     ${subs.length && !opts.card ? `<button class="caret${open ? ' open' : ''}" data-act="subs" data-id="${t.id}" aria-label="${open ? 'Ocultar' : 'Mostrar'} subtarefas">${ic('chev', 14)}</button>` : ''}
     <button class="chk" data-act="tcheck" data-id="${t.id}" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'}: ${esc(t.title)}"><span>${ic('check', 12)}</span></button>
-    <div class="tmain" data-act="topen" data-id="${t.id}"><div class="ttl">${esc(t.title) || '<span class="mut">Sem título</span>'}</div>${opts.noMeta ? '' : `<div class="tmeta">${metaHtml(t, opts)}</div>`}</div>
+    <div class="tmain" data-act="topen" data-id="${t.id}"><div class="ttl">${esc(t.title) || '<span class="mut">Sem título</span>'}</div>${opts.noMeta ? '' : `<div class="tmeta">${metaHtml(t, opts)}</div>`}</div>${opts.card ? '' : cov}
     ${opts.trash ? `<div class="tact on"><button class="btn ghost sm" data-act="restore" data-id="${t.id}">Restaurar</button><button class="ib" data-act="purge" data-id="${t.id}" aria-label="Excluir definitivamente">${ic('trash', 18)}</button></div>` :
       `<div class="tact"><button class="ib" data-act="tdate" data-id="${t.id}" aria-label="Definir data">${ic('cal', 18)}</button><button class="ib" data-act="tmore" data-id="${t.id}" aria-label="Mais opções">${ic('more', 18)}</button></div>`}
   </div>${subs.length && open && !opts.card ? subs.sort((a, b) => (a.o || 0) - (b.o || 0)).filter(s => !s.done || opts.withDone).map(s => rowHtml(s, Object.assign({}, opts, { lvl: lvl + 1 }))).join('') : ''}`;
@@ -121,7 +122,13 @@ VIEWS.list = main => {
   const groups = groupsFor(id, info, liveT, board && mode === 'sec' ? 'sec' : mode).map(g => (g.items.sort(sorter), g));
   GMAP = {};
   groups.forEach(g => GMAP[g.key] = { set: Object.assign({}, info.def, g.set), ids: g.items.map(t => t.id) });
-  const sub = id === 'today' ? fmtLong(today()) : '';
+  let sub = '';
+  if (id === 'today') {
+    const h = new Date().getHours(), nm = (db.s.name || '').trim().split(' ')[0];
+    const doneToday = db.t.filter(t => !t.del && !t.par && t.done && t.dt && ymd(new Date(t.dt)) === today()).length + db.t.reduce((n, t) => n + (t.hist || []).filter(x => ymd(new Date(x.at)) === today()).length, 0);
+    const tot = doneToday + liveT.length, pct = tot ? Math.round(doneToday / tot * 100) : 0;
+    sub = `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}${nm ? ', ' + esc(nm) : ''} · ${esc(fmtLong(today()))}<span class="tprog" title="${doneToday} de ${tot} concluídas hoje"><i style="width:${pct}%"></i></span><span class="tpct">${doneToday}/${tot}</span>`;
+  }
   const right = `${info.list ? `<button class="ib" data-act="vboard" aria-label="${board ? 'Ver como lista' : 'Ver como quadro'}" title="${board ? 'Lista' : 'Quadro'}">${ic(board ? 'list' : 'board')}</button>` : ''}
     <button class="ib" data-act="vsort" aria-label="Ordenar e agrupar">${ic('sort')}</button>
     <button class="ib" data-act="vmore" aria-label="Mais opções">${ic('more')}</button>`;

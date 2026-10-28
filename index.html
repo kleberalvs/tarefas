@@ -13,9 +13,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tarefas">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="css/app.css">
 <script src="config.js"></script>
-<script>(function(){try{var t=localStorage.getItem("tt_theme")||"auto";if(t=="auto")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t;var c=window.TT_CFG;if(c&&c.url&&c.key&&localStorage.getItem("tt_local")!=="1"&&!localStorage.getItem("tt-auth"))document.documentElement.classList.add("lock")}catch(e){}})()</script>
+<script>(function(){try{var t=localStorage.getItem("tt_theme")||"auto";if(t=="auto")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t;var c=window.TT_CFG;if(c&&c.url&&c.key&&!localStorage.getItem("tt-auth"))document.documentElement.classList.add("lock")}catch(e){}})()</script>
 </head>
 <body>
 <div id="app">
@@ -30,6 +34,7 @@
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="vendor/supabase.js"></script>
 <script src="js/core.js"></script>
+<script src="js/emoji.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/files.js"></script>
 <script src="js/tasks.js"></script>
@@ -37,7 +42,11 @@
 <script src="js/cal.js"></script>
 <script src="js/docs.js"></script>
 <script src="js/focus.js"></script>
+<script src="js/sounds.js"></script>
 <script src="js/export.js"></script>
+<script src="js/log.js"></script>
+<script src="js/users.js"></script>
+<script src="js/push.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/app.js"></script>
 </body>

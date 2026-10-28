@@ -13,7 +13,9 @@ VIEWS.settings = main => {
   const cals = GC.cals || [];
   main.innerHTML = headHtml('Configurações') + `<div class="scroll"><div class="sets">
   <section class="sgrp"><h2>${ic('sync', 18)}Conta e sincronização</h2>
-    ${CLOUD && SES ? `<div class="srow"><div><b>${esc(WHO)}</b><p class="mut sm" id="syncline">${esc(SYNC.txt)}</p></div><button class="btn ghost sm" data-act="logout">Sair</button></div>
+    <div class="srow"><div class="row">${avatarHtml('md')}<div><b>${esc(s.name || 'Sem nome')}</b><p class="mut sm">Nome e foto do topo da barra lateral</p></div></div><button class="btn ghost sm" data-act="profile">Editar</button></div>
+    ${CLOUD && SES ? `<div class="srow"><div><b>${esc(WHO)}</b><p class="mut sm" id="syncline">${esc(SYNC.txt)}</p></div><div class="row"><button class="btn ghost sm" data-act="chpass">${ic('key', 15)}Alterar senha</button><button class="btn ghost sm" data-act="logout">Sair</button></div></div>
+      ${IS_ADMIN ? `<div class="srow"><div><b>Usuários</b><p class="mut sm">Você é o administrador: crie e gerencie acessos.</p></div><button class="btn ghost sm" data-act="go" data-to="users">Abrir</button></div>` : ADMIN_FREE ? `<div class="srow"><div><b>Administrador</b><p class="mut sm">Ainda não há administrador. Assuma para poder criar usuários.</p></div><button class="btn red sm" data-act="claimadmin">Tornar-me administrador</button></div>` : ''}
       <p class="hint">Tudo o que você faz aqui aparece nos outros aparelhos em segundos. Sem internet, o app continua funcionando e envia depois.</p>`
     : CLOUD ? `<div class="srow"><div><b>Modo local</b><p class="mut sm">Os dados ficam só neste aparelho.</p></div><button class="btn red sm" data-act="login">Entrar</button></div>`
     : `<p class="mut">Nuvem não configurada: os dados ficam só neste aparelho.</p>`}
@@ -47,8 +49,9 @@ VIEWS.settings = main => {
       <div class="row"><input class="in" id="gcid" placeholder="000000000000-xxxxxxxx.apps.googleusercontent.com"><button class="btn red sm" data-act="gsave">Salvar</button></div>
       <p class="hint">Origem autorizada a cadastrar no Google: <b>${esc(location.origin)}</b></p>`}
   </section>
-  <section class="sgrp"><h2>${ic('bell', 18)}Lembretes</h2>
-    <div class="srow"><div><b>${{ granted: 'Notificações permitidas', denied: 'Notificações bloqueadas', default: 'Notificações desativadas', unsupported: 'Notificações indisponíveis' }[notif]}</b><p class="mut sm">Os lembretes avisam enquanto o app estiver aberto (inclusive em segundo plano no computador).</p></div>${notif === 'default' ? '<button class="btn red sm" data-act="notif">Permitir</button>' : ''}</div>
+  <section class="sgrp"><h2>${ic('bell', 18)}Notificações</h2>
+    <div class="srow"><div><b>${PUSH.on ? 'Ativadas neste aparelho' : 'Desativadas neste aparelho'}</b><p class="mut sm">${PUSH.on ? 'Lembretes de tarefas, hábitos e fim do Pomodoro chegam mesmo com o app fechado.' : PUSH.supported ? 'Ative para receber lembretes mesmo com o app fechado.' : isIOS() ? 'No iPhone, primeiro instale o app na Tela de Início (Compartilhar → Adicionar à Tela de Início) e abra por lá.' : 'Este navegador não suporta notificações.'}</p>${PUSH.err ? `<p class="err">${esc(PUSH.err)}</p>` : ''}</div>${PUSH.on ? `<div class="row"><button class="btn ghost sm" data-act="pushtest">Testar</button><button class="btn ghost sm" data-act="pushoff">Desativar</button></div>` : PUSH.supported ? `<button class="btn red sm" data-act="pushon" ${PUSH.busy ? 'disabled' : ''}>${PUSH.busy ? 'Ativando…' : 'Ativar'}</button>` : ''}</div>
+    <p class="hint">Ative em cada aparelho: celular e computador. ${notif === 'denied' ? '<b>As notificações estão bloqueadas para este site:</b> libere nas configurações do navegador ou do aparelho.' : ''}</p>
     <label class="srow"><span>Sons</span><span class="sw-t"><input type="checkbox" data-pk="sound" ${s.pomo.sound ? 'checked' : ''}><span></span></span></label>
   </section>
   <section class="sgrp"><h2>${ic('export', 18)}Dados</h2>
@@ -102,12 +105,14 @@ function initSw() {
 
 /* ---------- início ---------- */
 function afterRender() {
+  if (typeof loadTaskImgs === 'function') loadTaskImgs($('#main'));
   const fm = $('#side a[href="#/focus"] .cnt');
   if (FS.run) { const a = $('#side a[href="#/focus"]'); if (a && !a.querySelector('#fmini')) a.insertAdjacentHTML('beforeend', `<span class="cnt red" id="fmini">${mmss(fLeft())}</span>`); }
   else if (!FS.run && document.title !== 'Tarefas') document.title = 'Tarefas';
 }
 function boot() {
   loadDb();
+  initSnap(); pruneLog();
   applyTheme();
   parseHash();
   initUi();
@@ -117,6 +122,8 @@ function boot() {
   initSw();
   checkReminders();
   setInterval(checkReminders, 30000);
+  if (navigator.serviceWorker) navigator.serviceWorker.ready.then(() => pushRefresh()).catch(() => {});
+  if (FS.run) syncTimer();
   setInterval(() => { if (R.v === 'list' && (R.id === 'today' || R.id === 'week')) { const d = today(); if (boot.d && boot.d !== d) render(true); boot.d = d; } }, 60000);
   boot.d = today();
   if (gcalReady() && !gOn() && localStorage.getItem('tt_gok')) GC.status = 'exp';

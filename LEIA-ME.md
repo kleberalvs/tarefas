@@ -12,29 +12,43 @@ App pessoal de tarefas, calendário, documentos, foco e hábitos. Funciona no ce
 - **Documentos**: editor de blocos com menu "/" (títulos, listas, tarefas, tabelas, citações, destaques, código, imagens, arquivos, subpáginas), menções com "@" (datas, tarefas, documentos), cores de texto e de fundo, estilos de bloco, fundo, textura, fonte, largura e capa da página.
 - **Foco**: Pomodoro e cronômetro com estatísticas.
 - **Hábitos**: metas diárias, dias da semana ou vezes por semana, sequências e calendário.
-- **Exportação**: PDF, Word (.docx), Markdown, HTML, texto, CSV, Excel (.xlsx), calendário (.ics), JSON e ZIP; backup completo e importação do TickTick.
+- **Exportação**: PDF (folha A4, inclusive download direto), Word (.docx), Markdown, HTML, texto, CSV, Excel (.xlsx), calendário (.ics), JSON e ZIP; backup completo e importação do TickTick.
+- **Perfil**: nome e foto no topo da barra lateral; emojis em listas, pastas e etiquetas; pastas e subpastas para listas e documentos (arraste para organizar).
+- **Capas**: foto de capa nas tarefas (aparece no cartão do quadro) e nos documentos (inclusive folha de rosto de página inteira).
+- **Histórico**: tudo o que foi criado, alterado, concluído ou excluído, com restaurar e desfazer.
+- **Usuários**: o administrador cria, edita, bloqueia e exclui acessos dentro do app.
+- **Notificações**: lembretes de tarefas, hábitos e fim do Pomodoro mesmo com o app fechado.
+- **Sons**: 13 sons ambientes para o Pomodoro (chuva, mar, floresta, lareira, ruídos...) e 6 alarmes.
 
 ## Primeira configuração (uma vez só)
 
 ### 1. Banco de dados (Supabase)
-Usa o mesmo projeto Supabase do painel da equipe, com tabela própria. Cada conta só vê os próprios dados.
-
-1. Abra o Supabase → **SQL Editor** → **New query**.
-2. Cole todo o conteúdo de `supabase/schema.sql` e clique em **Run**.
-
-Para entrar, use o mesmo e-mail e senha que você já tem no Supabase.
+No Supabase, abra **SQL Editor → New query** e rode, um de cada vez:
+1. `supabase/schema.sql` (tabela do app e anexos);
+2. `supabase/atualizacao-2.sql` (administrador, notificações e proteção do painel da equipe).
 
 ### 2. Publicação (GitHub Pages)
-No repositório: **Settings → Pages → Source: Deploy from a branch → Branch: main / (root) → Save**. Em 1 a 2 minutos o app fica no ar no endereço que o GitHub mostrar nessa tela.
+No repositório: **Settings → Pages → Deploy from a branch → main / (root) → Save**. Endereço: https://kleberalvs.github.io/tarefas/
 
-### 3. Google Agenda (opcional)
+### 3. "Esqueceu a senha"
+Supabase → **Authentication → URL Configuration → Redirect URLs → Add URL** → `https://kleberalvs.github.io/tarefas/` → Save.
+Observação: sem um servidor de e-mail próprio, o Supabase envia poucos e-mails por hora.
+
+### 4. Usuários e notificações com o app fechado (função "tarefas")
+1. Supabase → **Edge Functions → Deploy a new function → Via Editor**. Nome: `tarefas`. Apague o conteúdo de exemplo, cole todo o arquivo `supabase/functions/tarefas/index.ts` e clique em **Deploy**.
+2. **Edge Functions → Secrets** (ou Manage secrets): cadastre `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (ex.: `mailto:seu@email.com`) e `CRON_SECRET`. Os valores das chaves foram entregues na conversa com o Claude; a chave privada nunca fica no GitHub.
+3. **Database → Extensions**: ative `pg_cron` e `pg_net`.
+4. SQL Editor: rode `supabase/agendador-notificacoes.sql`, trocando `COLE_AQUI_O_CRON_SECRET` pelo mesmo valor do segredo `CRON_SECRET`.
+5. No app: **Configurações → Tornar-me administrador** (só o primeiro usuário vê esse botão) e **Notificações → Ativar** em cada aparelho.
+
+No iPhone, as notificações só funcionam com o app instalado na Tela de Início (iOS 16.4 ou mais recente).
+
+### 5. Google Agenda (opcional)
 1. Acesse **console.cloud.google.com** e crie um projeto (ex.: "Tarefas").
-2. Em **APIs e serviços → Biblioteca**, procure **Google Calendar API** e clique em **Ativar**.
-3. Em **Google Auth Platform** (ou "Tela de consentimento OAuth"): escolha **Externo**, dê um nome ao app e informe seu e-mail. Em **Público-alvo**, adicione o seu Gmail como **usuário de teste**.
-4. Em **Clientes** (ou **Credenciais → Criar credenciais → ID do cliente OAuth**): tipo **Aplicativo da Web**. Em **Origens JavaScript autorizadas**, adicione `https://kleberalvs.github.io`. Crie e copie o **ID do cliente** (termina em `.apps.googleusercontent.com`).
+2. Em **APIs e serviços → Biblioteca**, ative a **Google Calendar API**.
+3. Em **Google Auth Platform** (ou "Tela de consentimento OAuth"): **Externo**, nome do app e seu e-mail; em **Público-alvo**, adicione o seu Gmail como **usuário de teste**.
+4. Em **Clientes** (ou **Credenciais → ID do cliente OAuth**): **Aplicativo da Web**, origem autorizada `https://kleberalvs.github.io`. Copie o **ID do cliente**.
 5. No app: **Configurações → Google Agenda** → cole o ID → **Salvar** → **Conectar**.
-
-Por segurança, o Google libera o acesso por 1 hora de cada vez. Quando expirar, o calendário mostra o botão **Reconectar** (um toque). As alterações feitas nesse intervalo ficam guardadas e são enviadas ao reconectar.
 
 ## Instalar como app
 - **iPhone (Safari):** Compartilhar → Adicionar à Tela de Início.
@@ -47,6 +61,6 @@ Por segurança, o Google libera o acesso por 1 hora de cada vez. Quando expirar,
 3. Os aparelhos mostram "Nova versão disponível" → Atualizar.
 
 ## Limitações conhecidas
-- Os lembretes avisam enquanto o app estiver aberto (no computador, também em segundo plano). Não há servidor de notificações push.
 - No iPhone, notificações só funcionam com o app instalado na Tela de Início (iOS 16.4 ou mais recente).
+- O PDF direto precisa de internet para carregar o gerador; sem internet, use "PDF pela impressão".
 - O visual segue um estilo limpo de lista com cinza e vermelho, com layout, ícones e cores próprios.
