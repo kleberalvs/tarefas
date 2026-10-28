@@ -243,6 +243,7 @@ function placePop(el, anchor, opts = {}) {
   if (isMobile() && !opts.inline) {
     el.classList.add('sheet');
     $('#scrim').classList.add('on');
+    sheetDrag(el, el, () => closePop());
     return;
   }
   const r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: innerWidth / 2 - 150, right: innerWidth / 2 + 150, top: innerHeight / 3, bottom: innerHeight / 3 };
@@ -278,11 +279,34 @@ function pop(anchor, html, opts = {}) {
   placePop(el, anchor, opts);
   return el;
 }
+/* folhas no celular: arrastar para baixo fecha (pela alça ou quando o conteúdo está no topo) */
+function sheetDrag(el, target, onClose) {
+  let y0 = null, dy = 0, t0 = 0, ok = false;
+  el.addEventListener('touchstart', e => {
+    const tg = e.target, top = target.getBoundingClientRect().top, onHandle = e.touches[0].clientY - top < 34;
+    const sc = tg.closest && tg.closest('.nbgs,.dsgrid,.mtx,.aiout,textarea,input,[contenteditable],.lbstage');
+    let n = tg, scrolled = false; while (n && n !== el.parentNode) { if (n.scrollTop > 0) { scrolled = true; break; } n = n.parentNode; }
+    ok = onHandle || (!sc && !scrolled);
+    if (!ok) return; y0 = e.touches[0].clientY; dy = 0; t0 = Date.now(); target.style.transition = 'none';
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (y0 == null) return; dy = e.touches[0].clientY - y0;
+    if (dy > 0) { target.style.transform = `translateY(${dy}px)`; if (e.cancelable) e.preventDefault(); } else if (dy < -8) { y0 = null; target.style.transform = ''; }
+  }, { passive: false });
+  el.addEventListener('touchend', () => {
+    if (y0 == null) return; y0 = null;
+    const fast = dy > 40 && Date.now() - t0 < 250;
+    target.style.transition = 'transform .22s var(--ease)';
+    if (dy > 110 || fast) { target.style.transform = 'translateY(110%)'; setTimeout(onClose, 180); }
+    else target.style.transform = '';
+  });
+}
 function modal(html, opts = {}) {
   closeModal(true);
   const m = $('#modal');
   m.innerHTML = `<div class="mbox ${opts.cls || ''}" role="dialog" aria-modal="true">${html}</div>`;
   m.classList.add('on');
+  if (isMobile()) { const bx = m.firstChild; sheetDrag(bx, bx, () => { if (typeof NE !== 'undefined' && NE) closeNote(); else closeModal(true); }); }
   const f = m.querySelector('[autofocus]') || m.querySelector('input,textarea,select');
   if (f && !isMobile()) setTimeout(() => f.focus(), 30);
   return m.firstChild;

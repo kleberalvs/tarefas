@@ -129,7 +129,7 @@ function drawNoteEditor() {
     ${n.bgImg ? `<img class="nbgi" data-nimg="${n.bgImg.id}" data-n="${n.id}" data-bg="1" alt="">` : ''}
     <div class="neimgs">${(n.img || []).map(m => `<div class="neimg"><img data-nimg="${m.id}" data-n="${n.id}" data-lbi="${m.id}" alt=""><button class="ib xs" data-nimgrm="${m.id}" aria-label="Remover imagem">${ic('trash', 15)}</button></div>`).join('')}</div>
     <div class="nin">
-      <div class="nehead"><input class="ntitle" id="ne_t" placeholder="Título" value="${esc(n.title || '')}" maxlength="200"><button class="npin${n.pin ? ' on' : ''}" data-ne="pin" aria-label="Fixar">${ic('pin', 19)}</button></div>
+      <div class="nehead"><input class="ntitle" id="ne_t" placeholder="Título" value="${esc(n.title || '')}" maxlength="200"><button class="npin${n.pin ? ' on' : ''}" data-ne="pin" aria-label="Fixar">${ic('pin', 19)}</button><button class="npin nclose" data-ne="close" aria-label="Fechar a nota" title="Fechar">${ic('x', 20)}</button></div>
       ${n.list ? `<div class="nitems">${items.map((i, k) => i.done ? '' : itemRow(i, k)).join('')}<div class="nitem add">${ic('plus', 16)}<input class="nit" id="ne_add" placeholder="Item da lista"></div>${items.some(i => i.done) ? `<p class="mut sm nmk">${items.filter(i => i.done).length} marcado(s)</p>${items.map((i, k) => i.done ? itemRow(i, k) : '').join('')}` : ''}</div>`
         : `<textarea class="nbodyin" id="ne_b" placeholder="Criar uma nota…" rows="3">${esc(n.body || '')}</textarea>`}
       <div class="neauds">${(n.aud || []).map(a => `<div class="neaud"><audio controls preload="none" data-naud="${a.id}"></audio><span class="mut sm">${esc(a.name || 'Áudio')}</span><button class="ib xs" data-naudrm="${a.id}" aria-label="Remover áudio">${ic('trash', 15)}</button></div>`).join('')}</div>
@@ -147,7 +147,7 @@ function drawNoteEditor() {
       <button class="ib" data-pop data-ne="tag" title="Etiquetas" aria-label="Etiquetas">${ic('tag', 18)}</button>
       <button class="ib" data-pop data-ne="arch" title="${n.arch ? 'Desarquivar' : 'Arquivar'}" aria-label="Arquivar">${ic('archive', 18)}</button>
       <button class="ib" data-pop data-ne="more" title="Mais" aria-label="Mais">${ic('more', 18)}</button>
-      <span class="f1"></span><button class="btn ghost sm" data-ne="close">Fechar</button>
+
     </div>
   </div>`, { cls: 'nmodal' });
   const box = el;

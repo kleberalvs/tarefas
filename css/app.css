@@ -1482,3 +1482,20 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 @keyframes splpop{from{transform:scale(.4) rotate(-12deg);opacity:0}}
 #splash .spw{color:var(--txt)}
 #splash .sptag{color:var(--mut)}
+/* iPhone só envia toque em elementos "clicáveis": o fundo escuro precisa disso para fechar */
+#scrim,#dscrim,#modal{cursor:pointer;-webkit-tap-highlight-color:transparent}
+#modal>.mbox{cursor:auto}
+.nclose{opacity:1!important;position:static!important}
+.nehead{gap:2px}
+.nefoot{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:space-between}
+.nefoot::-webkit-scrollbar{display:none}
+@media (max-width:759px){
+  .nefoot{padding:6px 6px calc(8px + var(--safe-b));gap:0}
+  .nefoot .ib{width:40px;height:40px;flex:none}
+  .mbox{position:relative}
+  .mbox:before{content:"";display:block;width:38px;height:5px;border-radius:3px;background:var(--line2);margin:-10px auto 10px}
+  .mbox.nmodal:before{position:absolute;left:50%;top:8px;margin:0 0 0 -19px;z-index:5}
+  .pop.sheet:before{height:5px;margin:4px auto 12px}
+}
+@media (max-width:759px){.nedit .npin{display:flex!important;opacity:1}.nedit .npin:not(.on):not(.nclose){opacity:.65}}
+.nclose{color:var(--txt2)}
