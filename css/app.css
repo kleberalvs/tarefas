@@ -1025,3 +1025,11 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 .conf{position:absolute;left:50%;top:50%;width:8px;height:12px;border-radius:2px;animation:conf var(--d) ease-out forwards;pointer-events:none}
 @keyframes conf{to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
 @media (max-width:759px){.me{padding:0 14px 120px}.mehero{padding:16px;gap:14px}.avatar.xl{width:70px;height:70px;font-size:26px}.mehero h2{font-size:20px}.medals{grid-template-columns:repeat(3,1fr)}.achcard{min-width:0;width:calc(100vw - 32px)}}
+
+.achbtn{display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;border-radius:18px;border:1px solid var(--line);background:var(--card);box-shadow:var(--sh1);text-align:left;transition:.15s var(--ease)}
+.achbtn:hover{transform:translateY(-1px);box-shadow:var(--sh3)}
+.achbtn .f1{display:flex;flex-direction:column;gap:4px}.achbtn b{font-size:16px}.achbtn .achprog{max-width:260px}
+.achbi{width:48px;height:48px;border-radius:14px;background:var(--redsoft);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
+.achmini{display:flex;margin-right:4px}.achmini svg{margin-left:-10px}
+.achbtn>svg:last-child{color:var(--mut2)}
+@media (max-width:759px){.achmini{display:none}}

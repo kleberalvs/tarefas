@@ -79,17 +79,42 @@ function celebrate(x, n) {
   el.innerHTML = `<div class="achcard">${medalSvg(x.i, x.a.e, false, 92)}<div class="achtx"><span class="mut sm">Nova conquista${n > 1 ? ` (+${n - 1})` : ''} · ${t.n}</span><b>${esc(x.a.n)}</b><span>${fmtNum(x.goal)} ${esc(x.goal === 1 ? x.a.u[0] : x.a.u[1])}</span></div><button class="btn ghost sm" data-see>Ver</button></div>`;
   for (let i = 0; i < 26; i++) { const c = document.createElement('i'); c.className = 'conf'; c.style.cssText = `--x:${(Math.random() * 2 - 1) * 180}px;--y:${-60 - Math.random() * 160}px;--r:${Math.random() * 720}deg;--d:${.7 + Math.random() * .6}s;background:${['var(--red)', '#FFC83D', '#3B7DD8', '#2E9E6B', '#9150C8'][i % 5]}`; el.appendChild(c); }
   document.body.appendChild(el);
-  el.querySelector('[data-see]').onclick = () => { el.remove(); go('me'); };
+  el.querySelector('[data-see]').onclick = () => { el.remove(); go('ach'); };
   if (db.s.pomo.sound) try { playAlarm('chime'); } catch (e) {}
   setTimeout(() => el.classList.add('out'), 5200); setTimeout(() => el.remove(), 5800);
 }
 let ACH_F = 'all';
-VIEWS.me = main => {
+function achSummary() {
   const { st, list } = achList(), got = db.s.ach || {};
   const unlocked = list.filter(x => x.ok).length;
   const level = Math.floor(Math.sqrt(st.done * 10 + st.focus * 5 + st.habits * 3) / 3) + 1;
+  const recent = list.filter(x => x.ok).sort((a, b) => (got[b.id] || 0) - (got[a.id] || 0));
+  return { st, list, got, unlocked, level, recent };
+}
+/* perfil: enxuto, com um botão para as conquistas */
+VIEWS.me = main => {
+  const { st, list, unlocked, level, recent } = achSummary();
   const nm = (db.s.name || '').trim() || (WHO ? WHO.split('@')[0] : 'Você');
-  const recent = list.filter(x => x.ok).sort((a, b) => (got[b.id] || 0) - (got[a.id] || 0)).slice(0, 6);
+  main.innerHTML = headHtml('Perfil', '', `<button class="btn ghost sm" data-act="profile">${ic('edit', 15)}Editar perfil</button>`) + `<div class="scroll"><div class="me">
+    <section class="mehero">${avatarHtml('xl')}<div class="f1"><h2>${esc(nm)}</h2><p class="mut">${WHO ? esc(WHO) : 'Modo local'}</p><div class="lvl"><span class="lvlb">Nível ${level}</span></div></div></section>
+    <button class="achbtn" data-act="go" data-to="ach">
+      <span class="achbi">🏅</span>
+      <span class="f1"><b>Conquistas</b><span class="mut sm">${unlocked} de ${list.length} medalhas</span><span class="achprog"><i style="width:${Math.round(unlocked / list.length * 100)}%"></i></span></span>
+      <span class="achmini">${recent.slice(0, 3).map(x => medalSvg(x.i, x.a.e, false, 40)).join('')}</span>
+      ${ic('chev', 18)}
+    </button>
+    <section class="kpis">
+      <div class="kpi"><b>${fmtNum(st.done)}</b><span>Tarefas concluídas</span></div>
+      <div class="kpi"><b>${st.streak}</b><span>Dias seguidos</span><small>Recorde: ${st.best}</small></div>
+      <div class="kpi"><b>${fmtNum(st.focus)}</b><span>Sessões de foco</span><small>${st.focusH}h no total</small></div>
+      <div class="kpi"><b>${fmtNum(st.habits)}</b><span>Hábitos cumpridos</span></div>
+    </section>
+    <div class="row"><button class="btn ghost sm" data-act="go" data-to="settings">${ic('gear', 15)}Configurações</button>${typeof SES !== 'undefined' && SES ? `<button class="btn ghost sm" data-act="chpass">${ic('key', 15)}Alterar senha</button><button class="btn ghost sm" data-act="logout">${ic('out', 15)}Sair</button>` : ''}</div>
+  </div></div>`;
+};
+/* conquistas: tela própria */
+VIEWS.ach = main => {
+  const { st, list, got, unlocked, level, recent } = achSummary();
   const cats = ACH.map(a => {
     const items = list.filter(x => x.a === a), done = items.filter(x => x.ok).length, next = items.find(x => !x.ok);
     if (ACH_F === 'got' && !done) return '';
@@ -97,18 +122,10 @@ VIEWS.me = main => {
       ${next ? `<div class="achprog"><i style="width:${Math.min(100, Math.round(next.v / next.goal * 100))}%"></i></div><p class="mut sm achp">${fmtNum(next.v)} de ${fmtNum(next.goal)}</p>` : ''}
       <div class="medals">${items.filter(x => ACH_F !== 'got' || x.ok).map(x => `<div class="mdl${x.ok ? '' : ' off'}" title="${esc(x.a.n)} · ${fmtNum(x.goal)}${x.ok && got[x.id] ? ' · conquistada em ' + new Date(got[x.id]).toLocaleDateString('pt-BR') : ''}">${medalSvg(x.i, a.e, !x.ok, 58)}<b>${fmtNum(x.goal)}</b><span>${x.ok ? TIERS[Math.min(x.i, TIERS.length - 1)].n : 'Bloqueada'}</span></div>`).join('')}</div></section>`;
   }).join('');
-  main.innerHTML = headHtml('Perfil', '', `<button class="btn ghost sm" data-act="profile">${ic('edit', 15)}Editar perfil</button>`) + `<div class="scroll"><div class="me">
-    <section class="mehero">${avatarHtml('xl')}<div class="f1"><h2>${esc(nm)}</h2><p class="mut">${WHO ? esc(WHO) : 'Modo local'}</p>
-      <div class="lvl"><span class="lvlb">Nível ${level}</span><span class="mut sm">${unlocked} de ${list.length} medalhas</span></div><div class="achprog big"><i style="width:${Math.round(unlocked / list.length * 100)}%"></i></div></div></section>
-    <section class="kpis">
-      <div class="kpi"><b>${fmtNum(st.done)}</b><span>Tarefas concluídas</span></div>
-      <div class="kpi"><b>${st.streak}</b><span>Dias seguidos agora</span><small>Recorde: ${st.best}</small></div>
-      <div class="kpi"><b>${fmtNum(st.focus)}</b><span>Sessões de foco</span><small>${st.focusH}h no total</small></div>
-      <div class="kpi"><b>${fmtNum(st.habits)}</b><span>Hábitos cumpridos</span></div>
-      <div class="kpi"><b>${st.bestDay}</b><span>Recorde num dia</span></div>
-    </section>
-    ${recent.length ? `<section class="hcardx"><header><h3>Conquistas recentes</h3></header><div class="medals">${recent.map(x => `<div class="mdl">${medalSvg(x.i, x.a.e, false, 58)}<b>${esc(x.a.n)}</b><span>${fmtNum(x.goal)}${got[x.id] ? ' · ' + new Date(got[x.id]).toLocaleDateString('pt-BR') : ''}</span></div>`).join('')}</div></section>` : ''}
-    <div class="row"><h3 class="dsh" style="margin:6px 0">Todas as medalhas</h3><span class="sp"></span><div class="seg"><button class="${ACH_F === 'all' ? 'on' : ''}" data-act="achf" data-f="all">Todas</button><button class="${ACH_F === 'got' ? 'on' : ''}" data-act="achf" data-f="got">Conquistadas</button></div></div>
+  const pre = `<nav class="crumbs"><a href="#/me">Perfil</a><span>/</span><span>Conquistas</span></nav>`;
+  main.innerHTML = headHtml('Conquistas', `Nível ${level} · ${unlocked} de ${list.length} medalhas`, `<div class="seg"><button class="${ACH_F === 'all' ? 'on' : ''}" data-act="achf" data-f="all">Todas</button><button class="${ACH_F === 'got' ? 'on' : ''}" data-act="achf" data-f="got">Conquistadas</button></div>`, { pre }) + `<div class="scroll"><div class="me">
+    <div class="achprog big"><i style="width:${Math.round(unlocked / list.length * 100)}%"></i></div>
+    ${recent.length ? `<section class="hcardx"><header><h3>Conquistas recentes</h3></header><div class="medals">${recent.slice(0, 6).map(x => `<div class="mdl">${medalSvg(x.i, x.a.e, false, 58)}<b>${esc(x.a.n)}</b><span>${fmtNum(x.goal)}${got[x.id] ? ' · ' + new Date(got[x.id]).toLocaleDateString('pt-BR') : ''}</span></div>`).join('')}</div></section>` : ''}
     ${cats || '<p class="hint pad">Nenhuma medalha ainda: conclua sua primeira tarefa!</p>'}
   </div></div>`;
 };
