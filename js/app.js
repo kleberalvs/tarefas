@@ -24,6 +24,7 @@ VIEWS.settings = main => {
     <div class="srow"><span>Tema</span><div class="seg">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']].map(([k, n]) => `<button class="${s.theme === k ? 'on' : ''}" data-act="sset" data-k="theme" data-v="${k}">${n}</button>`).join('')}</div></div>
     <div class="srow"><span>Semana começa</span><div class="seg">${[[0, 'Domingo'], [1, 'Segunda']].map(([k, n]) => `<button class="${s.weekStart === k ? 'on' : ''}" data-act="sset" data-k="weekStart" data-v="${k}" data-num="1">${n}</button>`).join('')}</div></div>
     <label class="srow"><span>Ao abrir o app, mostrar</span><select class="in sm" data-sk="start"><option value="home" ${(s.start || 'home') === 'home' ? 'selected' : ''}>Painel</option><option value="l/today" ${s.start === 'l/today' ? 'selected' : ''}>Hoje</option><option value="l/inbox" ${s.start === 'l/inbox' ? 'selected' : ''}>Caixa de entrada</option><option value="cal" ${s.start === 'cal' ? 'selected' : ''}>Calendário</option><option value="docs" ${s.start === 'docs' ? 'selected' : ''}>Documentos</option></select></label>
+    <div class="srow"><span>Tamanho das letras <span class="mut sm">(neste aparelho)</span></span><span class="row fsrow"><button class="ib" data-act="fsz" data-d="-5" aria-label="Diminuir letras">A−</button><b id="fsv">${Math.round(fontScale() * 100)}%</b><button class="ib" data-act="fsz" data-d="5" aria-label="Aumentar letras">A+</button><button class="link" data-act="fsz" data-d="0">Padrão</button></span></div>
     <label class="srow"><span>Visual compacto</span><span class="sw-t"><input type="checkbox" data-sk="compact" ${s.compact ? 'checked' : ''}><span></span></span></label>
   </section>
   <section class="sgrp"><h2>${ic('palette', 18)}Estilo de cores</h2>
@@ -85,6 +86,7 @@ Object.assign(ACTS, {
   logout: () => signOut(),
   skin: b => { db.s.skin = b.dataset.k; put('s', db.s); applyTheme(); },
   navmore: b => navMenu(b.dataset.id, b),
+  fsz: b => { const d = +b.dataset.d; const v = d ? clamp(Math.round((fontScale() * 100 + d)) / 100, .8, 1.4) : 1; try { localStorage.setItem('tt_fs', v); } catch (e) {} applyFontScale(); const e = $('#fsv'); if (e) e.textContent = Math.round(v * 100) + '%'; },
   navcreset: b => { const p = Object.assign({}, navPref(b.dataset.id)); delete p.c; db.s.nav[b.dataset.id] = p; put('s', db.s); },
   navreset: () => { db.s.nav = {}; put('s', db.s); toast('Menu restaurado'); },
   admrecheck: async () => { await checkAdmin(); render(true); toast(IS_ADMIN ? 'Você é o administrador' : ADMIN_FREE ? 'Pronto: já pode se tornar administrador' : ADMIN_ERR || 'Ainda não há permissão de administrador'); },
@@ -120,6 +122,8 @@ function initSw() {
 }
 
 /* ---------- início ---------- */
+function fontScale() { try { return clamp(+(localStorage.getItem('tt_fs') || 1), .8, 1.4); } catch (e) { return 1; } }
+function applyFontScale() { document.documentElement.style.setProperty('--fs', fontScale()); }
 function accentHex() {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--red').trim();
   if (/^#[0-9a-f]{6}$/i.test(v)) return v;
@@ -135,7 +139,7 @@ function afterRender() {
 function boot() {
   loadDb();
   initSnap(); pruneLog(); setTimeout(checkAch, 2500);
-  applyTheme();
+  applyTheme(); applyFontScale();
   if (!/type=recovery|error_description=|access_token=/.test(location.hash)) { const st = db.s.start || 'home'; history.replaceState(null, '', location.pathname + '#/' + st); }
   parseHash();
   initUi();
