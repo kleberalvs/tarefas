@@ -18,6 +18,7 @@ App pessoal de tarefas, calendário, documentos, foco e hábitos. Funciona no ce
 - **Histórico**: tudo o que foi criado, alterado, concluído ou excluído, com restaurar e desfazer.
 - **Usuários**: o administrador cria, edita, bloqueia e exclui acessos dentro do app.
 - **Notificações**: lembretes de tarefas, hábitos e fim do Pomodoro mesmo com o app fechado.
+- **Personalização**: 9 estilos de cores (Clássico, Cupertino, Grafite, Sálvia, Oceano, Lavanda, Champanhe, Rosé, Meia-noite), cor/emoji/nome de cada item do menu, ocultar itens do menu e escolher quais detalhes aparecem nas tarefas de cada lista.
 - **Sons**: 13 sons ambientes para o Pomodoro (chuva, mar, floresta, lareira, ruídos...) e 6 alarmes.
 
 ## Primeira configuração (uma vez só)

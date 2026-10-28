@@ -57,9 +57,25 @@ function tasksForScope(id, info) {
 }
 
 /* ---------- linha de tarefa ---------- */
+const SHOW_KEYS = [['date', 'Data e horário'], ['rep', 'Repetição e lembrete'], ['prog', 'Itens e subtarefas'], ['icons', 'Anexos, vínculos e descrição'], ['tags', 'Etiquetas'], ['list', 'Nome da lista'], ['cover', 'Foto de capa'], ['prio', 'Cor da prioridade'], ['notes', 'Prévia da descrição']];
+const SHOW_DEF = { date: 1, rep: 1, prog: 1, icons: 1, tags: 1, list: 1, cover: 1, prio: 1, notes: 0 };
+const showFor = id => Object.assign({}, SHOW_DEF, db.s.showDef || {}, (id && viewCfg(id).show) || {});
+function displayMenu(anchor, id) {
+  const sh = showFor(id), own = !!viewCfg(id).show;
+  const el = pop(anchor, `<div class="dispm"><div class="mtitle">Detalhes exibidos nas tarefas</div>
+    ${SHOW_KEYS.map(([k, n]) => `<label class="srow"><span>${n}</span><span class="sw-t"><input type="checkbox" data-k="${k}" ${sh[k] ? 'checked' : ''}><span></span></span></label>`).join('')}
+    <div class="row"><button class="btn ghost sm" data-all>Usar em todas as listas</button>${own ? '<button class="btn ghost sm" data-reset>Voltar ao padrão</button>' : ''}</div></div>`, { cls: 'dispwrap', right: 1 });
+  el.addEventListener('change', e => {
+    const k = e.target.dataset.k; if (!k) return;
+    const c = viewCfg(id); c.show = Object.assign({}, showFor(id), { [k]: e.target.checked ? 1 : 0 });
+    db.s.views = db.s.views || {}; db.s.views[id] = c; put('s', db.s);
+  });
+  el.querySelector('[data-all]').onclick = () => { db.s.showDef = showFor(id); Object.values(db.s.views || {}).forEach(v => delete v.show); put('s', db.s); closePop(); toast('Aplicado a todas as listas'); };
+  const r = el.querySelector('[data-reset]'); if (r) r.onclick = () => { const c = viewCfg(id); delete c.show; db.s.views[id] = c; put('s', db.s); closePop(); };
+}
 function metaHtml(t, opts = {}) {
-  const m = [];
-  const d = t.due || t.start;
+  const m = [], sh = opts.show || SHOW_DEF;
+  const d = sh.date ? (t.due || t.start) : null;
   if (d) {
     const od = overdue(t), dd = dOnly(t.due || t.start), cls = od ? 'red' : dd === today() ? 'today' : dd === addD(today(), 1) ? 'tom' : '';
     let txt = fmtWhen(t.start && t.due && dOnly(t.start) === dOnly(t.due) ? t.start : d);
@@ -67,29 +83,30 @@ function metaHtml(t, opts = {}) {
     else if (t.start && t.due && dOnly(t.start) !== dOnly(t.due)) txt = fmtDay(dOnly(t.start)) + ' → ' + fmtDay(dOnly(t.due));
     m.push(`<span class="md ${cls}">${ic('cal', 13)}${esc(txt)}</span>`);
   }
-  if (t.rep) m.push(`<span class="md" title="${esc(repText(t.rep))}">${ic('repeat', 13)}</span>`);
-  if ((t.rem || []).length && tOnly(t.due || t.start)) m.push(`<span class="md">${ic('bell', 13)}</span>`);
+  if (sh.rep && t.rep) m.push(`<span class="md" title="${esc(repText(t.rep))}">${ic('repeat', 13)}</span>`);
+  if (sh.rep && (t.rem || []).length && tOnly(t.due || t.start)) m.push(`<span class="md">${ic('bell', 13)}</span>`);
   const ck = t.chk || [];
-  if (ck.length) m.push(`<span class="md">${ic('todo', 13)}${ck.filter(c => c.done).length}/${ck.length}</span>`);
+  if (sh.prog && ck.length) m.push(`<span class="md">${ic('todo', 13)}${ck.filter(c => c.done).length}/${ck.length}</span>`);
   const subs = subsOf(t.id);
-  if (subs.length) m.push(`<span class="md">${ic('sub', 13)}${subs.filter(s => s.done).length}/${subs.length}</span>`);
-  if ((t.att || []).length) m.push(`<span class="md">${ic('clip', 13)}${t.att.length}</span>`);
+  if (sh.prog && subs.length) m.push(`<span class="md">${ic('sub', 13)}${subs.filter(s => s.done).length}/${subs.length}</span>`);
+  if (sh.icons && (t.att || []).length) m.push(`<span class="md">${ic('clip', 13)}${t.att.length}</span>`);
   const lk = (t.ln && (t.ln.d.length + t.ln.t.length)) || 0;
-  if (lk) m.push(`<span class="md">${ic('link', 13)}${lk}</span>`);
-  if (t.notes && stripHtml(t.notes)) m.push(`<span class="md">${ic('doc', 13)}</span>`);
-  if (t.gc) m.push(`<span class="md" title="No Google Agenda">${ic('google', 13)}</span>`);
-  (t.tags || []).forEach(gid => { const g = get('g', gid); if (g) m.push(`<span class="mtag" style="--c:${esc(g.color)}">#${esc(g.name)}</span>`); });
-  if (opts.showList) { const l = listOf(t); m.push(`<span class="mlist">${esc(l.name)}<span class="ldot" style="background:${esc(l.color || '#808080')}"></span></span>`); }
+  if (sh.icons && lk) m.push(`<span class="md">${ic('link', 13)}${lk}</span>`);
+  if (sh.icons && !sh.notes && t.notes && stripHtml(t.notes)) m.push(`<span class="md">${ic('doc', 13)}</span>`);
+  if (sh.icons && t.gc) m.push(`<span class="md" title="No Google Agenda">${ic('google', 13)}</span>`);
+  if (sh.tags) (t.tags || []).forEach(gid => { const g = get('g', gid); if (g) m.push(`<span class="mtag" style="--c:${esc(g.color)}">${g.emoji ? esc(g.emoji) + ' ' : '#'}${esc(g.name)}</span>`); });
+  if (opts.showList && sh.list) { const l = listOf(t); m.push(`<span class="mlist">${esc(l.name)}<span class="ldot" style="background:${esc(l.color || '#808080')}"></span></span>`); }
   return m.join('');
 }
 function rowHtml(t, opts = {}) {
   const subs = subsOf(t.id), open = OPEN_SUBS.has(t.id);
   const lvl = opts.lvl || 0;
-  const cov = t.cover ? (opts.card ? `<div class="ccov"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></div>` : `<span class="rthumb"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></span>`) : '';
-  return `<div class="trow p${t.prio || 0}${t.done ? ' done' : ''}${R.sel === t.id ? ' sel' : ''}${opts.card ? ' card' : ''}${t.cover && opts.card ? ' hascov' : ''}" style="--lvl:${lvl}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}">${opts.card ? cov : ''}
+  const sh = opts.show || SHOW_DEF;
+  const cov = t.cover && sh.cover ? (opts.card ? `<div class="ccov"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></div>` : `<span class="rthumb"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></span>`) : '';
+  return `<div class="trow p${sh.prio ? t.prio || 0 : 0}${t.done ? ' done' : ''}${R.sel === t.id ? ' sel' : ''}${opts.card ? ' card' : ''}${cov && opts.card ? ' hascov' : ''}" style="--lvl:${lvl}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}">${opts.card ? cov : ''}
     ${subs.length && !opts.card ? `<button class="caret${open ? ' open' : ''}" data-act="subs" data-id="${t.id}" aria-label="${open ? 'Ocultar' : 'Mostrar'} subtarefas">${ic('chev', 14)}</button>` : ''}
     <button class="chk" data-act="tcheck" data-id="${t.id}" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'}: ${esc(t.title)}"><span>${ic('check', 12)}</span></button>
-    <div class="tmain" data-act="topen" data-id="${t.id}"><div class="ttl">${esc(t.title) || '<span class="mut">Sem título</span>'}</div>${opts.noMeta ? '' : `<div class="tmeta">${metaHtml(t, opts)}</div>`}</div>${opts.card ? '' : cov}
+    <div class="tmain" data-act="topen" data-id="${t.id}"><div class="ttl">${esc(t.title) || '<span class="mut">Sem título</span>'}</div>${sh.notes && t.notes && stripHtml(t.notes) ? `<div class="tnote">${esc(stripHtml(t.notes).slice(0, 160))}</div>` : ''}${opts.noMeta ? '' : `<div class="tmeta">${metaHtml(t, opts)}</div>`}</div>${opts.card ? '' : cov}
     ${opts.trash ? `<div class="tact on"><button class="btn ghost sm" data-act="restore" data-id="${t.id}">Restaurar</button><button class="ib" data-act="purge" data-id="${t.id}" aria-label="Excluir definitivamente">${ic('trash', 18)}</button></div>` :
       `<div class="tact"><button class="ib" data-act="tdate" data-id="${t.id}" aria-label="Definir data">${ic('cal', 18)}</button><button class="ib" data-act="tmore" data-id="${t.id}" aria-label="Mais opções">${ic('more', 18)}</button></div>`}
   </div>${subs.length && open && !opts.card ? subs.sort((a, b) => (a.o || 0) - (b.o || 0)).filter(s => !s.done || opts.withDone).map(s => rowHtml(s, Object.assign({}, opts, { lvl: lvl + 1 }))).join('') : ''}`;
@@ -130,27 +147,28 @@ VIEWS.list = main => {
     sub = `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}${nm ? ', ' + esc(nm) : ''} · ${esc(fmtLong(today()))}<span class="tprog" title="${doneToday} de ${tot} concluídas hoje"><i style="width:${pct}%"></i></span><span class="tpct">${doneToday}/${tot}</span>`;
   }
   const right = `${info.list ? `<button class="ib" data-act="vboard" aria-label="${board ? 'Ver como lista' : 'Ver como quadro'}" title="${board ? 'Lista' : 'Quadro'}">${ic(board ? 'list' : 'board')}</button>` : ''}
+    <button class="ib" data-act="vshow" aria-label="Detalhes exibidos" title="Detalhes exibidos">${ic('eye')}</button>
     <button class="ib" data-act="vsort" aria-label="Ordenar e agrupar">${ic('sort')}</button>
     <button class="ib" data-act="vmore" aria-label="Mais opções">${ic('more')}</button>`;
   const pre = info.color ? `<span class="ldot big" style="background:${esc(info.color)}"></span>` : '';
   let body = '';
-  const showList = info.kind !== 'list';
+  const showList = info.kind !== 'list', show = showFor(id);
   if (board) {
     body = `<div class="board">${groups.map(g => `<section class="bcol" data-drop="grp:${esc(g.key)}">
       <header class="bch" ${g.sec ? `data-act="secmenu" data-sec="${g.sec.id}"` : ''}><b>${esc(g.name || 'Tarefas')}</b><span class="cnt">${g.items.length}</span>${g.sec ? `<button class="mini" data-act="secmenu" data-sec="${g.sec.id}" aria-label="Opções da seção">${ic('more', 16)}</button>` : ''}</header>
-      <div class="cards">${g.items.map(t => rowHtml(t, { card: 1, showList })).join('')}${qaHtml(g.key)}</div></section>`).join('')}
+      <div class="cards">${g.items.map(t => rowHtml(t, { card: 1, showList, show })).join('')}${qaHtml(g.key)}</div></section>`).join('')}
       ${info.list ? `<button class="bcol addcol" data-act="addsec">${ic('plus', 18)}<span>Nova seção</span></button>` : ''}</div>`;
   } else {
     body = groups.map(g => {
       const shut = SHUT_GROUPS.has(id + g.key);
       const head = g.name ? `<div class="gh${g.red ? ' red' : ''}" data-drop="grp:${esc(g.key)}"><button class="caret${shut ? '' : ' open'}" data-act="gtoggle" data-g="${esc(id + g.key)}" aria-label="${shut ? 'Abrir' : 'Fechar'} grupo">${ic('chev', 14)}</button><b>${esc(g.name)}</b><span class="cnt">${g.items.length}</span><span class="sp"></span>${g.resched ? `<button class="link" data-act="resched">Reagendar</button>` : ''}${g.sec ? `<button class="mini" data-act="secmenu" data-sec="${g.sec.id}" aria-label="Opções da seção">${ic('more', 16)}</button>` : ''}</div>` : '';
-      return `<section class="grp" data-drop="grp:${esc(g.key)}">${head}${shut ? '' : g.items.map(t => rowHtml(t, { showList })).join('') + (g.key === 'over' ? '' : qaHtml(g.key))}</section>`;
+      return `<section class="grp" data-drop="grp:${esc(g.key)}">${head}${shut ? '' : g.items.map(t => rowHtml(t, { showList, show })).join('') + (g.key === 'over' ? '' : qaHtml(g.key))}</section>`;
     }).join('');
     if (info.list) body += `<button class="addsec" data-act="addsec">${ic('plus', 16)}<span>Adicionar seção</span></button>`;
     if (!liveT.length && !doneT.length) body += emptyHtml(id);
     if (doneT.length) {
       const sh = cfg.showDone;
-      body += `<section class="grp donegrp"><div class="gh"><button class="caret${sh ? ' open' : ''}" data-act="showdone" aria-label="${sh ? 'Ocultar' : 'Mostrar'} concluídas">${ic('chev', 14)}</button><b>Concluídas</b><span class="cnt">${doneT.length}</span></div>${sh ? doneT.slice(0, 200).map(t => rowHtml(t, { showList })).join('') : ''}</section>`;
+      body += `<section class="grp donegrp"><div class="gh"><button class="caret${sh ? ' open' : ''}" data-act="showdone" aria-label="${sh ? 'Ocultar' : 'Mostrar'} concluídas">${ic('chev', 14)}</button><b>Concluídas</b><span class="cnt">${doneT.length}</span></div>${sh ? doneT.slice(0, 200).map(t => rowHtml(t, { showList, show })).join('') : ''}</section>`;
     }
   }
   main.innerHTML = headHtml(info.name, sub, right, { pre }) + `<div class="scroll${board ? ' hscroll' : ''}"><div class="tlist${board ? ' isboard' : ''}">${body}</div></div><button class="fab" data-act="quick" aria-label="Adicionar tarefa">${ic('plus', 26)}</button>`;
@@ -391,10 +409,12 @@ Object.assign(ACTS, {
       ...[info.list ? ['sec', 'Seção'] : null, ['date', 'Data'], ['prio', 'Prioridade'], ['list', 'Lista'], ['none', 'Sem agrupamento']].filter(Boolean).map(([k, n]) => ({ label: n, on: cur === k, act: () => setViewCfg(R.id, 'group', k) })),
     ], { right: 1 });
   },
+  vshow: b => displayMenu(b, R.id),
   vmore: b => {
     const info = scopeInfo(R.id), c = viewCfg(R.id);
     menu(b, [
       { label: c.showDone ? 'Ocultar concluídas' : 'Mostrar concluídas', icon: 'done', act: () => setViewCfg(R.id, 'showDone', !c.showDone) },
+      { label: 'Detalhes exibidos…', icon: 'eye', act: () => displayMenu(b, R.id) },
       { label: 'Exportar…', icon: 'export', act: () => exportMenu(b, { kind: 'scope', id: R.id }) },
       { label: 'Imprimir / PDF', icon: 'file', act: () => exportScope(R.id, 'pdf') },
       info.list ? { label: 'Editar lista', icon: 'edit', act: () => editList(info.list) } : null,

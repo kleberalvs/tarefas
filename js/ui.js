@@ -60,6 +60,34 @@ function countFor(id) {
   return db.t.filter(t => live(t) && !t.par && t.list === id).length;
 }
 const NAVC = { inbox: '#3B7DD8', today: '#2E9E6B', tomorrow: '#E8A400', week: '#9150C8', cal: '#DB4035', matrix: '#E8803A', focus: '#DB4035', habits: '#2E9E6B', docs: '#5B5BD6', all: '#808080', done: '#2E9E6B', trash: '#808080', log: '#8A6A55', users: '#3B7DD8', settings: '#808080' };
+/* itens fixos do menu: cada um pode ter cor própria e ser ocultado */
+const NAVS = {
+  inbox: ['l/inbox', 'inbox', 'Caixa de entrada', { drop: 'list:inbox', cnt: 'inbox' }], today: ['l/today', 'today', 'Hoje', { drop: 'smart:today', cnt: 'today' }],
+  tomorrow: ['l/tomorrow', 'tomorrow', 'Amanhã', { drop: 'smart:tomorrow', cnt: 'tomorrow' }], week: ['l/week', 'week', 'Próximos 7 dias', { cnt: 'week' }],
+  cal: ['cal', 'cal', 'Calendário', {}], matrix: ['matrix', 'matrix', 'Matriz de prioridades', {}], focus: ['focus', 'focus', 'Foco', {}],
+  habits: ['habits', 'habit', 'Hábitos', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }],
+  all: ['l/all', 'all', 'Todas', {}], done: ['l/done', 'done', 'Concluídas', {}], log: ['log', 'clock', 'Histórico', {}], trash: ['l/trash', 'trash', 'Lixeira', { drop: 'trash' }],
+};
+const NAV_TOP = ['inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs'], NAV_LOW = ['all', 'done', 'log', 'trash'];
+const navPref = id => (db.s.nav || {})[id] || {};
+function NV(id, cur, ov) {
+  const p = navPref(id); if (p.hide) return '';
+  const [href, icon, name, o] = NAVS[id];
+  const on = id === 'docs' ? ((cur === 'docs' && !R.id) || cur === 'doc') : cur === id;
+  return navItem(href, icon, p.name || name, { on, count: o.cnt && !p.nocnt ? countFor(o.cnt) : 0, red: id === 'today' && ov > 0, drop: o.drop, nc: p.c || NAVC[id === 'habits' ? 'habits' : id], emoji: p.emoji, ctx: 'nav:' + id });
+}
+function navMenu(id, anchor, at) {
+  const p = navPref(id), set = (k, v) => { db.s.nav = db.s.nav || {}; db.s.nav[id] = Object.assign({}, navPref(id), { [k]: v }); if (v == null) delete db.s.nav[id][k]; put('s', db.s); };
+  menu(anchor, [
+    { html: `<div class="mtitle">Cor do ícone</div><div class="navcols">${['', ...COLORS, '#1D1D1F'].map(c => `<button class="swb${(p.c || '') === c ? ' on' : ''}" data-nc="${c}" style="--c:${c || NAVC[id]}" aria-label="${c ? 'Cor ' + c : 'Cor padrão'}">${c ? '' : '↺'}</button>`).join('')}</div>` },
+    { label: p.emoji ? 'Trocar emoji' : 'Usar um emoji no lugar do ícone', icon: 'star', act: () => emojiPicker(anchor, e => set('emoji', e || null), { none: 1 }) },
+    { label: 'Renomear…', icon: 'edit', act: async () => { const n = await ask('Nome no menu', p.name || NAVS[id][2]); if (n !== null) set('name', n === NAVS[id][2] ? null : n); } },
+    NAVS[id][3].cnt ? { label: p.nocnt ? 'Mostrar contador' : 'Ocultar contador', icon: 'hash', act: () => set('nocnt', p.nocnt ? null : 1) } : null,
+    { sep: 1 },
+    { label: 'Ocultar do menu', icon: 'eye', act: () => { set('hide', 1); toast('Oculto. Para mostrar de novo: Configurações → Menu lateral', 'Desfazer', () => set('hide', null)); } },
+  ], { at });
+  if (POP) POP.addEventListener('click', e => { const b = e.target.closest('[data-nc]'); if (b) { set('c', b.dataset.nc || null); closePop(); } });
+}
 function navItem(href, icon, name, opts = {}) {
   const cnt = opts.count ? `<span class="cnt${opts.red ? ' red' : ''}">${opts.count}</span>` : '';
   const lead = opts.emoji ? `<span class="nemo">${esc(opts.emoji)}</span>` : opts.color ? `<span class="ldot" style="background:${esc(opts.color)}"></span>` : `<span class="nic" style="--nc:${opts.nc || 'var(--mut)'}">${ic(icon, 19)}</span>`;
@@ -100,27 +128,15 @@ function sideHtml() {
     <button class="ib hide-m" data-act="side" aria-label="Recolher barra lateral">${ic('side')}</button>
   </div>
   <button class="addbtn" data-act="quick"><span class="addic">${ic('plus', 16)}</span><span>Adicionar tarefa</span><kbd class="hide-m">Q</kbd></button>
-  <nav class="snav">
-    ${navItem('l/inbox', 'inbox', 'Caixa de entrada', { on: cur === 'inbox', count: countFor('inbox'), drop: 'list:inbox', nc: NAVC.inbox })}
-    ${navItem('l/today', 'today', 'Hoje', { on: cur === 'today', count: countFor('today'), red: ov > 0, drop: 'smart:today', nc: NAVC.today })}
-    ${navItem('l/tomorrow', 'tomorrow', 'Amanhã', { on: cur === 'tomorrow', count: countFor('tomorrow'), drop: 'smart:tomorrow', nc: NAVC.tomorrow })}
-    ${navItem('l/week', 'week', 'Próximos 7 dias', { on: cur === 'week', count: countFor('week'), nc: NAVC.week })}
-    ${navItem('cal', 'cal', 'Calendário', { on: cur === 'cal', nc: NAVC.cal })}
-    ${navItem('matrix', 'matrix', 'Matriz de prioridades', { on: cur === 'matrix', nc: NAVC.matrix })}
-    ${navItem('focus', 'focus', 'Foco', { on: cur === 'focus', nc: NAVC.focus })}
-    ${navItem('habits', 'habit', 'Hábitos', { on: cur === 'habits', nc: NAVC.habits })}
-    ${navItem('docs', 'doc', 'Documentos', { on: (cur === 'docs' && !R.id) || cur === 'doc', drop: 'dfold:', nc: NAVC.docs })}
-  </nav>
+  <button class="addbtn doc" data-act="dnew"><span class="addic">${ic('doc', 15)}</span><span>Novo documento</span><kbd class="hide-m">D</kbd></button>
+  <nav class="snav">${NAV_TOP.map(n => NV(n, cur, ov)).join('')}</nav>
   <div class="sgroup" data-drop="folder:"><div class="sgh"><span>Listas</span><button class="mini" data-act="newlist" aria-label="Nova lista" title="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" data-k="l" aria-label="Nova pasta de listas" title="Nova pasta">${ic('folder', 16)}</button></div>${lh || '<p class="hint">Nenhuma lista ainda</p>'}</div>
   <div class="sgroup" data-drop="dfold:"><div class="sgh"><span>Pastas de documentos</span><button class="mini" data-act="newfolder" data-k="d" aria-label="Nova pasta de documentos" title="Nova pasta">${ic('plus', 16)}</button></div>${dh || '<p class="hint">Crie pastas para organizar documentos</p>'}</div>
   <div class="sgroup"><div class="sgh"><span>Etiquetas</span><button class="mini" data-act="newtag" aria-label="Nova etiqueta">${ic('plus', 16)}</button></div>
     ${tags.map(g => `<a class="nav${cur === 'tag:' + g.id ? ' on' : ''}" href="#/tag/${g.id}" data-drop="tag:${g.id}" data-ctx="tag:${g.id}">${g.emoji ? `<span class="nemo">${esc(g.emoji)}</span>` : `<span class="nic" style="--nc:${esc(g.color)}">${ic('tag', 18)}</span>`}<span class="nm">${esc(g.name)}</span><span class="cnt">${countFor('tag:' + g.id) || ''}</span><button class="mini more" data-act="ctx" data-ctx="tag:${g.id}" aria-label="Opções da etiqueta">${ic('more', 16)}</button></a>`).join('') || '<p class="hint">Use #etiqueta ao digitar uma tarefa</p>'}
   </div>
   <nav class="snav low">
-    ${navItem('l/all', 'all', 'Todas', { on: cur === 'all', nc: NAVC.all })}
-    ${navItem('l/done', 'done', 'Concluídas', { on: cur === 'done', nc: NAVC.done })}
-    ${navItem('log', 'clock', 'Histórico', { on: cur === 'log', nc: NAVC.log })}
-    ${navItem('l/trash', 'trash', 'Lixeira', { on: cur === 'trash', drop: 'trash', nc: NAVC.trash })}
+    ${NAV_LOW.map(n => NV(n, cur, ov)).join('')}
     ${typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? navItem('users', 'users', 'Usuários', { on: cur === 'users', nc: NAVC.users }) : ''}
     ${navItem('settings', 'gear', 'Configurações', { on: cur === 'settings', nc: NAVC.settings })}
   </nav>`;
@@ -322,6 +338,7 @@ function editTag(g) {
 }
 function ctxMenu(spec, anchor, at) {
   const [k, id] = spec.split(':');
+  if (k === 'nav') return navMenu(id, anchor, at);
   if (k === 'list') {
     const l = get('l', id); if (!l) return;
     menu(anchor, [
@@ -569,12 +586,26 @@ const ACTS = {
   ]),
 };
 function cycleTheme() { db.s.theme = { auto: 'light', light: 'dark', dark: 'auto' }[db.s.theme] || 'auto'; put('s', db.s); applyTheme(); }
+const SKINS = [
+  ['classico', 'Clássico', 'vermelho e cinza', '#DC4C3E', '#FAF8F6', '#FFFFFF', '#202020'],
+  ['cupertino', 'Cupertino', 'azul, estilo Apple', '#007AFF', '#F5F5F7', '#FFFFFF', '#1D1D1F'],
+  ['grafite', 'Grafite', 'monocromático', '#1D1D1F', '#F5F5F7', '#FFFFFF', '#1D1D1F'],
+  ['salvia', 'Sálvia', 'verde suave', '#4E7D63', '#F3F6F2', '#FFFFFF', '#1F2A23'],
+  ['oceano', 'Oceano', 'azul petróleo', '#0B7A8F', '#F1F6F7', '#FFFFFF', '#1A2628'],
+  ['lavanda', 'Lavanda', 'violeta delicado', '#6D5BD0', '#F6F4FC', '#FFFFFF', '#221F2E'],
+  ['champanhe', 'Champanhe', 'dourado e marfim', '#A27A45', '#F8F4EC', '#FFFEFB', '#2A241B'],
+  ['rose', 'Rosé', 'rosa elegante', '#D2557A', '#FBF4F6', '#FFFFFF', '#2B1F23'],
+  ['noite', 'Meia-noite', 'escuro com dourado', '#C9A86A', '#14171D', '#0E1014', '#ECE8E0'],
+];
 function applyTheme() {
+  const skin = db.s.skin || 'classico';
   let t = db.s.theme || 'auto';
   if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  if (skin === 'noite') t = 'dark';
   document.documentElement.dataset.theme = t;
-  const m = $('meta[name=theme-color]'); if (m) m.content = t === 'dark' ? '#1f1f1f' : '#ffffff';
-  try { localStorage.setItem('tt_theme', db.s.theme); } catch (e) {}
+  document.documentElement.dataset.skin = skin;
+  requestAnimationFrame(() => { const m = $('meta[name=theme-color]'); if (m) m.content = getComputedStyle(document.body).backgroundColor || (t === 'dark' ? '#1f1f1f' : '#ffffff'); });
+  try { localStorage.setItem('tt_theme', db.s.theme); localStorage.setItem('tt_skin', skin); } catch (e) {}
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme());
 function initUi() {
@@ -599,7 +630,7 @@ function initUi() {
     else if (e.key === '/') { e.preventDefault(); go('search'); }
     else if (e.key === 'h') go('l/today');
     else if (e.key === 'c') go('cal');
-    else if (e.key === 'd') go('docs');
+    else if (e.key === 'd') { const d = newDoc({ o: Date.now() }); go('doc/' + d.id); }
   });
   initDnd();
   initSwipe();

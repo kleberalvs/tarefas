@@ -20,7 +20,15 @@ VIEWS.settings = main => {
     : CLOUD ? `<div class="srow"><div><b>Modo local</b><p class="mut sm">Os dados ficam só neste aparelho.</p></div><button class="btn red sm" data-act="login">Entrar</button></div>`
     : `<p class="mut">Nuvem não configurada: os dados ficam só neste aparelho.</p>`}
   </section>
-  <section class="sgrp"><h2>${ic('palette', 18)}Aparência</h2>
+  <section class="sgrp"><h2>${ic('palette', 18)}Estilo de cores</h2>
+    <div class="skins">${SKINS.map(([k, n, d, a, sd, bg, tx]) => `<button class="skin${(s.skin || 'classico') === k ? ' on' : ''}" data-act="skin" data-k="${k}" style="--ka:${a};--ks:${sd};--kb:${bg};--kt:${tx}"><span class="sk"><span class="sks"><b></b><b></b><b></b><b></b></span><span class="skm"><span></span><span></span><span></span><em></em></span></span><span class="skn">${n}<small>${d}</small></span></button>`).join('')}</div>
+  </section>
+  <section class="sgrp"><h2>${ic('menu', 18)}Menu lateral</h2>
+    <p class="hint">Escolha a cor de cada ícone e o que aparece no menu. Também dá para clicar com o botão direito (ou tocar nos três pontinhos) em qualquer item do menu.</p>
+    ${[...NAV_TOP, ...NAV_LOW].map(id => { const p = navPref(id), [, icon, name] = NAVS[id]; return `<div class="navset"><span class="nic" style="--nc:${esc(p.c || NAVC[id])}">${p.emoji ? `<span class="nemo">${esc(p.emoji)}</span>` : ic(icon, 18)}</span><span class="f1">${esc(p.name || name)}</span><input type="color" value="${esc(p.c || NAVC[id])}" data-navc="${id}" aria-label="Cor de ${esc(name)}"><button class="ib" data-act="navmore" data-id="${id}" aria-label="Mais opções de ${esc(name)}">${ic('more', 18)}</button><span class="sw-t"><input type="checkbox" data-navshow="${id}" ${p.hide ? '' : 'checked'} aria-label="Mostrar ${esc(name)}"><span></span></span></div>`; }).join('')}
+    <div class="row"><button class="btn ghost sm" data-act="navreset">Restaurar o menu padrão</button></div>
+  </section>
+  <section class="sgrp"><h2>${ic('sun', 18)}Aparência</h2>
     <div class="srow"><span>Tema</span><div class="seg">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']].map(([k, n]) => `<button class="${s.theme === k ? 'on' : ''}" data-act="sset" data-k="theme" data-v="${k}">${n}</button>`).join('')}</div></div>
     <div class="srow"><span>Semana começa</span><div class="seg">${[[0, 'Domingo'], [1, 'Segunda']].map(([k, n]) => `<button class="${s.weekStart === k ? 'on' : ''}" data-act="sset" data-k="weekStart" data-v="${k}" data-num="1">${n}</button>`).join('')}</div></div>
     <label class="srow"><span>Visual compacto</span><span class="sw-t"><input type="checkbox" data-sk="compact" ${s.compact ? 'checked' : ''}><span></span></span></label>
@@ -66,12 +74,17 @@ VIEWS.settings = main => {
   </section>
   </div></div>`;
   main.querySelectorAll('[data-sk]').forEach(i => i.onchange = () => { s[i.dataset.sk] = i.type === 'checkbox' ? i.checked : i.value; put('s', s); if (i.dataset.sk === 'gTaskCal') toast('Novas tarefas irão para essa agenda'); });
+  main.querySelectorAll('[data-navc]').forEach(i => i.onchange = () => { db.s.nav = db.s.nav || {}; db.s.nav[i.dataset.navc] = Object.assign({}, navPref(i.dataset.navc), { c: i.value }); put('s', s); });
+  main.querySelectorAll('[data-navshow]').forEach(i => i.onchange = () => { db.s.nav = db.s.nav || {}; const p = Object.assign({}, navPref(i.dataset.navshow)); if (i.checked) delete p.hide; else p.hide = 1; db.s.nav[i.dataset.navshow] = p; put('s', s); });
   main.querySelectorAll('[data-pk]').forEach(i => i.onchange = () => { s.pomo[i.dataset.pk] = i.checked; put('s', s); });
   main.querySelectorAll('[data-gcal]').forEach(i => i.onchange = () => { const id = i.dataset.gcal; s.gCals = (s.gCals || []).filter(x => x !== id); if (i.checked) s.gCals.push(id); GC.loaded = ''; put('s', s); });
 };
 Object.assign(ACTS, {
   sset: b => { db.s[b.dataset.k] = b.dataset.num ? +b.dataset.v : b.dataset.v; put('s', db.s); if (b.dataset.k === 'theme') applyTheme(); },
   logout: () => signOut(),
+  skin: b => { db.s.skin = b.dataset.k; put('s', db.s); applyTheme(); },
+  navmore: b => navMenu(b.dataset.id, b),
+  navreset: () => { db.s.nav = {}; put('s', db.s); toast('Menu restaurado'); },
   admrecheck: async () => { await checkAdmin(); render(true); toast(IS_ADMIN ? 'Você é o administrador' : ADMIN_FREE ? 'Pronto: já pode se tornar administrador' : ADMIN_ERR || 'Ainda não há permissão de administrador'); },
   login: () => goLogin(),
   gdisc: () => gDisconnect(),
