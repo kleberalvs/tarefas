@@ -1475,3 +1475,10 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 .mrec.mini{width:auto;max-height:none;padding:10px 16px;border-radius:999px;cursor:pointer}
 .mrec.mini>*:not(.mpill){display:none}.mrec.mini .mpill{display:flex}
 @media (max-width:759px){.mrec{inset:auto 8px calc(70px + var(--safe-b)) 8px;width:auto}.meetv{padding:4px 12px 140px}.mrfoot .btn span{display:none}}
+/* abertura com a logo vermelha original */
+#splash{background:radial-gradient(90% 60% at 50% 30%,color-mix(in srgb,var(--red) 8%,var(--bg)),var(--bg) 70%);color:var(--txt)}
+#splash .spglow{background:radial-gradient(circle,color-mix(in srgb,var(--red) 22%,transparent),transparent 65%)}
+#splash .lgmark.spl{width:96px;height:96px;position:relative;animation:splpop .7s cubic-bezier(.34,1.5,.5,1) both;filter:drop-shadow(0 14px 30px color-mix(in srgb,var(--red) 38%,transparent))}
+@keyframes splpop{from{transform:scale(.4) rotate(-12deg);opacity:0}}
+#splash .spw{color:var(--txt)}
+#splash .sptag{color:var(--mut)}

@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.28-30';
+const APPV = '2026.10.28-31';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -165,7 +165,7 @@ async function enter(s) {
   if (typeof pushRefresh === 'function') pushRefresh();
   render(true);
 }
-const LOGO_SVG = '<svg class="lgmark" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="44" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="10"/><circle cx="60" cy="60" r="44" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-dasharray="277" stroke-dashoffset="52" transform="rotate(-90 60 60)"/><path d="M41 61l13 13 26-28" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const LOGO_SVG = '<svg class="lgmark" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="17" class="lgbg"/><rect x="17" y="17" width="30" height="30" rx="9" class="lgbox"/><path d="M24.5 32.5l5.5 5.5 10-11" class="lgchk"/></svg>';
 function loginShell(inner) {
   let d = $('#login');
   if (!d) { d = document.createElement('div'); d.id = 'login'; document.body.appendChild(d); }
