@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.28-14';
+const APPV = '2026.10.28-15';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -18,7 +18,7 @@ function recs() { const m = {}; KINDS.forEach(k => db[k].forEach(x => m[k + ':' 
 const getRec = k => k === 's:cfg' ? db.s : get(k[0], k.slice(2));
 function place(d, kind, x) {
   if (d === db && typeof snapSet === 'function') snapSet(kind, x);
-  if (kind === 's') { const keep = { side: d.s.side, theme: d.s.theme }; d.s = Object.assign(DEF_S(), x); if (d === db) Object.assign(d.s, keep); return; }
+  if (kind === 's') { const keep = { side: d.s.side }; d.s = Object.assign(DEF_S(), x); if (d === db) { Object.assign(d.s, keep); if (typeof applyTheme === 'function') applyTheme(); } return; }
   if (!d[kind]) return;
   const i = d[kind].findIndex(q => q.id === x.id);
   if (i >= 0) d[kind][i] = x; else d[kind].push(x);
