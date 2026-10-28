@@ -1611,3 +1611,6 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 .dcard.kd:hover .kmore,.kmore:focus-visible{opacity:1}
 .kmore:hover{background:var(--card);color:var(--txt)}
 @media (hover:none){.kmore{opacity:1;width:30px;height:30px}}
+.addrow{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:center}
+.addrow .addcov{margin-bottom:6px}
+.hascov .addrow .addcov{opacity:1;background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--txt);padding:7px 12px;border-radius:10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:var(--sh1)}

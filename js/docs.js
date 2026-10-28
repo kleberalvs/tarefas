@@ -67,7 +67,7 @@ function docCard(d) {
   }).join('');
   const style = th ? dsVars(th) : '';
   return `<a class="dcard kd${th ? ' themed' : ` pbg-${esc(st.bg || 'plain')}`}" href="#/doc/${d.id}" data-ctx="doc:${d.id}" data-drag="dd:${d.id}" data-drop="dtree:${d.id}" style="${esc(style)}">${cov}
-    <span class="kin"><span class="khead"><span class="dic">${esc(d.icon || '📄')}</span><b class="kt">${esc(d.title || 'Sem título')}</b></span>
+    <span class="kin"><span class="khead">${d.icon === '' ? '' : `<span class="dic">${esc(d.icon || '📄')}</span>`}<b class="kt">${esc(d.title || 'Sem título')}</b></span>
     ${prev ? `<span class="kprev">${prev}</span>` : '<span class="kprev"><p class="mut">Documento vazio</p></span>'}
     <span class="kfoot mut sm">${esc(fmtDay(ymd(new Date(d.u || d.c)), true))} · ${plural(words, 'palavra', 'palavras')}${d.fav ? `<span class="dfav">${ic('star', 13)}</span>` : ''}</span></span><button class="kmore" data-act="dcardmenu" data-id="${d.id}" aria-label="Opções do documento" title="Estilo e opções">${ic('more', 18)}</button></a>`;
 }
@@ -150,8 +150,8 @@ VIEWS.doc = main => {
   main.innerHTML = headHtml('', '', right, { pre }) + toolbarHtml() + `<div class="scroll docscroll ${a4 ? 'a4wrap' : TH ? 'pthemed' : `pbg-${esc(s.bg)} pat-${esc(s.pat)}`}"><article class="page font-${esc(s.font)} w-${esc(s.width)} sz-${esc(s.size)}${TH ? ' themed' : ''}${a4 ? ` a4 ${TH ? 'pthemed' : `pbg-${esc(s.bg)} pat-${esc(s.pat)}`}` : ''}${s.coverFull && cov ? ' cfull' : ''}${cov ? ' hascov' : ''}" style="${esc(pageStyle)}">
     ${(() => {
       const ph = `<div class="phead">
-      ${cov ? '' : `<button class="link addcov" data-act="dcover">${ic('cover', 15)} Adicionar capa</button>`}
-      <button class="picon" data-act="dicon" aria-label="Trocar ícone">${esc(d.icon || '📄')}</button>
+      ${cov && d.icon !== '' ? '' : `<div class="addrow">${cov ? '' : `<button class="link addcov" data-act="dcover">${ic('cover', 15)} Adicionar capa</button>`}${d.icon === '' ? `<button class="link addcov" data-act="dicon">${ic('smile', 15)} Adicionar ícone</button>` : ''}</div>`}
+      ${d.icon === '' ? '' : `<button class="picon" data-act="dicon" aria-label="Trocar ou remover ícone">${esc(d.icon || '📄')}</button>`}
       <textarea class="ptitle" data-keep rows="1" placeholder="Sem título" aria-label="Título do documento">${esc(d.title)}</textarea>
       <div class="pmeta mut sm"><span>Editado ${esc(fmtDay(ymd(new Date(d.u || d.c)), true).toLowerCase())} às ${hm(new Date(d.u || d.c))}</span><span id="wcount"></span>${linkedT.length ? `<button class="link" data-act="dlinked">${ic('link', 14)} ${plural(linkedT.length, 'tarefa vinculada', 'tarefas vinculadas')}</button>` : ''}<button class="link" data-act="dlinktask">${ic('plus', 14)} vincular tarefa</button></div>
     </div>`;
@@ -789,7 +789,7 @@ Object.assign(ACTS, {
     ], { right: 1 });
   },
   dexport: b => exportMenu(b, { kind: 'doc', id: ED.doc.id }),
-  dicon: b => emojiPick(b, e => { ED.doc.icon = e; put('d', ED.doc); }),
+  dicon: b => emojiPicker(b, e => { ED.doc.icon = e == null ? '' : e; put('d', ED.doc); }, { none: 1 }),
   dcover: b => coverMenu(b),
   dpage: () => { const d = ED.doc; d.style.page = d.style.page === 'a4' ? 'web' : 'a4'; put('d', d); render(true); toast(d.style.page === 'a4' ? 'Modo folha A4: as linhas tracejadas mostram onde cada página termina' : 'Modo página contínua'); },
   dtail: () => { const d = ED.doc, last = d.b[d.b.length - 1]; if (last && last.type === 'p' && !stripHtml(last.text)) focusBlock(last.id, 0); else { const nb = { id: uid(), type: 'p', text: '' }; d.b.push(nb); restructure(nb.id, 0); } },
