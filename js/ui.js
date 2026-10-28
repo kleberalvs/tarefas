@@ -42,7 +42,7 @@ function doRender(force) {
   if (force || !busy(main)) {
     const sc = main.querySelector('.scroll'), top = sc ? sc.scrollTop : 0, key = R.v + ':' + R.id;
     const fn = VIEWS[R.v] || VIEWS.list;
-    main.className = '';
+    main.className = ''; main.removeAttribute('style');
     try { fn(main); } catch (e) { console.error(e); main.innerHTML = `<div class="empty"><p>Algo deu errado ao abrir esta tela.</p><p class="mut">${esc(e.message)}</p></div>`; }
     const sc2 = main.querySelector('.scroll'); if (sc2 && main.dataset.key === key) sc2.scrollTop = top;
     if (main.dataset.key !== key && !matchMedia('(prefers-reduced-motion: reduce)').matches) { main.classList.add('vin'); clearTimeout(main._vt); main._vt = setTimeout(() => main.classList.remove('vin'), 700); }
@@ -67,10 +67,10 @@ const NAVS = {
   inbox: ['l/inbox', 'inbox', 'Caixa de entrada', { drop: 'list:inbox', cnt: 'inbox' }], today: ['l/today', 'today', 'Hoje', { drop: 'smart:today', cnt: 'today' }],
   tomorrow: ['l/tomorrow', 'tomorrow', 'Amanhã', { drop: 'smart:tomorrow', cnt: 'tomorrow' }], week: ['l/week', 'week', 'Próximos 7 dias', { cnt: 'week' }],
   cal: ['cal', 'cal', 'Calendário', {}], matrix: ['matrix', 'matrix', 'Matriz de prioridades', {}], focus: ['focus', 'focus', 'Foco', {}],
-  habits: ['habits', 'habit', 'Hábitos', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }], notes: ['notes', 'note', 'Notas rápidas', {}],
+  habits: ['habits', 'habit', 'Hábitos', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }], notes: ['notes', 'note', 'Notas rápidas', {}], meet: ['meet', 'mic', 'Reuniões', {}],
   all: ['l/all', 'all', 'Todas', {}], done: ['l/done', 'done', 'Concluídas', {}], log: ['log', 'clock', 'Histórico', {}], trash: ['l/trash', 'trash', 'Lixeira', { drop: 'trash' }],
 };
-const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs', 'notes'], NAV_LOW = ['all', 'done', 'log', 'trash'];
+const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs', 'notes', 'meet'], NAV_LOW = ['all', 'done', 'log', 'trash'];
 const navPref = id => (db.s.nav || {})[id] || {};
 function NV(id, cur, ov) {
   const p = navPref(id); if (p.hide) return '';
@@ -187,7 +187,7 @@ function editProfile() {
 function tabsHtml() {
   const t = R.v, isT = t === 'list' || t === 'matrix';
   const b = (to, icon, name, on) => `<button class="tab${on ? ' on' : ''}" data-act="go" data-to="${to}">${ic(icon, 23)}<span>${name}</span></button>`;
-  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets', 'notes'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
+  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets', 'notes', 'meet'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
 }
 /* cabeçalho padrão das telas */
 /* "- " + espaço vira "• "; Enter continua a lista; Enter num item vazio encerra */
@@ -621,6 +621,7 @@ const ACTS = {
   'more-tabs': b => menu(b, [
     { label: 'Perfil', icon: 'users', act: () => go('me') },
     { label: 'Notas rápidas', icon: 'note', act: () => go('notes') },
+    { label: 'Reuniões (ata com IA)', icon: 'mic', act: () => go('meet') },
     { label: 'Conquistas', icon: 'star', act: () => go('ach') },
     { label: 'Pets: ' + (petCfg().on ? 'ligados 🐈' : 'desligados'), icon: 'habit', act: () => ACTS.petstoggle() },
     { label: 'Foco', icon: 'focus', act: () => go('focus') },

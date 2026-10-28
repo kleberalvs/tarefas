@@ -72,7 +72,7 @@ async function gLoadEvents(from, to, force) {
           const tt = e.extendedProperties && e.extendedProperties.private && e.extendedProperties.private.ttask;
           if (tt) { gPullTask(tt, e, c.id); return; }
           const allDay = !!e.start.date;
-          out.push({ kind: 'g', id: e.id, cal: c.id, rw: c.rw, title: e.summary || '(sem título)', start: fromG(e.start), end: allDay ? addD(e.end.date, -1) : fromG(e.end), allDay, color: e.backgroundColor || c.color || '#3B7DD8', loc: e.location || '', desc: e.description || '', link: e.htmlLink, rec: !!e.recurringEventId, meet: e.hangoutLink || '' });
+          out.push({ kind: 'g', id: e.id, cal: c.id, rw: c.rw, title: e.summary || '(sem título)', start: fromG(e.start), end: allDay ? addD(e.end.date, -1) : fromG(e.end), allDay, color: e.backgroundColor || c.color || '#3B7DD8', loc: e.location || '', desc: e.description || '', link: e.htmlLink, rec: !!e.recurringEventId, meet: e.hangoutLink || ((e.conferenceData || {}).entryPoints || []).map(x => x.uri).find(u => /^https/.test(u)) || '', att: (e.attendees || []).filter(a => !a.resource).map(a => ({ n: a.displayName || (a.email || '').split('@')[0], e: a.email || '', self: !!a.self })) });
         });
         if (!j.nextPageToken) break; page = j.nextPageToken;
       }
@@ -156,7 +156,7 @@ function editGEvent(ev, preset) {
   const cals = GC.cals.filter(c => c.rw);
   ev = ev || { title: '', start: preset.start, end: preset.end, allDay: preset.allDay, cal: db.s.gTaskCal || (cals[0] && cals[0].id), loc: '', desc: '' };
   const sd = dOnly(ev.start), st = tOnly(ev.start), ed = dOnly(ev.end), et = tOnly(ev.end);
-  const el = modal(`<h2>${isNew ? 'Novo evento' : 'Evento'} ${ic('google', 18)}</h2><form class="gev">
+  const el = modal(`<h2>${isNew ? 'Novo evento' : 'Evento'} ${ic('google', 18)}</h2>${!isNew && !ev.allDay ? `<div class="gevmeet"><button type="button" class="btn red sm" data-gmeet>${ic('mic', 15)}Gravar ata com IA</button>${ev.meet ? `<a class="btn ghost sm" href="${esc(ev.meet)}" target="_blank" rel="noopener">${ic('link', 15)}Entrar na chamada</a>` : ''}</div>` : ''}<form class="gev">
     <input class="in big" name="t" value="${esc(ev.title)}" placeholder="Título" required ${ev.rw === false ? 'disabled' : ''} autofocus>
     <label class="chkl"><input type="checkbox" name="ad" ${ev.allDay ? 'checked' : ''}> Dia inteiro</label>
     <div class="row"><label class="lab f1">Início<input class="in" type="date" name="sd" value="${sd}" required></label><label class="lab tm">Hora<input class="in" type="time" name="st" value="${st || '09:00'}"></label></div>
@@ -171,6 +171,7 @@ function editGEvent(ev, preset) {
   syncAd(); f.ad.onchange = syncAd;
   el.querySelector('[data-x]').onclick = closeModal;
   const del = el.querySelector('[data-del]');
+  const gm = el.querySelector('[data-gmeet]'); if (gm) gm.onclick = () => { closeModal(true); meetStart(ev); };
   if (del) del.onclick = async () => { if (!await confirmBox('Excluir este evento do Google Agenda?')) return; try { await gApi(`/calendars/${encodeURIComponent(ev.cal)}/events/${encodeURIComponent(ev.id)}`, { method: 'DELETE' }); GC.ev = GC.ev.filter(x => x.id !== ev.id); toast('Evento excluído'); render(); } catch (e) { toast(e.message); } };
   const tt = el.querySelector('[data-totask]');
   if (tt) tt.onclick = () => { const t = newTask({ title: ev.title, notes: esc(stripHtml(ev.desc)), due: ev.allDay ? ev.end : ev.start, start: !ev.allDay && ev.end !== ev.start ? ev.start : null }); if (!ev.allDay) { t.start = ev.start; t.due = ev.end; } put('t', t); closeModal(); openTask(t.id); };

@@ -48,10 +48,28 @@ function docPath(d) { const p = []; let x = d, k = 0; while (x && x.par && k++ <
 /* ---------- lista de documentos ---------- */
 let DQ = '';
 function docCard(d) {
-  const c = (d.style || {}).cover;
-  const cov = c && c.file ? `<span class="dcov img"><img alt="" data-cimg="${esc(c.file.id)}" data-doc="${d.id}"></span>` : `<span class="dcov cov-${esc(typeof c === 'string' ? c : 'none')}"></span>`;
+  const st = d.style || {}, c = st.cover, th = st.th && typeof dsGet === 'function' ? dsGet(st.th) : null;
+  const cov = c && c.file ? `<span class="kcov img"><img alt="" data-cimg="${esc(c.file.id)}" data-doc="${d.id}"></span>` : (typeof c === 'string' && c !== 'none' ? `<span class="kcov band cov-${esc(c)}"></span>` : '');
   const words = (d.b || []).reduce((n, b) => n + stripHtml(b.text).split(/\s+/).filter(Boolean).length, 0);
-  return `<a class="dcard" href="#/doc/${d.id}" data-ctx="doc:${d.id}" data-drag="dd:${d.id}" data-drop="dtree:${d.id}">${cov}<span class="dic">${esc(d.icon || '📄')}</span><b>${esc(d.title || 'Sem título')}</b><span class="mut sm">${esc(fmtDay(ymd(new Date(d.u || d.c)), true))} · ${plural(words, 'palavra', 'palavras')}</span>${d.fav ? `<span class="dfav">${ic('star', 14)}</span>` : ''}</a>`;
+  let n = 0;
+  const prev = (d.b || []).filter(b => (b.text && stripHtml(b.text).trim()) || ['img', 'table', 'hr'].includes(b.type)).slice(0, 9).map(b => {
+    const t = esc(stripHtml(b.text || '').slice(0, 160));
+    if (/^h[123]$/.test(b.type)) return `<p class="kh">${t}</p>`;
+    if (b.type === 'ul') return `<p class="kli"><i>•</i>${t}</p>`;
+    if (b.type === 'ol') return `<p class="kli"><i>${++n}.</i>${t}</p>`;
+    if (b.type === 'todo') return `<p class="kli${b.checked ? ' kdone' : ''}"><span class="kbox${b.checked ? ' on' : ''}"></span>${t}</p>`;
+    if (b.type === 'quote') return `<p class="kq">${t}</p>`;
+    if (b.type === 'callout') return `<p class="kc">${esc(b.emoji || '💡')} ${t}</p>`;
+    if (b.type === 'img') return `<p class="kx">${ic('img', 14)} Imagem</p>`;
+    if (b.type === 'table') return `<p class="kx">${ic('table', 14)} Tabela</p>`;
+    if (b.type === 'hr') return '<hr>';
+    return `<p>${t}</p>`;
+  }).join('');
+  const style = th ? dsVars(th) : '';
+  return `<a class="dcard kd${th ? ' themed' : ` pbg-${esc(st.bg || 'plain')}`}" href="#/doc/${d.id}" data-ctx="doc:${d.id}" data-drag="dd:${d.id}" data-drop="dtree:${d.id}" style="${esc(style)}">${cov}
+    <span class="kin"><span class="khead"><span class="dic">${esc(d.icon || '📄')}</span><b class="kt">${esc(d.title || 'Sem título')}</b></span>
+    ${prev ? `<span class="kprev">${prev}</span>` : '<span class="kprev"><p class="mut">Documento vazio</p></span>'}
+    <span class="kfoot mut sm">${esc(fmtDay(ymd(new Date(d.u || d.c)), true))} · ${plural(words, 'palavra', 'palavras')}${d.fav ? `<span class="dfav">${ic('star', 13)}</span>` : ''}</span></span></a>`;
 }
 function folderCard(f) {
   const n = db.d.filter(d => !d.del && d.folder === f.id).length, sub = folderKids(f.id, 'd').length;
@@ -123,11 +141,13 @@ VIEWS.doc = main => {
   const backD = db.d.filter(x => !x.del && x.id !== d.id && (x.b || []).some(b => b.ref === d.id || (b.text || '').includes('data-ref="' + d.id + '"')));
   const fol = d.folder && get('f', d.folder);
   const pre = `<nav class="crumbs"><a href="#/docs">Documentos</a>${fol ? folderAncestors(fol.id).reverse().map(id => { const f = get('f', id); return `<span>/</span><a href="#/docs/${id}">${esc((f.emoji ? f.emoji + ' ' : '') + f.name)}</a>`; }).join('') : ''}${path.map(p => `<span>/</span><a href="#/doc/${p.id}">${esc(p.icon || '')} ${esc(p.title || 'Sem título')}</a>`).join('')}</nav>`;
-  const right = `<button class="ib${d.fav ? ' on-star' : ''}" data-act="dfav" aria-label="${d.fav ? 'Remover dos favoritos' : 'Favoritar'}">${ic('star')}</button><button class="btn ghost sm" data-act="dpage" title="Alternar entre página contínua e folha A4">${ic('file', 16)}<span class="hide-s">${a4 ? 'Folha A4' : 'Página'}</span></button><button class="btn ghost sm" data-act="dstyle" data-pop>${ic('palette', 16)}<span class="hide-s">Estilo</span></button><button class="btn ghost sm" data-act="dexport" data-pop>${ic('export', 16)}<span class="hide-s">Exportar</span></button><button class="ib" data-act="dmenu" aria-label="Mais opções">${ic('more')}</button>`;
-  main.className = a4 ? 'pbg-a4' : 'pbg-' + s.bg;
+  const right = `<button class="ib${d.fav ? ' on-star' : ''}" data-act="dfav" aria-label="${d.fav ? 'Remover dos favoritos' : 'Favoritar'}">${ic('star')}</button><button class="btn ghost sm" data-act="dpage" title="Alternar entre página contínua e folha A4">${ic('file', 16)}<span class="hide-s">${a4 ? 'Folha A4' : 'Página'}</span></button><button class="btn ghost sm dsbtn" data-act="dthemes">${ic('spark', 16)}<span class="hide-s">Estilos</span></button><button class="btn ghost sm" data-act="dstyle" data-pop>${ic('palette', 16)}<span class="hide-s">Ajustes</span></button><button class="btn ghost sm" data-act="dexport" data-pop>${ic('export', 16)}<span class="hide-s">Exportar</span></button><button class="ib" data-act="dmenu" aria-label="Mais opções">${ic('more')}</button>`;
+  const TH = s.th && dsGet(s.th);
+  main.className = a4 ? 'pbg-a4' : TH ? 'themed' : 'pbg-' + s.bg;
+  if (TH) main.setAttribute('style', dsVars(TH)); else main.removeAttribute('style');
   const cov = hasCover(d);
   const pageStyle = [s.accent ? '--acc:' + s.accent : '', '--lh:' + (s.lh || '1.6'), a4 ? `--mt:${mg[0]}mm;--mx:${mg[1]}mm` : ''].filter(Boolean).join(';');
-  main.innerHTML = headHtml('', '', right, { pre }) + toolbarHtml() + `<div class="scroll docscroll ${a4 ? 'a4wrap' : `pbg-${esc(s.bg)} pat-${esc(s.pat)}`}"><article class="page font-${esc(s.font)} w-${esc(s.width)} sz-${esc(s.size)}${a4 ? ` a4 pbg-${esc(s.bg)} pat-${esc(s.pat)}` : ''}${s.coverFull && cov ? ' cfull' : ''}${cov ? ' hascov' : ''}" style="${esc(pageStyle)}">
+  main.innerHTML = headHtml('', '', right, { pre }) + toolbarHtml() + `<div class="scroll docscroll ${a4 ? 'a4wrap' : TH ? 'pthemed' : `pbg-${esc(s.bg)} pat-${esc(s.pat)}`}"><article class="page font-${esc(s.font)} w-${esc(s.width)} sz-${esc(s.size)}${TH ? ' themed' : ''}${a4 ? ` a4 ${TH ? 'pthemed' : `pbg-${esc(s.bg)} pat-${esc(s.pat)}`}` : ''}${s.coverFull && cov ? ' cfull' : ''}${cov ? ' hascov' : ''}" style="${esc(pageStyle)}">
     ${(() => {
       const ph = `<div class="phead">
       ${cov ? '' : `<button class="link addcov" data-act="dcover">${ic('cover', 15)} Adicionar capa</button>`}
@@ -743,14 +763,19 @@ Object.assign(ACTS, {
     const fols = db.f.filter(x => x.kind === 'd').map(x => [x.id, folderPathName(x)]).sort((a, b) => a[1].localeCompare(b[1]));
     const el = modal(`<h2>${ic('doc', 20)}Novo documento</h2><form class="ndoc"><input class="in" name="t" placeholder="Título (opcional)" maxlength="200" autofocus>
       <p class="mut sm">Salvar em</p><div class="fchips"><button type="button" class="fchip${!f ? ' on' : ''}" data-f="">${ic('doc', 15)}Documentos</button>${fols.map(([id, n]) => `<button type="button" class="fchip${f === id ? ' on' : ''}" data-f="${id}">${ic('folder', 15)}${esc(n)}</button>`).join('')}<button type="button" class="fchip add" data-newf="1">${ic('plus', 15)}Nova pasta</button></div>
+      <p class="mut sm">Estilo <span class="mut">(pode trocar depois)</span></p><div class="dsrow"><button type="button" class="dsth none on" data-ds=""><span class="dspg"><b>Aa</b><i class="l1"></i><i class="l2"></i></span><span class="dsn">Padrão</span></button>${DS_FEAT.map(id => dsThumb(dsGet(id))).join('')}<button type="button" class="dsth more" data-dsall><span class="dspg">${ic('palette', 22)}</span><span class="dsn">Ver ${DSTYLES.length}</span></button></div>
       <div class="row end"><button type="button" class="btn ghost" data-x>Cancelar</button><button class="btn red">Criar</button></div></form>`);
+    let th = null;
+    el.querySelectorAll('.dsrow [data-ds]').forEach(b => { b.type = 'button'; b.onclick = () => { th = b.dataset.ds || null; el.querySelectorAll('.dsrow [data-ds]').forEach(x => x.classList.toggle('on', x === b)); }; });
+    el.querySelector('[data-dsall]').onclick = () => { const d = newDoc({ o: Date.now(), folder: f, title: el.querySelector('[name=t]').value.trim() }); closeModal(true); go('doc/' + d.id); setTimeout(() => ACTS.dthemes(), 350); };
     el.querySelector('[data-x]').onclick = closeModal;
     el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { f = b.dataset.f || null; el.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); });
     el.querySelector('[data-newf]').onclick = async () => { const t = el.querySelector('[name=t]').value; const n = await ask('Nova pasta de documentos', '', { ph: 'Ex.: Receitas' }); if (!n) { ACTS.dnew(); return; } const nf = { id: uid(), kind: 'd', name: n, par: null, o: Date.now() }; put('f', nf); R.id = null; ACTS.dnew(); const box = $('#modal .ndoc'); if (box) { box.querySelector('[name=t]').value = t; const b = box.querySelector(`[data-f="${nf.id}"]`); b && b.click(); } };
-    el.querySelector('form').onsubmit = e => { e.preventDefault(); const d = newDoc({ o: Date.now(), folder: f, title: el.querySelector('[name=t]').value.trim() }); closeModal(); go('doc/' + d.id); };
+    el.querySelector('form').onsubmit = e => { e.preventDefault(); const d = newDoc({ o: Date.now(), folder: f, title: el.querySelector('[name=t]').value.trim() }); if (th) { d.style.th = th; put('d', d); } closeModal(); go('doc/' + d.id); };
   },
   dfav: () => { const d = ED.doc; d.fav = !d.fav; put('d', d); },
   dstyle: b => styleMenu(b),
+  dthemes: () => { const d = ED.doc; if (!d) return; stylePicker(id => { d.style = d.style || {}; if (id) d.style.th = id; else delete d.style.th; put('d', d); render(true); }, d.style && d.style.th); },
   dexport: b => exportMenu(b, { kind: 'doc', id: ED.doc.id }),
   dicon: b => emojiPick(b, e => { ED.doc.icon = e; put('d', ED.doc); }),
   dcover: b => coverMenu(b),

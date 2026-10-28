@@ -6,6 +6,26 @@ const NOTE_COLORS = [
   ['lavanda', 'Lavanda', '#D3BFDB', '#472E5B'], ['flor', 'Flor', '#F6E2DD', '#6C394F'], ['argila', 'Argila', '#E9E3D4', '#4B443A'], ['giz', 'Giz', '#EFEFF1', '#232427'],
 ];
 const svgBg = (emo, sz = 64, op = .22) => `url('data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}"><text x="${sz * .12}" y="${sz * .42}" font-size="${sz * .3}" opacity="${op}">${emo}</text><text x="${sz * .58}" y="${sz * .9}" font-size="${sz * .22}" opacity="${op * .8}">${emo}</text></svg>`).replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29')}')`;
+const svgU = (inner, w, h, extra = '') => `url('data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ${extra}>${inner}</svg>`).replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29')}')`;
+const NOTE_BGS2 = [
+  ['listras', 'Listras', 'repeating-linear-gradient(45deg,rgba(0,0,0,.055) 0 9px,transparent 9px 18px)'],
+  ['xadrez', 'Xadrez', 'linear-gradient(90deg,rgba(230,90,90,.10) 50%,transparent 50%) 0 0/26px 26px,linear-gradient(rgba(230,90,90,.10) 50%,transparent 50%) 0 0/26px 26px'],
+  ['ondas', 'Ondas', svgU('<path d="M0 20 Q15 8 30 20 T60 20" fill="none" stroke="rgba(60,110,180,.18)" stroke-width="2"/>', 60, 28) + ' 0 0/60px 28px'],
+  ['montanhas', 'Montanhas', svgU('<path d="M0 120 L60 50 L95 85 L150 20 L220 95 L260 60 L320 120Z" fill="rgba(70,110,150,.16)"/><path d="M0 120 L40 90 L110 110 L170 70 L240 105 L320 85 L320 120Z" fill="rgba(70,110,150,.12)"/>', 320, 120, 'preserveAspectRatio="none"') + ' bottom/100% 90px no-repeat'],
+  ['colinas', 'Colinas', svgU('<path d="M0 90 C60 40 120 40 180 80 S280 50 320 70 L320 120 L0 120Z" fill="rgba(90,170,110,.18)"/><path d="M0 100 C80 70 160 110 240 85 S310 95 320 92 L320 120 L0 120Z" fill="rgba(90,170,110,.14)"/>', 320, 120, 'preserveAspectRatio="none"') + ' bottom/100% 90px no-repeat'],
+  ['bolhas', 'Bolhas', svgU('<circle cx="14" cy="16" r="9" fill="rgba(240,120,150,.16)"/><circle cx="52" cy="40" r="13" fill="rgba(90,160,230,.14)"/><circle cx="30" cy="62" r="6" fill="rgba(250,190,70,.2)"/>', 72, 76)],
+  ['confete', 'Confete', svgU('<rect x="8" y="10" width="7" height="3" rx="1.5" transform="rotate(30 11 11)" fill="rgba(240,90,110,.35)"/><rect x="40" y="20" width="7" height="3" rx="1.5" transform="rotate(-25 43 21)" fill="rgba(60,150,230,.35)"/><rect x="22" y="42" width="7" height="3" rx="1.5" transform="rotate(60 25 43)" fill="rgba(250,180,40,.4)"/><circle cx="54" cy="50" r="2" fill="rgba(120,200,120,.45)"/><circle cx="12" cy="56" r="1.8" fill="rgba(170,110,220,.45)"/>', 64, 64)],
+  ['terrazo', 'Granilite', svgU('<path d="M8 9l6-2 2 5-5 3z" fill="rgba(230,120,90,.28)"/><path d="M40 14l7 1-2 6-6-2z" fill="rgba(90,150,200,.25)"/><path d="M25 38l5-4 4 4-4 5z" fill="rgba(240,190,80,.3)"/><path d="M52 46l6 2-3 5-5-2z" fill="rgba(120,180,130,.28)"/><circle cx="16" cy="54" r="2.4" fill="rgba(60,60,60,.18)"/><circle cx="58" cy="28" r="1.8" fill="rgba(60,60,60,.18)"/>', 68, 66)],
+  ['geometrico', 'Geométrico', svgU('<path d="M0 0L20 34L40 0Z" fill="rgba(110,90,200,.07)"/><path d="M20 34L40 0L60 34Z" fill="rgba(110,90,200,.12)"/>', 40, 34)],
+  ['kraft', 'Papel kraft', svgU('<filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .45 0 0 0 0 .32 0 0 0 0 .2 0 0 0 .22 0"/></filter><rect width="160" height="160" filter="url(#n)"/>', 160, 160) + ',linear-gradient(rgba(214,180,130,.35),rgba(200,160,110,.35))'],
+  ['linho', 'Linho', svgU('<filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".6 .02" numOctaves="2"/><feColorMatrix values="0 0 0 0 .3 0 0 0 0 .3 0 0 0 0 .3 0 0 0 .14 0"/></filter><rect width="160" height="160" filter="url(#n)"/>', 160, 160)],
+  ['aquarela', 'Aquarela', 'radial-gradient(60% 50% at 15% 20%,rgba(255,150,170,.35),transparent 70%),radial-gradient(50% 50% at 85% 30%,rgba(140,190,255,.35),transparent 70%),radial-gradient(60% 60% at 50% 100%,rgba(255,220,120,.35),transparent 70%)'],
+  ['malha', 'Degradê suave', 'radial-gradient(80% 80% at 0% 0%,rgba(255,170,120,.30),transparent 60%),radial-gradient(80% 80% at 100% 0%,rgba(200,120,255,.25),transparent 60%),radial-gradient(90% 90% at 50% 120%,rgba(90,200,200,.30),transparent 60%)'],
+  ['arcoiris', 'Arco-íris', 'linear-gradient(120deg,rgba(255,120,120,.18),rgba(255,200,90,.18),rgba(120,220,140,.18),rgba(110,170,255,.18),rgba(190,130,255,.18))'],
+  ['lua', 'Noite', 'radial-gradient(1.4px 1.4px at 20% 30%,rgba(255,255,255,.9),transparent),radial-gradient(1.2px 1.2px at 70% 20%,rgba(255,255,255,.8),transparent),radial-gradient(1.6px 1.6px at 45% 70%,rgba(255,255,255,.85),transparent),radial-gradient(1px 1px at 85% 65%,rgba(255,255,255,.8),transparent),linear-gradient(160deg,rgba(30,40,90,.55),rgba(80,40,120,.45))'],
+  ['nuvens', 'Nuvens', svgBg('☁️', 80, .3)], ['gatinhos', 'Gatinhos', svgBg('🐱')], ['frutas', 'Frutas', svgBg('🍋')], ['plantas', 'Plantas', svgBg('🪴')],
+  ['praia', 'Praia', svgBg('🐚')], ['livros', 'Livros', svgBg('📚')], ['viagem', 'Viagem', svgBg('✈️')], ['festa', 'Festa', svgBg('🎉')], ['luas', 'Luas', svgBg('🌙')], ['arcos', 'Arco', svgBg('🌈')],
+];
 const NOTE_BGS = [
   ['', 'Nenhum', ''],
   ['pontos', 'Pontinhos', 'radial-gradient(rgba(0,0,0,.13) 1.2px, transparent 1.4px) 0 0/14px 14px'],
@@ -16,6 +36,7 @@ const NOTE_BGS = [
   ['aurora', 'Aurora', 'linear-gradient(160deg, rgba(120,220,170,.28), transparent 50%, rgba(160,120,230,.3))'],
   ['patinhas', 'Patinhas', svgBg('🐾')], ['coracoes', 'Corações', svgBg('💗')], ['estrelas', 'Estrelas', svgBg('⭐')],
   ['folhas', 'Folhas', svgBg('🌿')], ['flores', 'Flores', svgBg('🌸')], ['cafe', 'Café', svgBg('☕')], ['musica', 'Música', svgBg('🎵')],
+  ...NOTE_BGS2,
 ];
 const NOTE_FONTS = [['', 'Padrão', 'inherit'], ['serif', 'Clássica', "Georgia,'Times New Roman',serif"], ['mono', 'Máquina', "ui-monospace,Menlo,Consolas,monospace"], ['mao', 'À mão', "'Caveat','Segoe Print','Bradley Hand',cursive"]];
 let NF = { tab: 'notas', q: '', tag: '' };
