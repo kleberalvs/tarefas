@@ -30,7 +30,8 @@ function lerpP(a, b, t) { if (typeof a === 'number') return a + (b - a) * t; if 
    4 tons por cor (com pontilhado, como pelo), contorno colorido e bigodes */
 const RS = 1.5, GW = CW * RS, GH = CH * RS;
 const LIGHT = (() => { const v = [-.45, -.75, .55], n = Math.hypot(...v); return v.map(x => x / n); })();
-function rastCat(P, m = {}) {
+function rastCat(P, m = {}, RS = 1.5, hs = 1) {
+  const GW = CW * RS, GH = CH * RS;
   const N = GW * GH, g = new Array(N).fill(''), lum = new Float32Array(N);
   const set = (x, y, c, l) => { if (x >= 0 && y >= 0 && x < GW && y < GH) { g[y * GW + x] = c; lum[y * GW + x] = l; } };
   const shade = (nx, ny, nz) => Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
@@ -68,13 +69,13 @@ function rastCat(P, m = {}) {
   cap(P.nk[0], P.nk[1], P.nk[2], P.nk[3], 2.8, 'b');
   ell((P.nk[0] + P.nk[2]) / 2 + 1.5, (P.nk[1] + P.nk[3]) / 2 + 1.7, 2, 2.6, 0, 'C');
   leg(P.hn, 'L', 1); leg(P.fn, 'L', 1);
-  const hrr = hr * Math.PI / 180, hp = (u, v) => [hx + u * Math.cos(hrr) - v * Math.sin(hrr), hy + u * Math.sin(hrr) + v * Math.cos(hrr)];
+  const hrr = hr * Math.PI / 180, hp = (u, v) => { u *= hs; v *= hs; return [hx + u * Math.cos(hrr) - v * Math.sin(hrr), hy + u * Math.sin(hrr) + v * Math.cos(hrr)]; };
   tri(hp(-3.7, -1.4), hp(-.8, -3.2), hp(-3, -6.8), 'R', .25);
-  ell(hx, hy, 4.3, 3.8, hr, 'H');
-  ell(...hp(-1.2, 1.3), 2.6, 2.2, hr, 'H');
+  ell(hx, hy, 4.3 * hs, 3.8 * hs, hr, 'H');
+  ell(...hp(-1.2, 1.3), 2.6 * hs, 2.2 * hs, hr, 'H');
   tri(hp(-1.3, -2.6), hp(2.3, -2.6), hp(.2, -7), 'R', .7);
   tri(hp(-.4, -3.1), hp(1.4, -3.1), hp(.2, -5.6), 'p', .6);
-  ell(...hp(3.3, 1.3), 1.9, 1.5, hr, 'M');
+  ell(...hp(3.3, 1.3), 1.9 * hs, 1.5 * hs, hr, 'M');
   const G = (u, v) => { const [x, y] = hp(u, v); return [Math.floor(x * RS), Math.floor(y * RS)]; };
   const [ex, ey] = G(1.6, -.9);
   if (P.eye > .5 && !m.blink) { set(ex, ey, 'E', .9); set(ex + 1, ey, 'k', 0); set(ex + 2, ey, 'E', .5); set(ex, ey + 1, 'E', .6); set(ex + 1, ey + 1, 'k', 0); set(ex + 2, ey + 1, 'E', .4); set(ex + 2, ey - 1 < 0 ? ey : ey, 'h', 1); }
@@ -221,14 +222,100 @@ function paintCatReal(cv, k, P, m = {}) {
   const o = cv.getContext('2d'); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, cv.width, cv.height);
   o.shadowColor = 'rgba(20,12,16,.35)'; o.shadowBlur = K * .35; o.drawImage(lay, 0, 0); o.shadowBlur = 0;
 }
-function petStyle() { return (db.s.pets && db.s.pets.style) || 'real'; }
-function drawPet(cv, k, P, m) { if (petStyle() === 'pixel') { if (cv.width !== GW) { cv.width = GW; cv.height = GH; } paintCat(cv, k, P, m); } else { const K = Math.round(CW * Math.min(8, Math.max(4, (cv._sc || 3) * Math.min(2, devicePixelRatio || 1)))); if (cv.width !== K) { cv.width = K; cv.height = Math.round(K * CH / CW); } paintCatReal(cv, k, P, m); } cv.classList.toggle('real', petStyle() !== 'pixel'); }
-function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; cv._sc = 2; drawPet(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], {}); return cv; }
+/* ---------- estilo fofo: pixels grandes, contorno preto, cabeça grande, rosto e barriga cremes ---------- */
+const CUTE = {
+  laranja: { b: '#E8963E', s: '#C4732A', w: '#FBEBD3', v: '#E9CDA8', d: '#C96A22', stripe: 1 },
+  frajola: { b: '#34353D', s: '#24252B', w: '#F7F4EE', v: '#DCD6CB' },
+  preto: { b: '#2B2B32', s: '#1D1D22', w: '#2B2B32', v: '#1D1D22', eye: '#F2C230', dark: 1 },
+  cinza: { b: '#9AA5B1', s: '#7A8592', w: '#EEF0F2', v: '#CFD4DA', d: '#6E7987', stripe: 1 },
+  branco: { b: '#FBF8F2', s: '#E4DDD0', w: '#FFFFFF', v: '#EAE4D9' },
+  siames: { b: '#F2E6CF', s: '#DCCBA9', w: '#F8F1E3', v: '#E3D6BE', x: '#5E4334', xs: '#46312A', points: 1, eye: '#4A90E2' },
+  tricolor: { b: '#FBF3E6', s: '#E9DAC3', w: '#FFF9F0', v: '#EBDDC8', x: '#DE8A34', xs: '#B96C22', y: '#5A463A', ys: '#43342A', calico: 1 },
+  marrom: { b: '#A47A52', s: '#835D3B', w: '#F1E2CC', v: '#D8C2A3', d: '#6A4A2E', stripe: 1 },
+};
+/* metade esquerda do gato sentado de frente (a coluna 9 é o centro); o lado direito é espelhado */
+const FRONT_L = [
+  '...oo.....', '...obo....', '..obpbo...', '..obppbo..', '.obpppbooo', '.obppbbbbb', 'obbbbbbbbb', 'obbbbbbbbb',
+  'obbbhkbbbb', 'obbbkkbbbb', 'obbwkkwwpp', 'obbwwwwwwm', 'obwwwwwmwm', '.owwwwwwmw', '.obwwwwwww', '..obwwwwww',
+  '..obbwwwww', '.obbbwwwww', '.obbbwwwww', 'obbbbbwwww', 'obbbbowwwo', 'obsbbowwwo', 'obssbowwwo', 'obssbowwwo',
+  'ossssowwwo', '.ooooooooo',
+];
+const FRONT_TAILS = [
+  ['..oo..', '.obbo.', '.obbo.', '.obo..', '.obo..', '.obo..', 'obbo..', 'obo...', 'obo...', 'bo....', 'bo....'],
+  ['...oo.', '..obbo', '..obbo', '..obo.', '.obbo.', '.obo..', 'obbo..', 'obo...', 'obo...', 'bo....', 'bo....'],
+  ['......', '......', '......', '......', '......', '......', '......', '...oo.', '..obbo', 'oobbo.', 'bbbo..'],
+];
+function frontGrid(m = {}) {
+  const W = 25, H = 26, g = Array.from({ length: H }, () => Array(W).fill('.'));
+  FRONT_L.forEach((r, y) => [...r].forEach((ch, x) => { g[y][x] = ch; g[y][18 - x] = ch; }));
+  g[8][13] = 'h'; g[8][14] = 'k';
+  const tl = FRONT_TAILS[m.tail || 0];
+  tl.forEach((r, i) => [...r].forEach((ch, x) => { if (ch !== '.') { const y = 13 + i; if (g[y][18 + x] === '.' || ch !== 'o') g[y][18 + x] = ch === 'b' ? 't' : ch; } }));
+  const S = (x, y, c) => { if (g[y] && x >= 0 && x < W) g[y][x] = c; };
+  const eyes = rows => [4, 13].forEach(x => rows.forEach((r, i) => { S(x, 8 + i, r[0]); S(x + 1, 8 + i, r[1]); }));
+  if (m.blink || m.eyes === 'closed') eyes(['bb', 'kk', 'ww']);
+  else if (m.eyes === 'happy') { eyes(['bb', 'bb', 'ww']); [4, 13].forEach(x => { S(x - 1, 9, 'k'); S(x, 8, 'k'); S(x + 1, 8, 'k'); S(x + 2, 9, 'k'); }); S(2, 10, 'p'); S(16, 10, 'p'); }
+  else if (m.look === -1) eyes(['kh', 'kk', 'kk']);
+  if (m.mouth) { S(8, 12, 'k'); S(9, 12, 'k'); S(10, 12, 'k'); S(8, 13, 'k'); S(9, 13, 'p'); S(10, 13, 'k'); S(9, 14, 'k'); }
+  if (m.tongue) { S(9, 13, 'p'); S(9, 14, 'p'); S(8, 13, 'w'); S(10, 13, 'w'); }
+  if (m.ear) { S(3, 0, '.'); S(4, 0, '.'); S(3, 1, '.'); S(2, 2, 'o'); S(3, 2, 'o'); S(4, 1, 'o'); }
+  return g;
+}
+function cuteColor(k, ch, x, y, front) {
+  const C = CUTE[k] || CUTE.laranja;
+  if (ch === 'o') return '#1C1A1A'; if (ch === 'k') return C.dark && !front ? '#111' : '#1C1A1A'; if (ch === 'h') return '#FFFFFF'; if (ch === 'p') return '#F2A3AE';
+  if (ch === 'm') return '#1C1A1A';
+  const sh = ch === 's' || ch === 'v';
+  if (C.calico && front) {
+    if ((ch === 'b' || ch === 's') && y <= 9 && x <= 8) return sh ? C.xs : C.x;
+    if ((ch === 'b' || ch === 's') && y <= 7 && x >= 12) return sh ? C.ys : C.y;
+    if ((ch === 'b' || ch === 's') && y >= 16 && x >= 13) return sh ? C.ys : C.y;
+    if (ch === 't') return y < 18 ? C.y : C.x;
+  }
+  if (C.points && front && (ch === 'b' || ch === 's') && (y <= 9 || y >= 22)) return sh ? C.xs : C.x;
+  if (C.points && ch === 't') return C.x;
+  if (C.stripe && ch === 'b' && front && ((y >= 5 && y <= 6 && (x === 8 || x === 10 || x === 9 && y === 5)) || (y >= 17 && y % 2 === 0 && (x === 2 || x === 16)))) return C.d;
+  if (C.stripe && ch === 't' && y % 2 === 0) return C.d;
+  if (ch === 'w') return C.w; if (ch === 'v') return C.v; if (ch === 's') return C.s;
+  return C.b;
+}
+function paintCute(cv, k, P, m = {}) {
+  const C = CUTE[k] || CUTE.laranja, ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  const img = ctx.createImageData(cv.width, cv.height), D = img.data, Wc = cv.width;
+  const put = (x, y, hex) => { if (x < 0 || y < 0 || x >= cv.width || y >= cv.height) return; const n = parseInt(hex.slice(1), 16), i = (y * Wc + x) * 4; D[i] = n >> 16; D[i + 1] = (n >> 8) & 255; D[i + 2] = n & 255; D[i + 3] = 255; };
+  if (m.front) {
+    const g = frontGrid(m), ox = Math.round((Wc - 25) / 2) + 1, oy = cv.height - 26 - 3 + (m.bob || 0);
+    g.forEach((r, y) => r.forEach((ch, x) => { if (ch === '.') return; let col = cuteColor(k, ch, x, y, true); if (C.dark && ch === 'k' && !m.blink && m.eyes !== 'closed' && m.eyes !== 'happy' && y >= 8 && y <= 9) col = C.eye; put(ox + x, oy + y, col); }));
+  } else {
+    const R = rastCat(P, m, 1, 1.22), g = R.g, W = CW;
+    const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= CH) ? '' : g[y * W + x];
+    for (let y = 0; y < CH; y++) for (let x = 0; x < W; x++) {
+      const c = g[y * W + x];
+      if (!c) { if (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) put(x, y, '#1C1A1A'); continue; }
+      const dark = R.lum[y * W + x] < .36;
+      let col;
+      if (c === 'E' || c === 'k' || c === 'c') col = C.dark && c === 'E' ? C.eye : '#1C1A1A';
+      else if (c === 'h') col = '#FFFFFF'; else if (c === 'p' || c === 'n') col = '#F2A3AE';
+      else if (c === 'M' || c === 'C' || c === 'P') col = dark ? C.v : C.w;
+      else if (c === 'F') col = C.points ? C.xs : C.s;
+      else if (C.calico) col = c === 'T' ? C.x : (c === 'b' && x < 17 && y < R.by + 1) ? (dark ? C.ys : C.y) : ((c === 'H' || c === 'R') && x < R.hx) ? C.x : dark ? C.s : C.b;
+      else if (C.points && 'HRLT'.includes(c)) col = dark ? C.xs : C.x;
+      else if (C.stripe && ((c === 'b' && (x + (y >> 1)) % 4 === 0 && y < R.by) || (c === 'T' && (x + y) % 3 === 0))) col = C.d;
+      else col = dark ? C.s : C.b;
+      put(x, y, col);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function petStyle() { return (db.s.pets && db.s.pets.style) || 'fofo'; }
+function drawPet(cv, k, P, m) { if (petStyle() === 'fofo') { if (cv.width !== CW) { cv.width = CW; cv.height = CH; } paintCute(cv, k, P, m); cv.classList.remove('real'); return; } if (petStyle() === 'pixel') { if (cv.width !== GW) { cv.width = GW; cv.height = GH; } paintCat(cv, k, P, m); } else { const K = Math.round(CW * Math.min(8, Math.max(4, (cv._sc || 3) * Math.min(2, devicePixelRatio || 1)))); if (cv.width !== K) { cv.width = K; cv.height = Math.round(K * CH / CW); } paintCatReal(cv, k, P, m); } cv.classList.toggle('real', petStyle() !== 'pixel'); }
+function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; cv._sc = 2; drawPet(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], { front: pose === 'sit' || typeof pose !== 'string' }); return cv; }
 function catImg(k, pose, size = 88) { const cv = catCanvas(k, pose); return `<img class="petimg" src="${cv.toDataURL()}" width="${size}" height="${Math.round(size * CH / CW)}" alt="">`; }
 
 /* ---------- gatos na tela ---------- */
 const PETS = { box: null, list: [], tick: null };
-function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, style: p.style || 'real', cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
+function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, style: p.style || 'fofo', cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
 function savePets(p) { db.s.pets = p; put('s', db.s); petsSync(); }
 function petScale() { return isMobile() ? 2.5 : 3; }
 function petPos() { try { return JSON.parse(localStorage.getItem('tt_petpos') || '{}'); } catch (e) { return {}; } }
@@ -282,7 +369,7 @@ function makePet(c, slot, saved) {
       if (w.left <= 0 || p.X <= 0 || p.X >= W) { p.walk = null; savePos(); w.done(); }
     }
     if (p.pose === 'groom') { P.fn[5] += Math.sin(t * .55) * 1.1; P.fn[3] += Math.sin(t * .55) * .6; p.m.tongue = Math.sin(t * .55) > .2; }
-    drawPet(cv, p.k, P, Object.assign({}, p.m, { blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
+    drawPet(cv, p.k, P, Object.assign({}, p.m, { front: !p.tw && !p.walk && (p.pose === 'sit' || p.pose === 'groom'), eyes: p.pose === 'groom' ? 'closed' : p.m.eyes, tail: Math.sin(t * .13) > .35 ? 1 : 0, bob: Math.sin(t * .11) > .7 ? 1 : 0, blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
   };
   /* comportamento */
   const wait = (ms, fn) => T(fn, ms);
@@ -335,8 +422,8 @@ function makePet(c, slot, saved) {
     if (moved) { el.classList.remove('held'); el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 420); toPose('stand', 250); savePos(); wait(900, next); return; }
     const wasSleep = p.pose === 'sleep';
     if (wasSleep) { p.timers.forEach(clearTimeout); p.timers = []; toPose('lie', 600); wait(2500, next); }
-    p.m.blink = true; fx('♥', 'heart'); setTimeout(() => fx('♥', 'heart h2'), 220); if (p.n) fx(esc(p.n), 'name');
-    el.classList.add('purr'); T(() => { el.classList.remove('purr'); p.m.blink = false; }, 1300);
+    p.m.blink = petStyle() !== 'fofo'; p.m.eyes = 'happy'; fx('♥', 'heart'); setTimeout(() => fx('♥', 'heart h2'), 220); if (p.n) fx(esc(p.n), 'name');
+    el.classList.add('purr'); T(() => { el.classList.remove('purr'); p.m.blink = false; p.m.eyes = undefined; }, 1300);
   };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   p.kill = () => { p.dead = true; p.timers.forEach(clearTimeout); el.remove(); };
@@ -351,7 +438,7 @@ VIEWS.pets = main => {
   main.innerHTML = headHtml('Pets') + `<div class="scroll"><div class="me pets">
     <nav class="crumbs"><a href="#/me">Perfil</a><span>/</span><span>Pets</span></nav>
     <label class="srow petsw"><span class="f1"><b>Mostrar gatinhos no app</b><span class="mut sm">Eles ficam parados pela tela, piscando, abanando o rabo, se lambendo e até cochilando.</span></span><span class="sw-t"><input type="checkbox" data-petson ${cfg.on ? 'checked' : ''}><span></span></span></label>
-    <div class="srow petsw"><span class="f1"><b>Estilo</b><span class="mut sm">Realista tem volume, pelagem e olhos detalhados. Pixelado é o estilo de videogame.</span></span><div class="seg">${[['real', 'Realista'], ['pixel', 'Pixelado']].map(([k, n]) => `<button class="${petStyle() === k ? 'on' : ''}" data-act="petstyle" data-v="${k}">${n}</button>`).join('')}</div></div>
+    <div class="srow petsw"><span class="f1"><b>Estilo</b><span class="mut sm">Fofo: pixels grandes e contorno preto. Realista: volume e pelagem. Pixelado: detalhado, estilo videogame.</span></span><div class="seg">${[['fofo', 'Fofo'], ['real', 'Realista'], ['pixel', 'Pixelado']].map(([k, n]) => `<button class="${petStyle() === k ? 'on' : ''}" data-act="petstyle" data-v="${k}">${n}</button>`).join('')}</div></div>
     <section class="sgrp"><h2>🐈 Escolha até dois gatos</h2>
       <div class="petgrid">${Object.entries(CATS).map(([k, c]) => { const i = sel.indexOf(k); return `<button class="petcard${i >= 0 ? ' on' : ''}" data-act="petpick" data-k="${k}">${i >= 0 ? `<span class="petnum">${i + 1}</span>` : ''}${catImg(k, 'sit', 92)}<span>${esc(c.n)}</span></button>`; }).join('')}</div>
     </section>
