@@ -29,6 +29,8 @@ const BTYPES = [
   { k: 'linkdoc', n: 'Link para documento', i: 'doc', kw: 'link documento pagina' },
   { k: 'date', n: 'Data de hoje', i: 'today', kw: 'data hoje dia' },
 ];
+const SLG = { p: 'Básico', h1: 'Básico', h2: 'Básico', h3: 'Básico', quote: 'Básico', callout: 'Básico', code: 'Básico', hr: 'Básico', pb: 'Básico', ul: 'Listas', ol: 'Listas', todo: 'Listas', toggle: 'Listas', table: 'Listas', img: 'Mídia', file: 'Mídia', task: 'Tarefas e páginas', linktask: 'Tarefas e páginas', page: 'Tarefas e páginas', linkdoc: 'Tarefas e páginas', date: 'Tarefas e páginas' };
+const SLD = { p: 'Parágrafo comum', h1: 'Título de seção', h2: 'Subtítulo', h3: 'Título menor', quote: 'Trecho em destaque', callout: 'Caixa colorida com ícone', code: 'Texto em fonte de código', hr: 'Linha separadora', pb: 'Começa uma nova folha A4', ul: 'Itens com marcador', ol: 'Itens numerados', todo: 'Itens para marcar', toggle: 'Conteúdo que abre e fecha', table: 'Linhas e colunas', img: 'Envie uma foto', file: 'Anexe um arquivo', task: 'Cria uma tarefa no app', linktask: 'Mostra uma tarefa existente', page: 'Página dentro deste documento', linkdoc: 'Atalho para outro documento', date: 'Insere a data de hoje' };
 const TEXTY = new Set(['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'todo', 'toggle', 'quote', 'callout', 'code']);
 let ED = { doc: null, caret: null };
 const IMG_URL = new Map();
@@ -362,7 +364,7 @@ function caretRect() { const s = getSelection(); if (!s.rangeCount) return null;
 function openSlash(el, kind) {
   closeSlash();
   const box = document.createElement('div');
-  box.className = 'pop slash';
+  box.className = 'pop menu slash';
   document.body.appendChild(box);
   SL = { el: box, kind, bx: el, start: caretOff(el) - 1, q: '', i: 0, items: [] };
   drawSlash();
@@ -370,10 +372,12 @@ function openSlash(el, kind) {
 function slashItems() {
   const q = norm(SL.q);
   if (SL.kind === '/') {
-    const base = BTYPES.map(t => ({ label: t.n, icon: t.i, kw: t.kw, run: () => applyType(t.k) }));
-    const cols = BCOL.map(c => ({ label: 'Texto ' + BCOL_N[c].toLowerCase(), sw: c, kw: 'cor texto ' + norm(BCOL_N[c]), run: () => styleCur('color', c) }))
-      .concat(BCOL.map(c => ({ label: 'Fundo ' + BCOL_N[c].toLowerCase(), swb: c, kw: 'fundo cor marca texto ' + norm(BCOL_N[c]), run: () => styleCur('bg', c) })))
-      .concat([{ label: 'Estilo cartão', icon: 'callout', kw: 'estilo cartao card bloco', run: () => styleCur('st', 'card') }, { label: 'Estilo foco', icon: 'star', kw: 'estilo foco destaque grande', run: () => styleCur('st', 'focus') }, { label: 'Limpar estilo', icon: 'x', kw: 'limpar estilo cor', run: () => { styleCur('color', null); styleCur('bg', null); styleCur('st', null); } }]);
+    const base = BTYPES.map(t => ({ label: t.n, icon: t.i, kw: t.kw, g: SLG[t.k] || 'Básico', d: SLD[t.k] || '', run: () => applyType(t.k) }));
+    const GO = ['Básico', 'Listas', 'Mídia', 'Tarefas e páginas'];
+    base.sort((a, b) => GO.indexOf(a.g) - GO.indexOf(b.g));
+    const cols = BCOL.map(c => ({ g: 'Cores', label: 'Texto ' + BCOL_N[c].toLowerCase(), sw: c, kw: 'cor texto ' + norm(BCOL_N[c]), run: () => styleCur('color', c) }))
+      .concat(BCOL.map(c => ({ g: 'Cores', label: 'Fundo ' + BCOL_N[c].toLowerCase(), swb: c, kw: 'fundo cor marca texto ' + norm(BCOL_N[c]), run: () => styleCur('bg', c) })))
+      .concat([{ g: 'Cores', label: 'Estilo cartão', icon: 'callout', kw: 'estilo cartao card bloco', run: () => styleCur('st', 'card') }, { label: 'Estilo foco', icon: 'star', kw: 'estilo foco destaque grande', run: () => styleCur('st', 'focus') }, { label: 'Limpar estilo', icon: 'x', kw: 'limpar estilo cor', run: () => { styleCur('color', null); styleCur('bg', null); styleCur('st', null); } }]);
     const all = base.concat(cols);
     return (q ? all.filter(x => norm(x.label + ' ' + x.kw).includes(q)) : base.concat(cols.slice(0, 0))).slice(0, 40);
   }
@@ -394,7 +398,13 @@ function drawSlash() {
   if (!SL.items.length) { SL.el.innerHTML = '<p class="hint pad">Nada encontrado</p>'; }
   else {
     SL.i = clamp(SL.i, 0, SL.items.length - 1);
-    SL.el.innerHTML = `<div class="mtitle">${SL.kind === '/' ? 'Inserir bloco' : 'Mencionar'}</div>` + SL.items.map((it, i) => `<button class="mi${i === SL.i ? ' act' : ''}" data-si="${i}">${it.sw ? `<span class="swt tc-${it.sw}">A</span>` : it.swb ? `<span class="sw-b bc-${it.swb}"></span>` : ic(it.icon, 18)}<span class="ml">${esc(it.label)}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ''}</button>`).join('');
+    let lastG = null;
+    SL.el.innerHTML = (SL.kind === '/' ? '' : `<div class="mtitle">Mencionar</div>`) + SL.items.map((it, i) => {
+      const head = SL.kind === '/' && it.g !== lastG ? `<div class="mtitle">${esc(it.g || 'Inserir')}</div>` : '';
+      lastG = it.g;
+      const lead = it.sw ? `<span class="slic"><span class="swt tc-${it.sw}">A</span></span>` : it.swb ? `<span class="slic"><span class="sw-b bc-${it.swb}"></span></span>` : `<span class="slic">${ic(it.icon || 'text', 18)}</span>`;
+      return `${head}<button class="mi${i === SL.i ? ' act' : ''}" data-si="${i}">${lead}<span class="sltx"><span class="ml">${esc(it.label)}</span>${it.d ? `<span class="sld">${esc(it.d)}</span>` : ''}</span>${it.hint ? `<span class="mh">${esc(it.hint)}</span>` : ''}</button>`;
+    }).join('');
   }
   const rc = caretRect();
   const el = SL.el;

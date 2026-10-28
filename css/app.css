@@ -927,3 +927,14 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 [data-skin=noite] .vt h1,[data-skin=noite] .ptitle{font-family:var(--serif);font-weight:700;letter-spacing:0}
 
 :root[data-skin]:not([data-theme=dark]):not([data-skin=classico]):not([data-skin=noite]){--redfg:color-mix(in srgb,var(--red) 85%,#000)}
+
+/* menu "/" */
+.slash{width:320px;max-height:380px;padding:6px}
+.slash .mi{min-height:44px;gap:11px;padding:4px 8px}
+.slic{width:34px;height:34px;flex:none;border-radius:9px;border:1px solid var(--line2);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--txt2)}
+.slash .mi.act .slic{border-color:var(--red);color:var(--red)}
+.sltx{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.sltx .ml{font-weight:500}
+.sld{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slash .mtitle{padding:10px 8px 4px}
+@media (max-width:759px){.slash.sheet{max-height:46vh}}
