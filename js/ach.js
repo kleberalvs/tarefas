@@ -105,7 +105,7 @@ VIEWS.me = main => {
     </button>
     <button class="achbtn" data-act="go" data-to="pets">
       <span class="achbi">🐈</span>
-      <span class="f1"><b>Pets</b><span class="mut sm">${(() => { const p = petCfg(); return p.cats.length ? (p.on ? 'Na tela: ' : 'Guardados: ') + p.cats.map(c => esc(c.n || petBreedName(c.k))).join(' e ') : 'Escolha até dois gatinhos pixelados'; })()}</span></span>
+      <span class="f1"><b>Pets</b><span class="mut sm">${(() => { const p = petCfg(); return p.cats.length ? (p.on ? 'Na tela: ' : 'Guardados: ') + p.cats.map(c => esc(c.n || petBreedName(c.k))).join(' e ') : 'Escolha até dois gatinhos animados'; })()}</span></span>
       <span class="achmini">${petCfg().cats.map(c => catImg(c.k, 'sit', 48)).join('')}</span>
       ${ic('chev', 18)}
     </button>

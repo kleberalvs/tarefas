@@ -72,7 +72,7 @@ function renderDetail(det) {
 
     ${t.par ? '' : `<section class="dsec"><h3>${ic('sub', 18)}Subtarefas <span class="cnt">${subs.length ? subs.filter(s => s.done).length + '/' + subs.length : ''}</span></h3>
       <div class="subl">${subs.map(s => rowHtml(s, { lvl: 0, withDone: 1 })).join('')}</div>
-      <div class="addline addsub" data-keep>${ic('plus', 16)}<input placeholder="Adicionar subtarefa (aceita texto inteligente)" aria-label="Adicionar subtarefa"></div>
+      <div class="addline addsub" data-keep>${ic('plus', 16)}<input placeholder="Adicionar subtarefa" aria-label="Adicionar subtarefa"></div>
     </section>`}
 
     <section class="dsec"><h3>${ic('clip', 18)}Anexos <span class="cnt">${(t.att || []).length || ''}</span></h3>
