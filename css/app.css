@@ -1614,3 +1614,5 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 .addrow{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:center}
 .addrow .addcov{margin-bottom:6px}
 .hascov .addrow .addcov{opacity:1;background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--txt);padding:7px 12px;border-radius:10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:var(--sh1)}
+/* destaques (callouts) e fundos de bloco legíveis em qualquer estilo de documento, claro ou escuro */
+.page.themed,.pthemed .page{--bc-gray:color-mix(in srgb,#9B9A97 16%,var(--pbg));--bc-brown:color-mix(in srgb,#A27B5C 18%,var(--pbg));--bc-orange:color-mix(in srgb,#E9822F 18%,var(--pbg));--bc-yellow:color-mix(in srgb,#E8B931 20%,var(--pbg));--bc-green:color-mix(in srgb,#4DAB6F 17%,var(--pbg));--bc-blue:color-mix(in srgb,#3E8EDE 17%,var(--pbg));--bc-purple:color-mix(in srgb,#9A6DD7 17%,var(--pbg));--bc-pink:color-mix(in srgb,#E255A1 16%,var(--pbg));--bc-red:color-mix(in srgb,#E5534B 16%,var(--pbg))}
