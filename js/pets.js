@@ -311,16 +311,46 @@ function paintCute(cv, k, P, m = {}) {
   }));
   ctx.putImageData(img, 0, 0);
 }
-function petStyle() { return (db.s.pets && db.s.pets.style) || 'fofo'; }
-function drawPet(cv, k, P, m) { if (petStyle() === 'fofo') { if (cv.width !== CW) { cv.width = CW; cv.height = CH; } paintCute(cv, k, P, m); cv.classList.remove('real'); return; } if (petStyle() === 'pixel') { if (cv.width !== GW) { cv.width = GW; cv.height = GH; } paintCat(cv, k, P, m); } else { const K = Math.round(CW * Math.min(8, Math.max(4, (cv._sc || 3) * Math.min(2, devicePixelRatio || 1)))); if (cv.width !== K) { cv.width = K; cv.height = Math.round(K * CH / CW); } paintCatReal(cv, k, P, m); } cv.classList.toggle('real', petStyle() !== 'pixel'); }
+
+/* ---------- estilo ilustrado: desenhos próprios do Kleber (folhas de poses), animados ---------- */
+const ILLU = { marrom: 'Marrom e branco', pretobranco: 'Preto e branco', cinza: 'Cinza', laranja: 'Laranja', preto: 'Preto', brancopreto: 'Branco e preto' };
+const ILLU_MAP = { frajola: 'pretobranco', branco: 'brancopreto', siames: 'cinza', tricolor: 'laranja' };
+const ILLU_POSES = ['frente', 'frente_b', 'sentado', 'sentado_b', 'lat_dir', 'lat_dir_b', 'lat_esq', 'deitado', 'deitado_b', 'andando', 'andando_b', 'carinho', 'costas'];
+const ILLU_FACE = { deitado: -1, deitado_b: -1, lat_esq: -1 };
+const ILLU_IMG = {};
+function petBreedName(k) { return petStyle() === 'ilustrado' ? ILLU[illuKey(k)] : CATS[k] ? CATS[k].n : ILLU[k] || ''; }
+const illuKey = k => ILLU[k] ? k : ILLU_MAP[k] || 'marrom';
+function illuImg(k, pose) {
+  k = illuKey(k); const id = k + '/' + pose;
+  if (!ILLU_IMG[id]) { const im = new Image(); im.onerror = () => { im.bad = 1; }; im.src = 'assets/pets/' + id + '.png'; ILLU_IMG[id] = im; }
+  return ILLU_IMG[id];
+}
+function illuPreload(k) { ILLU_POSES.forEach(p => illuImg(k, p)); }
+function paintIllu(cv, k, m = {}) {
+  if (cv.width !== 280) { cv.width = 280; cv.height = 204; }
+  const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+  let pose = m.sp || 'frente';
+  if (m.closed) { const b = illuImg(k, pose + '_b'); if (b.complete && b.naturalWidth && !b.bad) pose += '_b'; }
+  let im = illuImg(k, pose);
+  if (!im.complete || !im.naturalWidth || im.bad) { im = illuImg(k, 'frente'); pose = 'frente'; if (!im.complete || !im.naturalWidth) return; }
+  const ref = illuImg(k, 'frente'), sc = 150 / ((ref.complete && ref.naturalHeight) || 150);
+  const w = im.naturalWidth * sc, h = im.naturalHeight * sc;
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+  c.translate(cv.width / 2, cv.height - 8 + (m.dy || 0));
+  if (m.rot) c.rotate(m.rot);
+  c.scale((ILLU_FACE[pose] || 1) * (m.sx || 1), m.sy || 1);
+  c.drawImage(im, -w / 2, -h, w, h);
+}
+function petStyle() { return (db.s.pets && db.s.pets.style) || 'ilustrado'; }
+function drawPet(cv, k, P, m) { if (petStyle() === 'ilustrado') { paintIllu(cv, k, m); cv.classList.add('real'); return; } k = { pretobranco: 'frajola', brancopreto: 'frajola' }[k] || k; if (petStyle() === 'fofo') { if (cv.width !== CW) { cv.width = CW; cv.height = CH; } paintCute(cv, k, P, m); cv.classList.remove('real'); return; } if (petStyle() === 'pixel') { if (cv.width !== GW) { cv.width = GW; cv.height = GH; } paintCat(cv, k, P, m); } else { const K = Math.round(CW * Math.min(8, Math.max(4, (cv._sc || 3) * Math.min(2, devicePixelRatio || 1)))); if (cv.width !== K) { cv.width = K; cv.height = Math.round(K * CH / CW); } paintCatReal(cv, k, P, m); } cv.classList.toggle('real', petStyle() !== 'pixel'); }
 function catCanvas(k, pose = 'sit', cls = '') { const cv = document.createElement('canvas'); cv.width = GW; cv.height = GH; cv.className = 'petcv ' + cls; cv._sc = 2; drawPet(cv, k, POSES[typeof pose === 'string' ? pose : 'sit'], { fmode: pose === 'lie' || pose === 'sleep' ? 'loaf' : 'sit', blush: 1 }); return cv; }
-function catImg(k, pose, size = 88) { const cv = catCanvas(k, pose); return `<img class="petimg" src="${cv.toDataURL()}" width="${size}" height="${Math.round(size * CH / CW)}" alt="">`; }
+function catImg(k, pose, size = 88) { if (petStyle() === 'ilustrado') return `<img class="petimg illu" src="assets/pets/${illuKey(k)}/frente.png" style="height:${Math.round(size * .8)}px;width:auto" alt="">`; const cv = catCanvas(k, pose); return `<img class="petimg" src="${cv.toDataURL()}" width="${size}" height="${Math.round(size * CH / CW)}" alt="">`; }
 
 /* ---------- gatos na tela ---------- */
 const PETS = { box: null, list: [], tick: null };
-function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, style: p.style || 'fofo', cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
+function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, style: p.style || 'ilustrado', cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
 function savePets(p) { db.s.pets = p; put('s', db.s); petsSync(); }
-function petScale() { return isMobile() ? 2.5 : 3; }
+function petScale() { const il = petStyle() === 'ilustrado'; return isMobile() ? (il ? 2.6 : 2.5) : (il ? 3.4 : 3); }
 function petPos() { try { return JSON.parse(localStorage.getItem('tt_petpos') || '{}'); } catch (e) { return {}; } }
 function savePos() { const m = {}; PETS.list.forEach(p => { const [W, H] = p.room(); m[p.slot] = { x: W ? p.X / W : 0, y: H ? p.Y / H : 0 }; }); try { localStorage.setItem('tt_petpos', JSON.stringify(m)); } catch (e) {} }
 function petsSync() {
@@ -333,6 +363,7 @@ function petsSync() {
   if (!want.length) { if (PETS.box) PETS.box.remove(); PETS.box = null; return; }
   if (!PETS.box) { PETS.box = document.createElement('div'); PETS.box.id = 'pets'; document.body.appendChild(PETS.box); }
   const pos = petPos();
+  if (petStyle() === 'ilustrado') want.forEach(c => illuPreload(c.k));
   want.forEach((c, i) => PETS.list.push(makePet(c, i, pos[i])));
   PETS.tick = setInterval(() => { if (document.hidden) return; PETS.list.forEach(p => p.step()); }, 90);
 }
@@ -372,6 +403,13 @@ function makePet(c, slot, saved) {
       if (w.left <= 0 || p.X <= 0 || p.X >= W) { p.walk = null; savePos(); w.done(); }
     }
     if (p.pose === 'groom') { P.fn[5] += Math.sin(t * .55) * 1.1; P.fn[3] += Math.sin(t * .55) * .6; p.m.tongue = Math.sin(t * .55) > .2; }
+    if (petStyle() === 'ilustrado') {
+      const wf = p.walk ? Math.floor(p.walk.ph / 1.5) % 2 : 0;
+      const sp = p.pose === 'hang' ? 'frente' : p.m.happy ? 'carinho' : p.walk || p.pose === 'stand' || p.pose === 'stretch' ? 'andando' : p.pose === 'lie' || p.pose === 'sleep' ? 'deitado' : p.pose === 'groom' ? 'carinho' : (p.m.view || 'frente');
+      const br = p.walk ? 0 : Math.sin(t * (p.pose === 'sleep' ? .07 : .11));
+      drawPet(cv, p.k, P, { sp, closed: p.pose === 'sleep' || p.m.blink || (!p.walk && p.pose !== 'hang' && (t % 47 === 0 || t % 47 === 1)) || (p.pose === 'lie' && Math.sin(t * .02) > .55), dy: p.walk ? -wf * 5 : 0, rot: p.walk ? (wf ? -.025 : .02) : p.pose === 'hang' ? Math.sin(t * .5) * .08 : 0, sy: 1 + br * (p.pose === 'sleep' ? .02 : .012), sx: p.pose === 'stretch' ? 1.08 : 1 });
+      return;
+    }
     drawPet(cv, p.k, P, Object.assign({}, p.m, { fmode: p.pose === 'lie' || p.pose === 'sleep' ? 'loaf' : 'sit', eyes: p.m.eyes || (p.pose === 'sleep' || p.pose === 'groom' || p.pose === 'stretch' ? 'closed' : p.pose === 'hang' ? 'wide' : p.pose === 'lie' && Math.sin(t * .02) > .3 ? 'sleepy' : undefined), paw: p.pose === 'groom', walkf: p.walk ? (Math.floor(p.walk.ph / 1.5) % 2) + 1 : 0, tail: Math.sin(t * (p.pose === 'sleep' ? .05 : .13)) > .35 ? 1 : 0, bob: p.walk ? (Math.floor(p.walk.ph / 1.5) % 2) : (Math.sin(t * .11) > .75 ? 1 : 0), blink: p.m.blink || (P.eye > .5 && !p.walk && (t % 47 === 0 || t % 47 === 1)) }));
   };
   /* comportamento */
@@ -383,7 +421,10 @@ function makePet(c, slot, saved) {
       if (r < .25) return wait(2500 + Math.random() * 3500, next);
       if (r < .4) { toPose('groom', 500); return wait(3200, () => { toPose('sit', 500); p.m.tongue = false; wait(1200, next); }); }
       if (r < .5) { p.m.mouth = 1; fx(Math.random() < .5 ? 'miau' : 'miau~', 'say'); return wait(650, () => { p.m.mouth = 0; wait(1500, next); }); }
-      if (r < .58) { p.dir = -p.dir; place(); return wait(1800, next); }
+      if (r < .58) {
+        if (petStyle() === 'ilustrado') { const opts = ['lat_dir', 'lat_dir', 'sentado', illuImg(p.k, 'costas').bad ? 'sentado' : 'costas']; p.m.view = opts[Math.floor(Math.random() * opts.length)]; if (Math.random() < .5) { p.dir = -p.dir; place(); } return wait(2500 + Math.random() * 3500, () => { p.m.view = null; wait(1200, next); }); }
+        p.dir = -p.dir; place(); return wait(1800, next);
+      }
       if (r < .82) { toPose('stand', 600); return wait(800, next); }
       toPose('lie', 900); return wait(2500, next);
     }
@@ -425,8 +466,8 @@ function makePet(c, slot, saved) {
     if (moved) { el.classList.remove('held'); el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 420); toPose('stand', 250); savePos(); wait(900, next); return; }
     const wasSleep = p.pose === 'sleep';
     if (wasSleep) { p.timers.forEach(clearTimeout); p.timers = []; toPose('lie', 600); wait(2500, next); }
-    p.m.blink = petStyle() !== 'fofo'; p.m.eyes = 'happy'; fx('♥', 'heart'); setTimeout(() => fx('♥', 'heart h2'), 220); if (p.n) fx(esc(p.n), 'name');
-    el.classList.add('purr'); T(() => { el.classList.remove('purr'); p.m.blink = false; p.m.eyes = undefined; }, 1300);
+    p.m.blink = petStyle() !== 'fofo' && petStyle() !== 'ilustrado'; p.m.eyes = 'happy'; p.m.happy = true; p.m.view = null; fx('♥', 'heart'); setTimeout(() => fx('♥', 'heart h2'), 220); if (p.n) fx(esc(p.n), 'name');
+    el.classList.add('purr'); T(() => { el.classList.remove('purr'); p.m.blink = false; p.m.eyes = undefined; p.m.happy = false; }, 1300);
   };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   p.kill = () => { p.dead = true; p.timers.forEach(clearTimeout); el.remove(); };
@@ -441,11 +482,11 @@ VIEWS.pets = main => {
   main.innerHTML = headHtml('Pets') + `<div class="scroll"><div class="me pets">
     <nav class="crumbs"><a href="#/me">Perfil</a><span>/</span><span>Pets</span></nav>
     <label class="srow petsw"><span class="f1"><b>Mostrar gatinhos no app</b><span class="mut sm">Eles ficam parados pela tela, piscando, abanando o rabo, se lambendo e até cochilando.</span></span><span class="sw-t"><input type="checkbox" data-petson ${cfg.on ? 'checked' : ''}><span></span></span></label>
-    <div class="srow petsw"><span class="f1"><b>Estilo</b><span class="mut sm">Fofo: pixels grandes e contorno preto. Realista: volume e pelagem. Pixelado: detalhado, estilo videogame.</span></span><div class="seg">${[['fofo', 'Fofo'], ['real', 'Realista'], ['pixel', 'Pixelado']].map(([k, n]) => `<button class="${petStyle() === k ? 'on' : ''}" data-act="petstyle" data-v="${k}">${n}</button>`).join('')}</div></div>
+    <div class="srow petsw"><span class="f1"><b>Estilo</b><span class="mut sm">Ilustrado: os seus desenhos. Fofo: pixels grandes. Realista: volume e pelagem. Pixelado: estilo videogame.</span></span><div class="seg">${[['ilustrado', 'Ilustrado'], ['fofo', 'Fofo'], ['real', 'Realista'], ['pixel', 'Pixelado']].map(([k, n]) => `<button class="${petStyle() === k ? 'on' : ''}" data-act="petstyle" data-v="${k}">${n}</button>`).join('')}</div></div>
     <section class="sgrp"><h2>🐈 Escolha até dois gatos</h2>
-      <div class="petgrid">${Object.entries(CATS).map(([k, c]) => { const i = sel.indexOf(k); return `<button class="petcard${i >= 0 ? ' on' : ''}" data-act="petpick" data-k="${k}">${i >= 0 ? `<span class="petnum">${i + 1}</span>` : ''}${catImg(k, 'sit', 92)}<span>${esc(c.n)}</span></button>`; }).join('')}</div>
+      <div class="petgrid">${(petStyle() === 'ilustrado' ? Object.entries(ILLU).map(([k, n]) => [k, { n }]) : Object.entries(CATS).filter(([k]) => !ILLU[k] || CATS[k])).map(([k, c]) => { const i = sel.indexOf(k); return `<button class="petcard${i >= 0 ? ' on' : ''}" data-act="petpick" data-k="${k}">${i >= 0 ? `<span class="petnum">${i + 1}</span>` : ''}${catImg(k, 'sit', 92)}<span>${esc(c.n)}</span></button>`; }).join('')}</div>
     </section>
-    ${cfg.cats.length ? `<section class="sgrp"><h2>Nomes</h2>${cfg.cats.map((c, i) => `<div class="srow"><span class="row">${catImg(c.k, 'sit', 44)}<span class="mut sm">${esc(CATS[c.k] ? CATS[c.k].n : '')}</span></span><input class="in sm" data-petname="${i}" value="${esc(c.n || '')}" maxlength="20" placeholder="Nome"></div>`).join('')}</section>` : ''}
+    ${cfg.cats.length ? `<section class="sgrp"><h2>Nomes</h2>${cfg.cats.map((c, i) => `<div class="srow"><span class="row">${catImg(c.k, 'sit', 44)}<span class="mut sm">${esc(petBreedName(c.k))}</span></span><input class="in sm" data-petname="${i}" value="${esc(c.n || '')}" maxlength="20" placeholder="Nome"></div>`).join('')}</section>` : ''}
     <p class="hint">Arraste um gatinho para colocá-lo onde quiser. Toque nele para fazer carinho. A posição fica salva em cada aparelho.</p>
     <div class="row"><button class="btn ghost sm" data-act="petsreset">Trazer os gatos de volta para o canto</button></div>
   </div></div>`;
