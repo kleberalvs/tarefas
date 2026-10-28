@@ -153,6 +153,7 @@ VIEWS.doc = main => {
       ${cov && d.icon !== '' ? '' : `<div class="addrow">${cov ? '' : `<button class="link addcov" data-act="dcover">${ic('cover', 15)} Adicionar capa</button>`}${d.icon === '' ? `<button class="link addcov" data-act="dicon">${ic('smile', 15)} Adicionar ícone</button>` : ''}</div>`}
       ${d.icon === '' ? '' : `<button class="picon" data-act="dicon" aria-label="Trocar ou remover ícone">${esc(d.icon || '📄')}</button>`}
       <textarea class="ptitle" data-keep rows="1" placeholder="Sem título" aria-label="Título do documento">${esc(d.title)}</textarea>
+      ${d.noauthor ? '' : `<div class="pauthor">${avatarHtml('sm')}<span class="pan"><b>${esc((db.s.name || (WHO ? WHO.split('@')[0] : '') || 'Eu').trim())}</b><small>${esc(fmtDay(ymd(new Date(d.c || d.u || Date.now())), true).toLowerCase() === 'hoje' ? 'Criado hoje' : 'Criado em ' + new Date(d.c || d.u || Date.now()).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }))}</small></span></div>`}
       <div class="pmeta mut sm"><span>Editado ${esc(fmtDay(ymd(new Date(d.u || d.c)), true).toLowerCase())} às ${hm(new Date(d.u || d.c))}</span><span id="wcount"></span>${linkedT.length ? `<button class="link" data-act="dlinked">${ic('link', 14)} ${plural(linkedT.length, 'tarefa vinculada', 'tarefas vinculadas')}</button>` : ''}<button class="link" data-act="dlinktask">${ic('plus', 14)} vincular tarefa</button></div>
     </div>`;
       return s.coverFull && cov ? coverHtml(d, ph) : coverHtml(d) + ph;
@@ -261,11 +262,11 @@ function bindToolbar(tb) {
     if (k === 'find') return findReplace();
     if (k === 'ai') { const cb0 = curBlock(); const bl = cb0 && cb0.b ? cb0.b : ED.doc.b[ED.doc.b.length - 1]; ED.ctx = { b: bl, off: 0, empty: !stripHtml(bl.text || '').trim() }; applyType('ai'); return; }
     if (k === 'draw' && !(curBlock() || {}).b) { const lb = ED.doc.b[ED.doc.b.length - 1]; ED.ctx = { b: lb, off: 0, empty: false }; applyType('draw'); return; }
+    if (k.startsWith('al-')) return alignDoc(k[3], curBlock());
     const cb = curBlock(); if (!cb || !cb.b) { toast('Clique no texto primeiro'); return; }
     const { el, b: blk } = cb;
     if (['bold', 'italic', 'underline', 'strikeThrough', 'superscript', 'subscript'].includes(k)) { document.execCommand('styleWithCSS', false, false); document.execCommand(k); syncOne(el); histLater(); return; }
     if (k === 'code' || k === 'color' || k === 'hilite' || k === 'link' || k === 'clear') { if (k === 'clear') { document.execCommand('removeFormat'); const s2 = getSelection(); if (s2.isCollapsed) { el.innerHTML = esc(el.textContent); } syncOne(el); histLater(); return; } fmt(k, b); return; }
-    if (k.startsWith('al-')) { const v = { l: null, c: 'center', r: 'right', j: 'justify' }[k[3]]; if (v) blk.align = v; else delete blk.align; restructure(blk.id, caretOff(el)); return; }
     if (k === 'ul' || k === 'ol' || k === 'todo') { blk.type = blk.type === k ? 'p' : k; restructure(blk.id, caretOff(el)); return; }
     if (k === 'indent' || k === 'outdent') { blk.lvl = clamp((blk.lvl || 0) + (k === 'indent' ? 1 : -1), 0, 6); restructure(blk.id, caretOff(el)); return; }
   if (k === 'draw') { ED.ctx = { b: blk, off: caretOff(el), empty: !el.textContent.trim() }; applyType('draw'); return; }
@@ -800,6 +801,7 @@ Object.assign(ACTS, {
     const d = ED.doc;
     menu(b, [
       { label: 'Mudar estilo', icon: 'spark', act: () => docStyle(d) },
+      { label: d.noauthor ? 'Mostrar autor' : 'Ocultar autor', icon: 'users', act: () => { d.noauthor = !d.noauthor; put('d', d); render(true); } },
       { label: 'Nova subpágina', icon: 'page', act: () => { const k = newDoc({ par: d.id, o: Date.now() }); d.b.push({ id: uid(), type: 'page', ref: k.id }); put('d', d); go('doc/' + k.id); } },
       { label: 'Mover para…', icon: 'folder', act: () => menu(b, [{ label: 'Raiz (sem pai)', on: !d.par, act: () => { d.par = null; put('d', d); } }, ...db.d.filter(x => !x.del && x.id !== d.id && !docPath(x).some(p => p.id === d.id)).map(x => ({ label: (x.icon || '') + ' ' + (x.title || 'Sem título'), on: d.par === x.id, act: () => { d.par = x.id; put('d', d); } }))]) },
       { label: 'Duplicar', icon: 'copy', act: () => { const c = clone(d); c.id = uid(); c.title = (d.title || 'Sem título') + ' (cópia)'; c.c = Date.now(); c.b.forEach(x => x.id = uid()); put('d', c); go('doc/' + c.id); } },
@@ -884,4 +886,21 @@ function docStyle(d) {
     if (id) d.style.th = id; else delete d.style.th;
     put('d', d); render(true);
   }, d.style && d.style.th);
+}
+
+/* alinhamento: um toque alinha o documento inteiro (sem precisar selecionar); dá para limitar só ao parágrafo onde está o cursor */
+function alignDoc(code, cb) {
+  const d = ED.doc, v = { l: null, c: 'center', r: 'right', j: 'justify' }[code];
+  const set = (b, val) => { if (val) b.align = val; else delete b.align; };
+  const blocks = d.b.filter(b => TEXTY.has(b.type) && b.type !== 'code');
+  const before = blocks.map(b => b.align || null);
+  blocks.forEach(b => set(b, v));
+  const fid = cb && cb.b ? cb.b.id : null, off = cb && cb.el ? caretOff(cb.el) : 0;
+  restructure(fid, off);
+  const name = { l: 'à esquerda', c: 'centralizado', r: 'à direita', j: 'justificado' }[code];
+  toast(`Documento ${name}`, fid ? 'Só neste parágrafo' : 'Desfazer', () => {
+    blocks.forEach((b, i) => set(b, before[i]));
+    if (fid) { const t = d.b.find(b => b.id === fid); if (t) set(t, v); }
+    restructure(fid, off);
+  }, 5000);
 }
