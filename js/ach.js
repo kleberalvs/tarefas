@@ -103,6 +103,12 @@ VIEWS.me = main => {
       <span class="achmini">${recent.slice(0, 3).map(x => medalSvg(x.i, x.a.e, false, 40)).join('')}</span>
       ${ic('chev', 18)}
     </button>
+    <button class="achbtn" data-act="go" data-to="pets">
+      <span class="achbi">🐈</span>
+      <span class="f1"><b>Pets</b><span class="mut sm">${(() => { const p = petCfg(); return p.cats.length ? (p.on ? 'Na tela: ' : 'Guardados: ') + p.cats.map(c => esc(c.n || CATS[c.k].n)).join(' e ') : 'Escolha até dois gatinhos pixelados'; })()}</span></span>
+      <span class="achmini">${petCfg().cats.map(c => catImg(c.k, {}, 40)).join('')}</span>
+      ${ic('chev', 18)}
+    </button>
     <section class="kpis">
       <div class="kpi"><b>${fmtNum(st.done)}</b><span>Tarefas concluídas</span></div>
       <div class="kpi"><b>${st.streak}</b><span>Dias seguidos</span><small>Recorde: ${st.best}</small></div>

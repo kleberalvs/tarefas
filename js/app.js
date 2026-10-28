@@ -25,6 +25,7 @@ VIEWS.settings = main => {
     <div class="srow"><span>Semana começa</span><div class="seg">${[[0, 'Domingo'], [1, 'Segunda']].map(([k, n]) => `<button class="${s.weekStart === k ? 'on' : ''}" data-act="sset" data-k="weekStart" data-v="${k}" data-num="1">${n}</button>`).join('')}</div></div>
     <label class="srow"><span>Ao abrir o app, mostrar</span><select class="in sm" data-sk="start"><option value="home" ${(s.start || 'home') === 'home' ? 'selected' : ''}>Painel</option><option value="l/today" ${s.start === 'l/today' ? 'selected' : ''}>Hoje</option><option value="l/inbox" ${s.start === 'l/inbox' ? 'selected' : ''}>Caixa de entrada</option><option value="cal" ${s.start === 'cal' ? 'selected' : ''}>Calendário</option><option value="docs" ${s.start === 'docs' ? 'selected' : ''}>Documentos</option></select></label>
     <div class="srow"><span>Tamanho das letras <span class="mut sm">(neste aparelho)</span></span><span class="row fsrow"><button class="ib" data-act="fsz" data-d="-5" aria-label="Diminuir letras">A−</button><b id="fsv">${Math.round(fontScale() * 100)}%</b><button class="ib" data-act="fsz" data-d="5" aria-label="Aumentar letras">A+</button><button class="link" data-act="fsz" data-d="0">Padrão</button></span></div>
+    <div class="srow"><span>Gatinhos pela tela <span class="mut sm">(<a href="#/pets">escolher</a>)</span></span><span class="sw-t"><input type="checkbox" data-petson ${petCfg().on ? 'checked' : ''}><span></span></span></div>
     <label class="srow"><span>Visual compacto</span><span class="sw-t"><input type="checkbox" data-sk="compact" ${s.compact ? 'checked' : ''}><span></span></span></label>
   </section>
   <section class="sgrp"><h2>${ic('palette', 18)}Estilo de cores</h2>
@@ -151,6 +152,7 @@ function boot() {
   onData(local => { render(); if (local !== false) schedPush(); checkAch(); });
   render(true);
   hideSplash();
+  petsSync();
   startSync();
   initSw();
   checkReminders();

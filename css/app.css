@@ -1105,3 +1105,40 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
   .lform{align-items:flex-start;margin-top:-24px;background:var(--bg);border-radius:24px 24px 0 0;position:relative;z-index:3;padding:30px 22px calc(30px + var(--safe-b))}
   .hero h2{font-size:calc(24px * var(--fs,1))}
 }
+
+/* ---------- pets ---------- */
+#pets{position:fixed;inset:0;pointer-events:none;z-index:46}
+.pet{position:absolute;left:0;top:0;width:72px;height:64px;pointer-events:auto;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.pet.held{cursor:grabbing;z-index:2}
+.petb{position:absolute;inset:0;transform-origin:50% 100%;animation:breathe 3.2s ease-in-out infinite}
+.petin{position:absolute;inset:0;transform-origin:50% 0}
+.petcv{width:72px;height:64px;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.petimg{image-rendering:pixelated;display:block}
+.petsh{position:absolute;left:6px;width:44px;bottom:-3px;height:7px;border-radius:50%;background:rgba(0,0,0,.16);filter:blur(1px);z-index:-1;transition:.2s}
+@keyframes breathe{50%{transform:scaleY(1.03)}}
+.pet.zz .petb{animation-duration:4.6s}
+.pet.held .petb{animation:dangle .5s ease-in-out infinite}
+.pet.held .petsh{opacity:.35;transform:scale(.7);bottom:-14px}
+@keyframes dangle{0%,100%{transform:rotate(-5deg) translateY(-6px)}50%{transform:rotate(5deg) translateY(-6px)}}
+.pet.land .petb{animation:land .4s var(--ease)}
+@keyframes land{30%{transform:scale(1.12,.86)}65%{transform:scale(.95,1.06)}}
+.pet.purr .petb{animation:purr .12s linear 9}
+@keyframes purr{50%{transform:translateX(1px)}}
+.petfx{position:absolute;left:0;right:0;top:0;height:0;pointer-events:none}
+.pfx{position:absolute;left:28px;top:-4px;font:700 13px/1 var(--font);color:var(--txt);white-space:nowrap;animation:pfx 1.8s ease-out forwards}
+.pfx.heart{color:#F0587A;font-size:18px;left:30px}.pfx.heart.h2{left:44px;font-size:13px}
+.pfx.z{color:var(--mut);left:46px;top:2px;font-size:14px}
+.pfx.say,.pfx.name{background:var(--elev);border:1px solid var(--line);box-shadow:var(--sh1);padding:4px 8px;border-radius:10px;left:50%;transform:translateX(-50%);top:-18px;font-size:12px;animation:pfxb 1.6s ease-out forwards}
+.pfx.name{top:-34px}
+@keyframes pfx{0%{opacity:0;transform:translateY(4px)}15%{opacity:1}100%{opacity:0;transform:translate(10px,-34px)}}
+@keyframes pfxb{0%{opacity:0;transform:translate(-50%,4px)}12%,75%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-6px)}}
+.petgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.petcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px 12px;border-radius:16px;border:1.5px solid var(--line);background:var(--card);font-weight:600;font-size:calc(13px * var(--fs,1));transition:.15s var(--ease)}
+.petcard:hover{transform:translateY(-2px);box-shadow:var(--sh1)}
+.petcard.on{border-color:var(--red);background:color-mix(in srgb,var(--red) 7%,var(--card))}
+.petnum{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:var(--red);color:var(--onacc);font-size:11px;display:flex;align-items:center;justify-content:center}
+.petsw{padding:16px 18px;border-radius:18px;border:1px solid var(--line);background:var(--card);gap:14px}
+.petsw .f1{display:flex;flex-direction:column;gap:3px}
+.achmini .petimg{width:40px;height:auto}
+@media print{#pets{display:none}}
+@media (prefers-reduced-motion:reduce){.petb{animation:none!important}}

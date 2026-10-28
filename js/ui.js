@@ -186,7 +186,7 @@ function editProfile() {
 function tabsHtml() {
   const t = R.v, isT = t === 'list' || t === 'matrix';
   const b = (to, icon, name, on) => `<button class="tab${on ? ' on' : ''}" data-act="go" data-to="${to}">${ic(icon, 23)}<span>${name}</span></button>`;
-  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
+  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
 }
 /* cabeçalho padrão das telas */
 function headHtml(title, sub, right = '', opts = {}) {
@@ -572,6 +572,7 @@ const ACTS = {
   account: b => menu(b, [
     { head: WHO || 'Modo local (sem conta)' },
     { label: 'Configurações', icon: 'gear', act: () => go('settings') },
+    { label: 'Pets: ' + (petCfg().on ? 'ligados 🐈' : 'desligados'), icon: 'habit', act: () => ACTS.petstoggle() },
     { label: 'Tema: ' + { auto: 'automático', light: 'claro', dark: 'escuro' }[db.s.theme], icon: 'moon', act: cycleTheme },
     { label: 'Exportar tudo…', icon: 'export', act: () => exportMenu(b, { kind: 'all' }) },
     INSTALL ? { label: 'Instalar o app', icon: 'dl', act: installApp } : null,
@@ -580,6 +581,7 @@ const ACTS = {
   'more-tabs': b => menu(b, [
     { label: 'Perfil', icon: 'users', act: () => go('me') },
     { label: 'Conquistas', icon: 'star', act: () => go('ach') },
+    { label: 'Pets: ' + (petCfg().on ? 'ligados 🐈' : 'desligados'), icon: 'habit', act: () => ACTS.petstoggle() },
     { label: 'Foco', icon: 'focus', act: () => go('focus') },
     { label: 'Hábitos', icon: 'habit', act: () => go('habits') },
     { label: 'Matriz de prioridades', icon: 'matrix', act: () => go('matrix') },
