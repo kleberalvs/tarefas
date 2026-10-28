@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.28-3';
+const APPV = '2026.10.28-4';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -139,7 +139,7 @@ const unlock = () => document.documentElement.classList.remove('lock');
 async function startSync() {
   if (!CLOUD) { unlock(); setSync('local'); return; }
   const recovery = /type=recovery/.test(location.hash);
-  SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit', storageKey: 'tt-auth' } });
+  SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit', storageKey: 'tt-auth2' } });
   SB.auth.onAuthStateChange((ev, ses) => { if (ev === 'PASSWORD_RECOVERY') { unlock(); showNewPassword(); } if (ses) SES = ses; });
   let s = null;
   try { s = (await SB.auth.getSession()).data.session; } catch (e) {}
