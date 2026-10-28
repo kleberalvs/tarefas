@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.28-2';
+const APPV = '2026.10.28-3';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -61,7 +61,8 @@ async function push() {
     persistSynced(); setSync('ok');
   } catch (e) {
     console.warn('push', e);
-    setSync('err', /relation|does not exist|schema cache/i.test(e.message || '') ? 'Banco não configurado: rode o arquivo SQL no Supabase' : 'Falha ao enviar · tentando de novo');
+    const m = (e && (e.message || e.code)) || 'erro';
+    setSync('err', (/relation|does not exist|schema cache/i.test(m) ? 'Banco não configurado' : 'Falha ao enviar · tentando de novo') + ' (' + String(m).slice(0, 140) + ')');
     setTimeout(schedPush, 15000);
   } finally { pushing = false; if (again) { again = false; schedPush(); } }
 }
@@ -133,7 +134,7 @@ function r_isOpenDocEditing(pl) {
   }
   return false;
 }
-async function pullSafe() { try { await pull(); setSync('ok'); } catch (e) { console.warn('pull', e); setSync(navigator.onLine ? 'err' : 'off', /relation|does not exist|schema cache/i.test(e.message || '') ? 'Banco não configurado: rode o arquivo SQL no Supabase' : null); } }
+async function pullSafe() { try { await pull(); setSync('ok'); } catch (e) { console.warn('pull', e); const m = (e && (e.message || e.code)) || 'erro'; setSync(navigator.onLine ? 'err' : 'off', (/relation|does not exist|schema cache/i.test(m) ? 'Banco não configurado' : 'Falha ao sincronizar') + ' (' + String(m).slice(0, 140) + ')'); } }
 const unlock = () => document.documentElement.classList.remove('lock');
 async function startSync() {
   if (!CLOUD) { unlock(); setSync('local'); return; }
@@ -250,7 +251,7 @@ async function checkAdmin() {
   ADMIN_ERR = '';
   try {
     const { data, error } = await SB.rpc('tarefas_sou_admin');
-    if (error) { ADMIN_ERR = /function|does not exist|schema cache|not find/i.test(error.message || '') ? 'Falta rodar o arquivo atualizacao-2.sql no Supabase.' : error.message; throw error; }
+    if (error) { ADMIN_ERR = (/function|does not exist|schema cache|not find/i.test(error.message || '') ? 'O Supabase não encontrou as funções do app. ' : '') + 'Detalhe: ' + (error.message || error.code || 'erro'); throw error; }
     IS_ADMIN = !!data;
     if (!IS_ADMIN) { const r = await SB.rpc('tarefas_admin_livre'); ADMIN_FREE = !r.error && !!r.data; }
   } catch (e) { IS_ADMIN = false; ADMIN_FREE = false; }
