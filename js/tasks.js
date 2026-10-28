@@ -91,6 +91,7 @@ function metaHtml(t, opts = {}) {
   if (sh.prog && subs.length) m.push(`<span class="md">${ic('sub', 13)}${subs.filter(s => s.done).length}/${subs.length}</span>`);
   if (sh.icons && (t.att || []).length) m.push(`<span class="md">${ic('clip', 13)}${t.att.length}</span>`);
   const lk = (t.ln && (t.ln.d.length + t.ln.t.length)) || 0;
+  if (sh.icons && (t.cm || []).length) m.push(`<span class="md" title="Comentários">${ic('chat', 13)}${t.cm.length}</span>`);
   if (sh.icons && lk) m.push(`<span class="md">${ic('link', 13)}${lk}</span>`);
   if (sh.icons && !sh.notes && t.notes && stripHtml(t.notes)) m.push(`<span class="md">${ic('doc', 13)}</span>`);
   if (sh.icons && t.gc) m.push(`<span class="md" title="No Google Agenda">${ic('google', 13)}</span>`);

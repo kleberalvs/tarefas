@@ -90,6 +90,11 @@ function renderDetail(det) {
       <div class="row"><button class="btn ghost sm" data-act="link" data-k="d">${ic('doc', 16)}Vincular documento</button><button class="btn ghost sm" data-act="link" data-k="t">${ic('todo', 16)}Vincular tarefa</button><button class="btn ghost sm" data-act="newdocfor">${ic('plus', 16)}Novo documento</button></div>
     </section>
 
+    <section class="dsec dcms"><h3>${ic('chat', 18)}Comentários <span class="cnt">${(t.cm || []).length || ''}</span></h3>
+      <div class="cms">${cmList(t)}</div>
+      <form class="cmform"><span class="cmav">${esc(cmInitial())}</span><div class="cmbox"><textarea class="in cmin" rows="1" placeholder="Escreva um comentário…" maxlength="4000"></textarea><div class="cmbar"><span class="hint">${isMobile() ? '' : 'Ctrl + Enter para enviar'}</span><button class="btn red sm" type="submit" disabled>${ic('send', 15)}Comentar</button></div></div></form>
+    </section>
+
     <footer class="dfoot mut sm">
       ${focusMin ? `<span>${ic('focus', 14)} ${fmtDur(focusMin)} de foco</span>` : ''}
       <span>Criada ${esc(fmtDay(ymd(new Date(t.c || Date.now())), true).toLowerCase())}</span>
@@ -98,7 +103,37 @@ function renderDetail(det) {
     </footer>
   </div></div>`;
   bindDetail(det, t);
+  bindComments(det, t);
   loadTaskImgs(det);
+}
+/* comentários */
+function cmInitial() { return ((db.s.name || 'Você').trim()[0] || 'V').toUpperCase(); }
+function cmText(s) { return esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>'); }
+function cmWhen(at) {
+  const d = new Date(at), m = Math.round((Date.now() - at) / 60000);
+  if (m < 1) return 'agora'; if (m < 60) return `há ${m} min`;
+  const k = ymd(d); if (k === today()) return 'hoje às ' + hm(d); if (k === addD(today(), -1)) return 'ontem às ' + hm(d);
+  return fmtDay(k, true).toLowerCase() + ' às ' + hm(d);
+}
+function cmList(t) {
+  const nm = (db.s.name || 'Você').trim().split(' ')[0] || 'Você';
+  return (t.cm || []).map(c => `<div class="cm" data-cid="${c.id}"><span class="cmav">${esc(cmInitial())}</span><div class="cmb"><div class="cmh"><b>${esc(nm)}</b><span class="mut sm">${esc(cmWhen(c.at))}${c.ed ? ' · editado' : ''}</span><span class="sp"></span><button class="mini" data-act="cmedit" data-cid="${c.id}" aria-label="Editar comentário">${ic('edit', 15)}</button><button class="mini" data-act="cmdel" data-cid="${c.id}" aria-label="Apagar comentário">${ic('trash', 15)}</button></div><div class="cmt">${cmText(c.tx)}</div></div></div>`).join('');
+}
+function bindComments(det, t) {
+  const f = det.querySelector('.cmform'); if (!f) return;
+  const ta = f.querySelector('.cmin'), bt = f.querySelector('[type=submit]');
+  const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 220) + 'px'; bt.disabled = !ta.value.trim(); };
+  ta.oninput = fit;
+  if (typeof bulletArea === 'function') bulletArea(ta);
+  ta.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); f.requestSubmit(); } };
+  f.onsubmit = e => {
+    e.preventDefault(); const tx = ta.value.trim(); if (!tx) return;
+    t.cm = [...(t.cm || []), { id: uid(), tx, at: Date.now() }]; put('t', t);
+    ta.value = ''; fit();
+    det.querySelector('.cms').innerHTML = cmList(t);
+    det.querySelector('.dcms .cnt').textContent = t.cm.length;
+    const last = det.querySelector('.cms .cm:last-child'); if (last) { last.classList.add('cmnew'); last.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  };
 }
 /* imagens de capa das tarefas (detalhe, quadro e lista) */
 async function loadTaskImgs(root) {
@@ -184,6 +219,20 @@ function bindDetail(det, t) {
   if (sa) sa.onkeydown = e => { if (e.key === 'Enter' && sa.value.trim()) { e.preventDefault(); const s = taskFromSmart(sa.value.trim(), { list: t.list, sec: t.sec, par: t.id, o: Date.now() }); put('t', s); OPEN_SUBS.add(t.id); render(true); const n = $('#detail .addsub input'); if (n) n.focus(); } };
 }
 Object.assign(ACTS, {
+  cmdel: b => {
+    const t = get('t', R.sel); if (!t) return; const id = b.dataset.cid, old = (t.cm || []).slice();
+    t.cm = (t.cm || []).filter(c => c.id !== id); put('t', t); render(true);
+    toast('Comentário apagado', 'Desfazer', () => { t.cm = old; put('t', t); render(true); });
+  },
+  cmedit: b => {
+    const t = get('t', R.sel); if (!t) return; const c = (t.cm || []).find(x => x.id === b.dataset.cid); if (!c) return;
+    const box = b.closest('.cm').querySelector('.cmt');
+    box.innerHTML = `<textarea class="in cmin" rows="2">${esc(c.tx)}</textarea><div class="cmbar"><span class="sp"></span><button class="btn ghost sm" data-x>Cancelar</button><button class="btn red sm" data-ok>Salvar</button></div>`;
+    const ta = box.querySelector('textarea'); ta.style.height = ta.scrollHeight + 'px'; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    box.querySelector('[data-x]').onclick = () => render(true);
+    box.querySelector('[data-ok]').onclick = () => { const v = ta.value.trim(); if (!v) return; if (v !== c.tx) { c.tx = v; c.ed = Date.now(); put('t', t); } render(true); };
+    ta.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); box.querySelector('[data-ok]').click(); } if (e.key === 'Escape') { e.stopPropagation(); render(true); } };
+  },
   dclose: () => closeTask(),
   covopen: () => { const t = get('t', R.sel); if (t && t.cover) lightbox(t.cover); },
   tcovrm: () => { const t = get('t', R.sel); if (t && t.cover) { const m = t.cover; t.cover = null; put('t', t); FILES.remove(m); } },

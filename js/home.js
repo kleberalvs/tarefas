@@ -60,6 +60,7 @@ VIEWS.home = main => {
         <p class="herotx">${over.length ? `Você tem <b class="red">${plural(over.length, 'tarefa atrasada', 'tarefas atrasadas')}</b> e ` : 'Você tem '}<b>${plural(todayT.length, 'tarefa', 'tarefas')} para hoje</b>.${doneToday ? ` Já concluiu ${doneToday} hoje.` : ''}</p></div>
       <div class="ring"><svg viewBox="0 0 120 120" role="img" aria-label="Progresso de hoje: ${pct}%"><circle cx="60" cy="60" r="50" class="rbg"/><circle cx="60" cy="60" r="50" class="rfg" stroke-dasharray="${(2 * Math.PI * 50).toFixed(1)}" stroke-dashoffset="${(2 * Math.PI * 50 * (1 - pct / 100)).toFixed(1)}" transform="rotate(-90 60 60)"/></svg><div><b>${pct}%</b><span>do dia</span></div></div>
     </section>
+    ${aisumHtml()}
     <section class="kpis">
       ${kpi(over.length, 'Atrasadas', over.length ? 'warn' : '', 'l/today')}
       ${kpi(todayT.length, 'Para hoje', '', 'l/today')}
@@ -81,8 +82,53 @@ VIEWS.home = main => {
       ${habs.length ? `<section class="hcardx"><header><h3>Hábitos de hoje</h3><button class="link" data-act="go" data-to="habits">Abrir</button></header><div class="hhabs">${habs.map(x => `<button class="hhab${hDone(x, T) ? ' on' : ''}" style="--hc:${esc(x.color || '#DB4035')}" data-act="hcheckhome" data-id="${x.id}"><span>${esc(x.emoji || '✅')}</span>${esc(x.name)}${(x.goal || 1) > 1 ? ` <small>${hVal(x, T)}/${x.goal}</small>` : ''}</button>`).join('')}</div></section>` : ''}
     </div>
   </div></div>`;
+  aisumAuto();
 };
+/* resumo do dia feito pela IA: gerado uma vez por dia (sincroniza entre aparelhos) e pode ser refeito a qualquer momento */
+let AISUM_BUSY = false, AISUM_ERR = '';
+function aisumData() {
+  const T = today(), open = db.t.filter(t => live(t) && !t.par);
+  const desc = t => { const l = listOf(t), d = tDate(t), tm = t.due && tOnly(t.due); return `- ${t.title}${t.prio ? ' [prioridade ' + PRIO[t.prio].n.toLowerCase() + ']' : ''}${tm ? ' às ' + tm : ''}${d && d !== T ? ' (' + fmtDay(d, true).toLowerCase() + ')' : ''}${l ? ' — lista ' + l.name : ''}${subsOf(t.id).length ? ' — ' + subsOf(t.id).filter(x => !x.done).length + ' subtarefa(s) pendente(s)' : ''}`; };
+  const over = open.filter(overdue).sort(sortTasks), todayT = open.filter(t => tDate(t) === T && !overdue(t)).sort(sortTasks);
+  const week = open.filter(t => { const d = tDate(t); return d && d > T && d <= addD(T, 6); }).sort(sortTasks);
+  const ev = doneEvents(), y = addD(T, -1);
+  const doneY = ev.filter(e => ymd(new Date(e.at)) === y).length, doneT = ev.filter(e => ymd(new Date(e.at)) === T).length;
+  const habs = db.h.filter(x => !x.arch && hDue(x, T)).map(x => x.name);
+  const ag = (typeof GC !== 'undefined' && Array.isArray(GC.ev) ? GC.ev : []).filter(e => e.start && String(e.start).slice(0, 10) === T).map(e => `- ${e.title || 'Evento'}${e.start.length > 10 ? ' às ' + String(e.start).slice(11, 16) : ''}`);
+  return [`Hoje é ${fmtLong(T)}. Agora são ${hm(new Date())}.`,
+    `Atrasadas (${over.length}):\n${over.slice(0, 15).map(desc).join('\n') || 'nenhuma'}`,
+    `Para hoje (${todayT.length}):\n${todayT.slice(0, 20).map(desc).join('\n') || 'nenhuma'}`,
+    `Próximos 7 dias (${week.length}):\n${week.slice(0, 12).map(desc).join('\n') || 'nenhuma'}`,
+    ag.length ? `Agenda de hoje:\n${ag.join('\n')}` : '',
+    habs.length ? `Hábitos de hoje: ${habs.join(', ')}` : '',
+    `Concluídas ontem: ${doneY}. Concluídas hoje até agora: ${doneT}. Em aberto no total: ${open.length}.`].filter(Boolean).join('\n\n');
+}
+function aisumHtml() {
+  const S = db.s.aisum, T = today(), ok = S && S.d === T && S.tx;
+  const nm = (db.s.name || '').trim().split(' ')[0];
+  return `<section class="aisum${ok ? '' : ' load'}" id="aisum"><header><h3><span class="aisp">✨</span>Resumo do dia</h3><span class="mut aiwhen">${ok ? 'feito às ' + hm(new Date(S.at)) : ''}</span><span class="sp"></span><button class="ib" data-act="aisumre" aria-label="Refazer resumo" title="Refazer resumo">${ic('undo', 17)}</button></header>
+    <div class="aibody">${ok ? aiFmt(S.tx) : AISUM_ERR ? `<p class="err">${esc(AISUM_ERR)}</p><p class="mut sm">Toque em ↻ para tentar de novo.</p>` : '<span class="sk"></span><span class="sk"></span><span class="sk"></span>'}</div></section>`;
+}
+function aisumAuto() { const S = db.s.aisum; if (!(S && S.d === today() && S.tx) && !AISUM_ERR) aisumMake(); }
+async function aisumMake() {
+  if (AISUM_BUSY || typeof aiGen !== 'function') return;
+  AISUM_BUSY = true; AISUM_ERR = '';
+  const nm = (db.s.name || '').trim().split(' ')[0];
+  const prompt = `Faça o resumo do dia das minhas tarefas${nm ? ' (meu nome é ' + nm + ')' : ''}, como um assistente pessoal objetivo. Escreva em português do Brasil, no máximo 110 palavras, em 3 a 5 itens começando com "- ". Destaque em **negrito** o que é mais importante. Inclua: o foco principal do dia, o que está atrasado e merece atenção, uma ordem sugerida para começar e, se fizer sentido, um alerta sobre os próximos dias. Se não houver nada pendente, dê uma mensagem curta e positiva. Não invente tarefas que não estão na lista.\n\nMinhas tarefas:\n${aisumData()}`;
+  const el = () => document.getElementById('aisum');
+  try {
+    let shown = false;
+    const tx = (await aiGen(prompt, t => { const b = el() && el().querySelector('.aibody'); if (b && t.trim()) { b.innerHTML = aiFmt(t); if (!shown) { el().classList.remove('load'); shown = true; } } })).trim();
+    if (!tx) throw new Error('A IA não respondeu agora.');
+    db.s.aisum = { d: today(), tx, at: Date.now() }; put('s', db.s);
+  } catch (e) {
+    AISUM_ERR = (e && e.message) || 'Não foi possível gerar o resumo agora.';
+  }
+  AISUM_BUSY = false;
+  if (R.v === 'home') render(true);
+}
 Object.assign(ACTS, {
+  aisumre: () => { AISUM_ERR = ''; const b = document.querySelector('#aisum .aibody'); if (b) { b.parentElement.classList.add('load'); b.innerHTML = '<span class="sk"></span><span class="sk"></span><span class="sk"></span>'; } aisumMake(); },
   hrange: b => { HOME_RANGE = +b.dataset.n; render(true); },
   hcheckhome: b => { HS.day = today(); ACTS.hcheck(b); },
 });
