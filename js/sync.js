@@ -3,7 +3,7 @@
 'use strict';
 const CFG = window.TT_CFG || {};
 const CLOUD = !!(CFG.url && CFG.key && window.supabase);
-const APPV = '2026.10.28-1';
+const APPV = '2026.10.28-2';
 const TABLE = 'tarefas_registros';
 let SB = null, SES = null, WHO = '', synced = {}, pushing = false, again = false, ptmr = null, chan = null;
 const SYNC = { cls: 'local', txt: 'Modo local: dados só neste aparelho', icon: 'wifi' };
@@ -245,11 +245,12 @@ async function signOut() {
   location.reload();
 }
 function goLogin() { localStorage.removeItem('tt_local'); if (!SB) location.reload(); else showLogin(); }
-let IS_ADMIN = false, ADMIN_FREE = false;
+let IS_ADMIN = false, ADMIN_FREE = false, ADMIN_ERR = '';
 async function checkAdmin() {
+  ADMIN_ERR = '';
   try {
     const { data, error } = await SB.rpc('tarefas_sou_admin');
-    if (error) throw error;
+    if (error) { ADMIN_ERR = /function|does not exist|schema cache|not find/i.test(error.message || '') ? 'Falta rodar o arquivo atualizacao-2.sql no Supabase.' : error.message; throw error; }
     IS_ADMIN = !!data;
     if (!IS_ADMIN) { const r = await SB.rpc('tarefas_admin_livre'); ADMIN_FREE = !r.error && !!r.data; }
   } catch (e) { IS_ADMIN = false; ADMIN_FREE = false; }

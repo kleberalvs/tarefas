@@ -15,7 +15,7 @@ VIEWS.settings = main => {
   <section class="sgrp"><h2>${ic('sync', 18)}Conta e sincronização</h2>
     <div class="srow"><div class="row">${avatarHtml('md')}<div><b>${esc(s.name || 'Sem nome')}</b><p class="mut sm">Nome e foto do topo da barra lateral</p></div></div><button class="btn ghost sm" data-act="profile">Editar</button></div>
     ${CLOUD && SES ? `<div class="srow"><div><b>${esc(WHO)}</b><p class="mut sm" id="syncline">${esc(SYNC.txt)}</p></div><div class="row"><button class="btn ghost sm" data-act="chpass">${ic('key', 15)}Alterar senha</button><button class="btn ghost sm" data-act="logout">Sair</button></div></div>
-      ${IS_ADMIN ? `<div class="srow"><div><b>Usuários</b><p class="mut sm">Você é o administrador: crie e gerencie acessos.</p></div><button class="btn ghost sm" data-act="go" data-to="users">Abrir</button></div>` : ADMIN_FREE ? `<div class="srow"><div><b>Administrador</b><p class="mut sm">Ainda não há administrador. Assuma para poder criar usuários.</p></div><button class="btn red sm" data-act="claimadmin">Tornar-me administrador</button></div>` : ''}
+      ${IS_ADMIN ? `<div class="srow"><div><b>Usuários</b><p class="mut sm">Você é o administrador: crie e gerencie acessos.</p></div><button class="btn ghost sm" data-act="go" data-to="users">Abrir</button></div>` : ADMIN_ERR ? `<div class="srow"><div><b>Administrador</b><p class="err">${esc(ADMIN_ERR)}</p></div><button class="btn ghost sm" data-act="admrecheck">Verificar de novo</button></div>` : ADMIN_FREE ? `<div class="srow"><div><b>Administrador</b><p class="mut sm">Ainda não há administrador. Assuma para poder criar usuários.</p></div><button class="btn red sm" data-act="claimadmin">Tornar-me administrador</button></div>` : ''}
       <p class="hint">Tudo o que você faz aqui aparece nos outros aparelhos em segundos. Sem internet, o app continua funcionando e envia depois.</p>`
     : CLOUD ? `<div class="srow"><div><b>Modo local</b><p class="mut sm">Os dados ficam só neste aparelho.</p></div><button class="btn red sm" data-act="login">Entrar</button></div>`
     : `<p class="mut">Nuvem não configurada: os dados ficam só neste aparelho.</p>`}
@@ -72,6 +72,7 @@ VIEWS.settings = main => {
 Object.assign(ACTS, {
   sset: b => { db.s[b.dataset.k] = b.dataset.num ? +b.dataset.v : b.dataset.v; put('s', db.s); if (b.dataset.k === 'theme') applyTheme(); },
   logout: () => signOut(),
+  admrecheck: async () => { await checkAdmin(); render(true); toast(IS_ADMIN ? 'Você é o administrador' : ADMIN_FREE ? 'Pronto: já pode se tornar administrador' : ADMIN_ERR || 'Ainda não há permissão de administrador'); },
   login: () => goLogin(),
   gdisc: () => gDisconnect(),
   gsave: () => { const v = ($('#gcid').value || '').trim(); if (v && !/\.apps\.googleusercontent\.com$/.test(v)) { toast('Esse não parece um ID de cliente do Google'); return; } db.s.gClient = v; GC.client = null; put('s', db.s); if (v) gConnect(); },
