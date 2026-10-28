@@ -920,7 +920,7 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 [data-skin=champanhe]{--red:#A27A45;--red2:#8A6536;--red3:#BD9764}
 [data-skin=champanhe]:not([data-theme=dark]){--bg:#FFFEFB;--side:#F8F4EC;--side2:#F1EBDF;--hover:#F4EFE5;--hover2:#ECE4D5;--sel:#F3EADA;--line:#EDE6D9;--line2:#DDD3C1;--sunk:#FAF7F1;--card:#FFFEFB;--elev:#FFFEFB;--inbg:#FFFEFB}
 [data-skin=champanhe][data-theme=dark]{--red:#D2AE73}
-[data-skin=champanhe] .vt h1,[data-skin=champanhe] .ptitle{font-family:var(--serif);font-weight:700;letter-spacing:0}
+
 /* Rosé */
 [data-skin=rose]{--red:#D2557A;--red2:#B94366;--red3:#E07996}
 [data-skin=rose]:not([data-theme=dark]){--side:#FBF4F6;--side2:#F6E9ED;--hover:#F8EEF1;--hover2:#F2E2E7;--sel:#FBE6ED;--line:#F1E5E9;--line2:#E3D1D7;--sunk:#FCF8F9}
@@ -928,7 +928,7 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none;-webkit-user-sele
 /* Meia-noite (sempre escuro, detalhes dourados) */
 [data-skin=noite]{--red:#C9A86A;--red2:#B08F52;--red3:#DEC38F;--onacc:#15130F;--bg:#0E1014;--side:#14171D;--side2:#1A1E25;--hover:#1C2028;--hover2:#252A33;--sel:color-mix(in srgb,#C9A86A 16%,#14171D);--card:#161A20;--elev:#1A1E25;--sunk:#0B0D10;--inbg:#14171D;
   --txt:#ECE8E0;--txt2:#D6D1C7;--mut:#9C978D;--mut2:#726E66;--line:#232831;--line2:#313742;--redfg:#DEC38F;--sh1:0 1px 2px rgba(0,0,0,.5);--sh2:0 16px 40px rgba(0,0,0,.6);--sh3:0 6px 18px rgba(0,0,0,.5);color-scheme:dark}
-[data-skin=noite] .vt h1,[data-skin=noite] .ptitle{font-family:var(--serif);font-weight:700;letter-spacing:0}
+
 
 :root[data-skin]:not([data-theme=dark]):not([data-skin=classico]):not([data-skin=noite]){--redfg:color-mix(in srgb,var(--red) 85%,#000)}
 
@@ -1504,7 +1504,12 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
   /* cabeçalho: botões alinhados ao título mesmo com subtítulo em 2 linhas */
   .vhead{align-items:flex-start}
   .vhead>.ib,.vhead>.vr{margin-top:2px}
-  .vt{padding-top:7px;row-gap:2px}
+  .vt{padding-top:7px;row-gap:2px;flex-wrap:nowrap;flex-direction:row}
+  .vt:has(>.mut){flex-wrap:wrap}
+  .vt h1{flex:0 1 auto;min-width:0}
+  .vt>.ldot,.vt>span:first-child{flex:none}
+  .vr{gap:0}
+  .vr .ib{width:36px}
   .vt>.mut{flex-basis:100%;font-size:calc(12.5px * var(--fs,1));line-height:1.35}
   /* alvos de toque confortáveis */
   .seg button{min-height:34px;padding:0 12px}
