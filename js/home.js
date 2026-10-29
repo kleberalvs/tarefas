@@ -3,17 +3,20 @@
 let HOME_RANGE = 14, HOME_EDIT = false;
 /* blocos do painel: nome e largura padrão (em colunas de 4 no computador; 2 no celular) */
 const HB_DEF = {
-  hero: { n: 'Saudação e progresso', w: 4 }, aisum: { n: 'Resumo do dia (IA)', w: 4 },
-  k_over: { n: 'Atrasadas (número)', w: 1 }, k_today: { n: 'Para hoje (número)', w: 1 }, k_week: { n: 'Próximos 7 dias (número)', w: 1 }, k_open: { n: 'Em aberto (número)', w: 1 },
-  k_done: { n: 'Concluídas na semana', w: 1 }, k_habits: { n: 'Hábitos hoje (número)', w: 1 }, k_focus: { n: 'Foco hoje', w: 1 },
-  chart: { n: 'Gráfico de concluídas', w: 4 }, lists: { n: 'Em aberto por lista', w: 2 }, prio: { n: 'Por prioridade', w: 2 },
-  overdue: { n: 'Tarefas atrasadas', w: 2 }, today: { n: 'Tarefas de hoje', w: 2 }, week: { n: 'Próximos dias', w: 2 }, habits: { n: 'Hábitos de hoje', w: 2 },
+  hero: { n: 'Saudação e atalhos', w: 4 }, aisum: { n: 'Resumo do dia (IA)', w: 2 }, agenda: { n: 'Agenda de hoje', w: 2 },
+  k_over: { n: 'Atrasadas (número)', w: 1 }, k_today: { n: 'Para hoje (número)', w: 1 }, k_week: { n: 'Próximos 7 dias (número)', w: 1 }, k_done: { n: 'Concluídas na semana', w: 1 },
+  k_open: { n: 'Em aberto (número)', w: 1 }, k_habits: { n: 'Hábitos hoje (número)', w: 1 }, k_focus: { n: 'Foco hoje', w: 2 },
+  today: { n: 'Tarefas de hoje', w: 2 }, week: { n: 'Próximos dias', w: 2 }, overdue: { n: 'Tarefas atrasadas', w: 2 },
+  chart: { n: 'Gráfico de concluídas', w: 2 }, lists: { n: 'Em aberto por lista', w: 2 }, prio: { n: 'Por prioridade', w: 2 },
+  habits: { n: 'Hábitos de hoje', w: 2 }, notes: { n: 'Notas recentes', w: 2 }, docs: { n: 'Documentos recentes', w: 2 },
 };
-const HB_ORDER = ['hero', 'aisum', 'k_over', 'k_today', 'k_week', 'k_open', 'k_done', 'k_habits', 'k_focus', 'chart', 'lists', 'prio', 'overdue', 'today', 'week', 'habits'];
+const HB_ORDER = ['hero', 'k_over', 'k_today', 'k_week', 'k_done', 'aisum', 'agenda', 'overdue', 'today', 'week', 'chart', 'lists', 'k_open', 'k_habits', 'k_focus', 'prio', 'habits', 'notes', 'docs'];
+const HB_V = 3;
 /* um arranjo para o celular e outro para telas grandes; sincroniza entre aparelhos */
 function homeLayout() {
   const key = isMobile() ? 'm' : 'd', all = (db.s.home = db.s.home && typeof db.s.home === 'object' ? db.s.home : {});
-  const L = all[key] = all[key] || {};
+  let L = all[key] = all[key] || {};
+  if (L.v !== HB_V) L = all[key] = { v: HB_V };
   L.order = Array.isArray(L.order) ? L.order.filter(id => HB_DEF[id]) : HB_ORDER.slice();
   HB_ORDER.forEach(id => { if (!L.order.includes(id)) L.order.push(id); });
   L.w = L.w || {}; L.h = L.h || {}; L.hidden = Array.isArray(L.hidden) ? L.hidden : [];
@@ -129,15 +132,30 @@ VIEWS.home = main => {
   /* prioridade */
   const pr = [3, 2, 1, 0].map(p => ({ n: PRIO[p].n, v: open.filter(t => (t.prio || 0) === p).length, c: p ? PRIO[p].c : 'var(--line2)' }));
   const trend = doneWeek - prevWeek;
-  const kpi = (n, label, cls, to, sub) => `<button class="kpi ${cls || ''}" ${to ? `data-act="go" data-to="${to}"` : ''}><b>${n}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ''}</button>`;
+  const KIC = { Atrasadas: ['flag', '#E5484D'], 'Para hoje': ['today', '#DC4C3E'], 'Próximos 7 dias': ['week', '#8E6CEF'], 'Em aberto': ['inbox', '#2F80ED'], 'Concluídas na semana': ['check', '#2EA66B'], 'Hábitos hoje': ['habit', '#E8A33D'], 'Foco hoje': ['focus', '#14A3B8'] };
+  const kpi = (n, label, cls, to, sub) => { const [icn, col] = KIC[label] || ['star', 'var(--red)']; return `<button class="kpi kpi2 ${cls || ''}" style="--kc:${col}" ${to ? `data-act="go" data-to="${to}"` : ''}><span class="kic">${ic(icn, 18)}</span><b>${n}</b><span>${label}</span>${sub ? `<small>${sub}</small>` : ''}</button>`; };
   const mini = (arr, empty, max = 6) => arr.length ? arr.slice(0, max).map(t => rowHtml(t, { showList: 1, show: Object.assign({}, SHOW_DEF, { cover: 0 }) })).join('') + (arr.length > max ? `<p class="hint pad">+ ${arr.length - max} tarefa(s)</p>` : '') : `<p class="hint pad">${empty}</p>`;
   const ringHtml = `<div class="ring"><svg viewBox="0 0 120 120" role="img" aria-label="Progresso de hoje: ${pct}%"><circle cx="60" cy="60" r="50" class="rbg"/><circle cx="60" cy="60" r="50" class="rfg" stroke-dasharray="${(2 * Math.PI * 50).toFixed(1)}" stroke-dashoffset="${(2 * Math.PI * 50 * (1 - pct / 100)).toFixed(1)}" transform="rotate(-90 60 60)"/></svg><div><b>${pct}%</b><span>do dia</span></div></div>`;
   const L = homeLayout(), cols = isMobile() ? 2 : 4, gw = Math.min(1120, (main.clientWidth || 900)) - (isMobile() ? 28 : 64);
   const wOf = id => Math.min(cols, L.w[id] || HB_DEF[id].w);
   const chartW = Math.max(300, Math.round(gw * wOf('chart') / cols) - 40);
+  /* agenda de hoje: eventos do Google + tarefas com horário */
+  const evs = (typeof GC !== 'undefined' && Array.isArray(GC.ev) ? GC.ev : []).filter(e => e.start && String(e.start).slice(0, 10) <= T && String(e.end || e.start).slice(0, 10) >= T)
+    .map(e => ({ k: 'e', all: !!e.allDay || String(e.start).length <= 10, tm: String(e.start).length > 10 && String(e.start).slice(0, 10) === T ? String(e.start).slice(11, 16) : '', end: String(e.end || '').length > 10 ? String(e.end).slice(11, 16) : '', t: e.title, c: e.color || 'var(--red)', meet: e.meet }));
+  const tks = todayT.filter(t => tOnly(t.due || t.start)).map(t => ({ k: 't', id: t.id, tm: tOnly(t.due || t.start), t: t.title, c: PRIO[t.prio || 0].c || 'var(--mut2)', done: t.done }));
+  const ag = [...evs, ...tks].sort((a, b) => (a.all ? 0 : 1) - (b.all ? 0 : 1) || (a.tm || '').localeCompare(b.tm || ''));
+  const nowHM = hm(now);
+  const agHtml = ag.length ? `<ol class="agl">${ag.slice(0, 8).map(x => `<li class="${!x.all && x.tm && (x.end || x.tm) < nowHM ? 'past' : ''}"><span class="agt">${x.all ? 'Dia todo' : esc(x.tm)}${x.end ? `<small>${esc(x.end)}</small>` : ''}</span><i style="background:${esc(x.c)}"></i>${x.k === 't' ? `<button class="agn" data-act="topen" data-id="${x.id}">${ic('todo', 14)} ${esc(x.t)}</button>` : `<button class="agn" data-act="go" data-to="cal">${esc(x.t)}</button>`}</li>`).join('')}</ol>${ag.length > 8 ? `<p class="hint pad">+ ${ag.length - 8} compromisso(s)</p>` : ''}`
+    : `<div class="hempty">${ic('cal', 22)}<p>Nenhum compromisso com horário hoje.</p>${typeof GC !== 'undefined' && GC.status !== 'on' ? '<button class="link" data-act="go" data-to="settings">Conectar Google Agenda</button>' : ''}</div>`;
+  const recentNotes = (db.n || []).filter(n => !n.del && !n.arch).sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (b.u || b.c || 0) - (a.u || a.c || 0)).slice(0, 6);
+  const recentDocs = db.d.filter(d => !d.del).sort((a, b) => (b.u || b.c || 0) - (a.u || a.c || 0)).slice(0, 5);
   const B = {
-    hero: `<section class="hero"><div><h2>${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}${nm ? `, ${esc(nm)}` : ''}</h2><p class="hdate">${esc(fmtLong(T))}</p>
-        <p class="herotx">${over.length ? `Você tem <b class="red">${plural(over.length, 'tarefa atrasada', 'tarefas atrasadas')}</b> e ` : 'Você tem '}<b>${plural(todayT.length, 'tarefa', 'tarefas')} para hoje</b>.${doneToday ? ` Já concluiu ${doneToday} hoje.` : ''}</p></div>${ringHtml}</section>`,
+    hero: `<section class="hero hero2"><div><h2>${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}${nm ? `, ${esc(nm)}` : ''}</h2><p class="hdate">${esc(fmtLong(T))}</p>
+        <p class="herotx">${over.length ? `Você tem <b class="red">${plural(over.length, 'tarefa atrasada', 'tarefas atrasadas')}</b> e ` : 'Você tem '}<b>${plural(todayT.length, 'tarefa', 'tarefas')} para hoje</b>.${doneToday ? ` Já concluiu ${doneToday} hoje.` : ''}</p>
+        <div class="hacts"><button class="hact" data-act="quick">${ic('plus', 15)}Tarefa</button><button class="hact" data-act="qnote">${ic('note', 15)}Nota</button><button class="hact" data-act="dnew">${ic('doc', 15)}Documento</button><button class="hact" data-act="go" data-to="focus">${ic('focus', 15)}Foco</button></div></div>${ringHtml}</section>`,
+    agenda: `<section class="hcardx"><header><h3>${ic('cal', 16)}Agenda de hoje</h3><button class="link" data-act="go" data-to="cal">Calendário</button></header>${agHtml}</section>`,
+    notes: `<section class="hcardx"><header><h3>${ic('note', 16)}Notas recentes</h3><button class="link" data-act="go" data-to="notes">Ver todas</button></header>${recentNotes.length ? `<div class="hnotes">${recentNotes.map(n => `<button class="hnote" style="${esc(typeof noteStyle === 'function' ? noteStyle(n) : '')}" data-act="hnote" data-id="${n.id}">${n.title ? `<b>${esc(n.title)}</b>` : ''}<span>${esc((n.body || (n.items || []).map(i => (i.done ? '☑ ' : '☐ ') + i.t).join('\n') || '').slice(0, 140))}</span></button>`).join('')}</div>` : `<div class="hempty">${ic('note', 22)}<p>Nenhuma nota ainda.</p><button class="link" data-act="qnote">Criar nota</button></div>`}</section>`,
+    docs: `<section class="hcardx"><header><h3>${ic('doc', 16)}Documentos recentes</h3><button class="link" data-act="go" data-to="docs">Ver todos</button></header>${recentDocs.length ? `<div class="hdocs">${recentDocs.map(d => `<a class="hdoc" href="#/doc/${d.id}"><span class="hdic">${d.icon === '' ? ic('doc', 16) : esc(d.icon || '📄')}</span><span class="hdt">${esc(d.title || 'Sem título')}</span><small>${esc(fmtDay(ymd(new Date(d.u || d.c)), true))}</small></a>`).join('')}</div>` : `<div class="hempty">${ic('doc', 22)}<p>Nenhum documento ainda.</p><button class="link" data-act="dnew">Criar documento</button></div>`}</section>`,
     aisum: aisumHtml(),
     k_over: kpi(over.length, 'Atrasadas', over.length ? 'warn' : '', 'l/today'),
     k_today: kpi(todayT.length, 'Para hoje', '', 'l/today'),
@@ -146,13 +164,13 @@ VIEWS.home = main => {
     k_done: kpi(doneWeek, 'Concluídas na semana', 'ok', 'l/done', prevWeek || doneWeek ? (trend >= 0 ? '▲ ' : '▼ ') + Math.abs(trend) + ' vs. semana passada' : ''),
     k_habits: kpi(habs.length ? habsOk + '/' + habs.length : '—', 'Hábitos hoje', '', 'habits'),
     k_focus: kpi(focusMin ? fmtDur(focusMin) : '0min', 'Foco hoje', '', 'focus'),
-    chart: `<section class="hcardx"><header><h3>Tarefas concluídas</h3><div class="seg">${[7, 14, 30].map(n => `<button class="${HOME_RANGE === n ? 'on' : ''}" data-act="hrange" data-n="${n}">${n} dias</button>`).join('')}</div></header>${svgBars(bars, { aria: 'Tarefas concluídas por dia', w: chartW })}<p class="hint">Total no período: <b>${bars.reduce((s, b) => s + b.v, 0)}</b> · média de ${(bars.reduce((s, b) => s + b.v, 0) / HOME_RANGE).toFixed(1)} por dia</p></section>`,
-    lists: `<section class="hcardx"><header><h3>Em aberto por lista</h3></header>${byList.length ? `<div class="hbars">${byList.map(x => `<button class="hbar" data-act="go" data-to="l/${x.l.id}"><span class="hbn">${x.l.emoji ? esc(x.l.emoji) + ' ' : `<i class="ldot" style="background:${esc(x.l.color || '#888')}"></i>`}${esc(x.l.name)}</span><span class="hbt"><i style="width:${Math.round(x.n / maxL * 100)}%;background:${esc(x.l.color || 'var(--red)')}"></i></span><b>${x.n}</b></button>`).join('')}</div>` : '<p class="hint pad">Nenhuma tarefa em aberto.</p>'}</section>`,
-    prio: `<section class="hcardx"><header><h3>Por prioridade</h3></header><div class="donutw">${svgDonut(pr, open.length, 'em aberto')}<ul class="leg">${pr.map(p => `<li><i style="background:${p.c}"></i>${esc(p.n)}<b>${p.v}</b></li>`).join('')}</ul></div></section>`,
-    overdue: over.length ? `<section class="hcardx"><header><h3 class="red">Atrasadas</h3><button class="link" data-act="resched">Reagendar para hoje</button></header>${mini(over, '')}</section>` : (HOME_EDIT ? `<section class="hcardx"><header><h3>Atrasadas</h3></header><p class="hint pad">Nada atrasado — este bloco só aparece quando houver.</p></section>` : ''),
-    today: `<section class="hcardx"><header><h3>Hoje</h3><button class="link" data-act="go" data-to="l/today">Ver tudo</button></header>${mini(todayT, 'Nada para hoje. Aproveite! 🎉')}</section>`,
-    week: `<section class="hcardx"><header><h3>Próximos dias</h3><button class="link" data-act="go" data-to="l/week">Ver tudo</button></header>${mini(week, 'Nada nos próximos 7 dias.')}</section>`,
-    habits: habs.length ? `<section class="hcardx"><header><h3>Hábitos de hoje</h3><button class="link" data-act="go" data-to="habits">Abrir</button></header><div class="hhabs">${habs.map(x => `<button class="hhab${hDone(x, T) ? ' on' : ''}" style="--hc:${esc(x.color || '#DB4035')}" data-act="hcheckhome" data-id="${x.id}"><span>${esc(x.emoji || '✅')}</span>${esc(x.name)}${(x.goal || 1) > 1 ? ` <small>${hVal(x, T)}/${x.goal}</small>` : ''}</button>`).join('')}</div></section>` : (HOME_EDIT ? `<section class="hcardx"><header><h3>Hábitos de hoje</h3></header><p class="hint pad">Sem hábitos para hoje.</p></section>` : ''),
+    chart: `<section class="hcardx"><header><h3>${ic('done', 16)}Tarefas concluídas</h3><div class="seg">${[7, 14, 30].map(n => `<button class="${HOME_RANGE === n ? 'on' : ''}" data-act="hrange" data-n="${n}">${n} dias</button>`).join('')}</div></header>${svgBars(bars, { aria: 'Tarefas concluídas por dia', w: chartW })}<p class="hint">Total no período: <b>${bars.reduce((s, b) => s + b.v, 0)}</b> · média de ${(bars.reduce((s, b) => s + b.v, 0) / HOME_RANGE).toFixed(1)} por dia</p></section>`,
+    lists: `<section class="hcardx"><header><h3>${ic('list', 16)}Em aberto por lista</h3></header>${byList.length ? `<div class="hbars">${byList.map(x => `<button class="hbar" data-act="go" data-to="l/${x.l.id}"><span class="hbn">${x.l.emoji ? esc(x.l.emoji) + ' ' : `<i class="ldot" style="background:${esc(x.l.color || '#888')}"></i>`}${esc(x.l.name)}</span><span class="hbt"><i style="width:${Math.round(x.n / maxL * 100)}%;background:${esc(x.l.color || 'var(--red)')}"></i></span><b>${x.n}</b></button>`).join('')}</div>` : '<p class="hint pad">Nenhuma tarefa em aberto.</p>'}</section>`,
+    prio: `<section class="hcardx"><header><h3>${ic('flag', 16)}Por prioridade</h3></header><div class="donutw">${svgDonut(pr, open.length, 'em aberto')}<ul class="leg">${pr.map(p => `<li><i style="background:${p.c}"></i>${esc(p.n)}<b>${p.v}</b></li>`).join('')}</ul></div></section>`,
+    overdue: over.length ? `<section class="hcardx"><header><h3 class="red">${ic('flag', 16)}Atrasadas</h3><button class="link" data-act="resched">Reagendar para hoje</button></header>${mini(over, '')}</section>` : (HOME_EDIT ? `<section class="hcardx"><header><h3>Atrasadas</h3></header><p class="hint pad">Nada atrasado — este bloco só aparece quando houver.</p></section>` : ''),
+    today: `<section class="hcardx"><header><h3>${ic('today', 16)}Hoje</h3><button class="link" data-act="go" data-to="l/today">Ver tudo</button></header>${mini(todayT, 'Nada para hoje. Aproveite! 🎉')}</section>`,
+    week: `<section class="hcardx"><header><h3>${ic('week', 16)}Próximos dias</h3><button class="link" data-act="go" data-to="l/week">Ver tudo</button></header>${mini(week, 'Nada nos próximos 7 dias.')}</section>`,
+    habits: habs.length ? `<section class="hcardx"><header><h3>${ic('habit', 16)}Hábitos de hoje</h3><button class="link" data-act="go" data-to="habits">Abrir</button></header><div class="hhabs">${habs.map(x => `<button class="hhab${hDone(x, T) ? ' on' : ''}" style="--hc:${esc(x.color || '#DB4035')}" data-act="hcheckhome" data-id="${x.id}"><span>${esc(x.emoji || '✅')}</span>${esc(x.name)}${(x.goal || 1) > 1 ? ` <small>${hVal(x, T)}/${x.goal}</small>` : ''}</button>`).join('')}</div></section>` : (HOME_EDIT ? `<section class="hcardx"><header><h3>Hábitos de hoje</h3></header><p class="hint pad">Sem hábitos para hoje.</p></section>` : ''),
   };
   const right = HOME_EDIT
     ? `<button class="btn ghost sm" data-act="hbadd">${ic('plus', 16)}<span class="hide-s">Blocos</span></button><button class="btn ghost sm" data-act="hbreset">${ic('undo', 16)}<span class="hide-s">Padrão</span></button><button class="btn red sm" data-act="hbedit">${ic('check', 16)}<span>Concluir</span></button>`
@@ -209,6 +227,7 @@ async function aisumMake() {
   if (R.v === 'home') render(true);
 }
 Object.assign(ACTS, {
+  hnote: b => openNote(b.dataset.id),
   hbedit: () => { HOME_EDIT = !HOME_EDIT; if (!HOME_EDIT) toast('Painel salvo'); render(true); },
   hbhide: b => { const L = homeLayout(); if (!L.hidden.includes(b.dataset.id)) L.hidden.push(b.dataset.id); homeSave(); render(true); toast('Bloco oculto', 'Desfazer', () => { L.hidden = L.hidden.filter(x => x !== b.dataset.id); homeSave(); render(true); }); },
   hbadd: b => {
