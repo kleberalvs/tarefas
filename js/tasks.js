@@ -106,7 +106,7 @@ function rowHtml(t, opts = {}) {
   const cov = t.cover && sh.cover ? (opts.card ? `<div class="ccov"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></div>` : `<span class="rthumb"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></span>`) : '';
   return `<div class="trow p${sh.prio ? t.prio || 0 : 0}${t.done ? ' done' : ''}${R.sel === t.id ? ' sel' : ''}${opts.card ? ' card' : ''}${cov && opts.card ? ' hascov' : ''}" style="--lvl:${lvl}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}">${opts.card ? cov : ''}
     ${subs.length && !opts.card ? `<button class="caret${open ? ' open' : ''}" data-act="subs" data-id="${t.id}" aria-label="${open ? 'Ocultar' : 'Mostrar'} subtarefas">${ic('chev', 14)}</button>` : ''}
-    <button class="chk" data-act="tcheck" data-id="${t.id}" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'}: ${esc(t.title)}"><span>${ic('check', 12)}</span></button>
+    ${t.note ? `<button class="notemark" data-act="topen" data-id="${t.id}" aria-label="Anotação: ${esc(t.title)}" title="Anotação">${ic('doc', 16)}</button>` : `<button class="chk" data-act="tcheck" data-id="${t.id}" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'}: ${esc(t.title)}"><span>${ic('check', 12)}</span></button>`}
     <div class="tmain" data-act="topen" data-id="${t.id}"><div class="ttl">${linkifyText(t.title, { short: 1 }) || '<span class="mut">Sem título</span>'}</div>${sh.notes && t.notes && stripHtml(t.notes) ? `<div class="tnote">${linkifyText(stripHtml(t.notes).slice(0, 160), { short: 1 })}</div>` : ''}${opts.noMeta ? '' : `<div class="tmeta">${metaHtml(t, opts)}</div>`}</div>${opts.card ? '' : cov}
     ${opts.trash ? `<div class="tact on"><button class="btn ghost sm" data-act="restore" data-id="${t.id}">Restaurar</button><button class="ib" data-act="purge" data-id="${t.id}" aria-label="Excluir definitivamente">${ic('trash', 18)}</button></div>` :
       `<div class="tact"><button class="ib" data-act="tdate" data-id="${t.id}" aria-label="Definir data">${ic('cal', 18)}</button><button class="ib" data-act="tmore" data-id="${t.id}" aria-label="Mais opções">${ic('more', 18)}</button></div>`}
@@ -343,7 +343,7 @@ function tagMenu(anchor, sel, done) {
 
 /* ---------- ações das tarefas ---------- */
 function checkTask(id, el) {
-  const t = get('t', id); if (!t) return;
+  const t = get('t', id); if (!t || t.note) return;
   const row = el && el.closest('.trow');
   const go = () => {
     const r = completeTask(t);
@@ -384,6 +384,7 @@ function taskMenu(t, anchor, at) {
     { label: 'Etiquetas…', icon: 'tag', act: () => tagMenu(anchor, t.tags || [], ids => { t.tags = ids; put('t', t); }) },
     { label: 'Adicionar subtarefa', icon: 'sub', act: () => { openTask(t.id); setTimeout(() => { const i = $('#detail .addsub input'); if (i) i.focus(); }, 80); } },
     { label: 'Iniciar foco', icon: 'focus', act: () => { startFocusOn(t.id); } },
+    { label: t.note ? 'Converter em tarefa' : 'Converter em anotação', icon: t.note ? 'todo' : 'doc', act: () => toggleNote(t) },
     { label: 'Duplicar', icon: 'copy', act: () => { duplicateTask(t); toast('Tarefa duplicada'); } },
     { label: 'Exportar…', icon: 'export', act: () => exportMenu(anchor, { kind: 'task', id: t.id }) },
     { sep: 1 },
@@ -420,6 +421,7 @@ Object.assign(ACTS, {
       { label: 'Exportar…', icon: 'export', act: () => exportMenu(b, { kind: 'scope', id: R.id }) },
       { label: 'Imprimir / PDF', icon: 'file', act: () => exportScope(R.id, 'pdf') },
       info.list ? { label: 'Editar lista', icon: 'edit', act: () => editList(info.list) } : null,
+      info.list ? { label: 'Converter todas em anotações', icon: 'doc', act: () => { const ts = db.t.filter(x => live(x) && x.list === info.list.id && !x.note && !x.done); if (!ts.length) { toast('Nada para converter'); return; } ts.forEach(x => { x.note = true; put('t', x, { silent: true }); }); changed(); toast(plural(ts.length, 'tarefa convertida', 'tarefas convertidas') + ' em anotação', 'Desfazer', () => { ts.forEach(x => { x.note = false; put('t', x, { silent: true }); }); changed(); }); } } : null,
       info.list ? { label: 'Adicionar seção', icon: 'plus', act: () => ACTS.addsec() } : null,
       info.kind === 'tag' ? { label: 'Editar etiqueta', icon: 'edit', act: () => editTag(get('g', R.id.slice(4))) } : null,
     ], { right: 1 });

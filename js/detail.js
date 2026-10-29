@@ -16,6 +16,7 @@ function closeTask() {
 addEventListener('popstate', () => { if (R.sel && !(history.state && history.state.sel)) { R.sel = null; render(true); } });
 
 const REM_OPTS = [[0, 'Na hora'], [5, '5 min antes'], [15, '15 min antes'], [30, '30 min antes'], [60, '1 hora antes'], [120, '2 horas antes'], [1440, '1 dia antes']];
+const DET_OPEN = new Set();
 function renderDetail(det) {
   const t = R.sel && get('t', R.sel);
   if (!t) { det.innerHTML = ''; det.dataset.id = ''; return; }
@@ -28,59 +29,50 @@ function renderDetail(det) {
   const docRefs = db.d.filter(d => !d.del && (d.b || []).some(b => (b.ref === t.id) || (b.text && b.text.includes('data-ref="' + t.id + '"'))));
   const ln = t.ln || { d: [], t: [] };
   det.dataset.id = t.id;
-  det.innerHTML = `<div class="dwrap">
+  const op = k => DET_OPEN.has(t.id + ':' + k);
+  const dLabel = (d, tm) => d ? `${cap(fmtDay(d, true))}${tm ? ', ' + tm : ''}` : '';
+  const when = eD ? dLabel(eD, eT) : sD ? 'Início: ' + dLabel(sD, sT) : '';
+  const remTxt = (t.rem || []).length ? (REM_OPTS.find(o => o[0] === t.rem[0]) || [0, fmtDur(t.rem[0]) + ' antes'])[1] : '';
+  const tagsH = (t.tags || []).map(g => { const x = get('g', g); return x ? `<span class="ptag" style="--c:${esc(x.color)}">${x.emoji ? esc(x.emoji) + ' ' : '#'}${esc(x.name)}<button data-act="duntag" data-g="${g}" aria-label="Remover etiqueta ${esc(x.name)}">${ic('x', 11)}</button></span>` : ''; }).join('');
+  const showChk = chk.length || op('chk'), showSubs = !t.par && (subs.length || op('subs')), showAtt = (t.att || []).length || op('att');
+  const showLn = ln.d.length || ln.t.length || back.length || docRefs.length || op('ln'), showCm = (t.cm || []).length || op('cm');
+  det.innerHTML = `<div class="dwrap dclean${t.note ? ' isnote' : ''}">
   <header class="dtop">
     <button class="ib show-m" data-act="dclose" aria-label="Voltar">${ic('left')}</button>
-    <button class="chk big p${t.prio || 0}${t.done ? ' on' : ''}" data-act="dcheck" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'} tarefa"><span>${ic('check', 14)}</span></button>
-    <button class="chipb dlist" data-act="dlist">${'<span class="ldot" style="background:' + esc(l.color || '#808080') + '"></span>'}<span>${esc(l.name)}${t.sec && secs.find(s => s.id === t.sec) ? ' / ' + esc(secs.find(s => s.id === t.sec).name) : ''}</span>${ic('chevd', 14)}</button>
+    ${t.note ? `<span class="notemark big" title="Anotação">${ic('doc', 18)}</span>` : `<button class="chk sq p${t.prio || 0}${t.done ? ' on' : ''}" data-act="dcheck" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'} tarefa"><span>${ic('check', 13)}</span></button>`}
+    <i class="dvsep"></i>
+    <button class="ddate${overdue(t) ? ' red' : ''}${when ? ' set' : ''}" data-act="dpdue">${ic('cal', 17)}<span>${when ? esc(when) : 'Dia do vencimento'}</span>${t.rep ? ic('repeat', 14) : ''}${remTxt ? ic('bell', 14) : ''}</button>
+    ${eD ? `<button class="pclr" data-act="pclr" data-k="due" aria-label="Limpar data">${ic('x', 12)}</button>` : ''}
     <span class="sp"></span>
-    <button class="ib" data-act="dprio" aria-label="Prioridade" style="color:${PRIO[t.prio || 0].c}">${ic('flag')}</button>
-    <button class="ib" data-act="dfocus" aria-label="Iniciar foco">${ic('focus')}</button>
-    <button class="ib" data-act="dmore" aria-label="Mais opções">${ic('more')}</button>
-    <button class="ib hide-m" data-act="dclose" aria-label="Fechar">${ic('x')}</button>
+    <button class="ib" data-act="dprio" aria-label="Prioridade" title="Prioridade" style="color:${t.prio ? PRIO[t.prio].c : 'var(--mut)'}">${ic('flag', 19)}</button>
+    <button class="ib hide-m" data-act="dclose" aria-label="Fechar">${ic('x', 19)}</button>
   </header>
   <div class="dscroll">
     ${t.cover ? `<div class="tcover"><img alt="Capa da tarefa" data-act="covopen" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"><div class="tcbtns"><label class="btn ghost sm">${ic('img', 16)}Trocar<input type="file" accept="image/*" hidden data-f="cover"></label><button class="btn ghost sm" data-act="tcovrm">Remover</button></div></div>` : ''}
     ${t.par ? `<button class="link dparent" data-act="topen" data-id="${t.par}">${ic('left', 14)} ${esc((get('t', t.par) || {}).title || 'Tarefa principal')}</button>` : ''}
-    <textarea class="dtitle" data-keep rows="1" placeholder="Título da tarefa" aria-label="Título">${esc(t.title)}</textarea><div class="dtlinks">${linkChips(findLinks(t.title))}</div>
-    <div class="dnotes rich" data-keep contenteditable="true" data-ph="Descrição, ideias, links…" aria-label="Descrição">${linkifyHtml(clean(t.notes))}</div>
+    <div class="dtrow"><textarea class="dtitle" data-keep rows="1" placeholder="Título" aria-label="Título">${esc(t.title)}</textarea><button class="ib dtchk" data-act="dopen" data-k="chk" title="Lista de itens" aria-label="Adicionar lista de itens">${ic('ul', 18)}</button></div>
+    <div class="dtlinks">${linkChips(findLinks(t.title))}</div>
+    ${tagsH || t.rep || remTxt || sD && eD ? `<div class="dchips">${tagsH}${t.rep ? `<button class="dchip" data-act="drep">${ic('repeat', 13)}${esc(repText(t.rep))}</button>` : ''}${remTxt ? `<button class="dchip" data-act="drem">${ic('bell', 13)}${esc(remTxt)}</button>` : ''}${sD && eD ? `<button class="dchip" data-act="dpstart">${ic('startd', 13)}Início: ${esc(dLabel(sD, sT))}</button>` : ''}</div>` : ''}
+    <div class="dnotes rich" data-keep contenteditable="true" data-ph="Digite o conteúdo…" aria-label="Conteúdo">${linkifyHtml(clean(t.notes))}</div>
 
-    <div class="props">
-      ${(() => {
-        const dLabel = (d, tm) => d ? `${cap(fmtDay(d, true))}${tm ? ' · ' + tm : ''}` : '';
-        const row = (icon, label, val, act, opts = {}) => `<div class="prop"><span class="pl">${ic(icon, 16)}${label}</span><div class="pv">${val ? `<button class="pval${opts.cls ? ' ' + opts.cls : ''}" data-act="${act}" ${opts.style ? `style="${opts.style}"` : ''}>${val}</button>` : `<button class="pval empty" data-act="${act}">${opts.ph || 'Vazio'}</button>`}${opts.extra || ''}</div></div>`;
-        const remTxt = (t.rem || []).length ? (REM_OPTS.find(o => o[0] === t.rem[0]) || [0, fmtDur(t.rem[0]) + ' antes'])[1] : '';
-        const tagsH = (t.tags || []).map(g => { const x = get('g', g); return x ? `<span class="ptag" style="--c:${esc(x.color)}">${x.emoji ? esc(x.emoji) + ' ' : '#'}${esc(x.name)}<button data-act="duntag" data-g="${g}" aria-label="Remover etiqueta ${esc(x.name)}">${ic('x', 11)}</button></span>` : ''; }).join('');
-        return [
-          row('cal', 'Prazo', eD ? `<span class="${overdue(t) ? 'red' : ''}">${esc(dLabel(eD, eT))}</span>` : '', 'dpdue', { ph: 'Definir prazo', extra: eD ? `<button class="pclr" data-act="pclr" data-k="due" aria-label="Limpar prazo">${ic('x', 12)}</button>` : '' }),
-          row('startd', 'Início', sD ? esc(dLabel(sD, sT)) : '', 'dpstart', { ph: 'Definir início', extra: sD ? `<button class="pclr" data-act="pclr" data-k="start" aria-label="Limpar início">${ic('x', 12)}</button>` : '' }),
-          row('repeat', 'Repetir', t.rep ? esc(repText(t.rep)) : '', 'drep', { ph: 'Não repete' }),
-          row('bell', 'Lembrete', remTxt ? esc(remTxt) : '', 'drem', { ph: tOnly(t.due || t.start) ? 'Nenhum' : 'Defina um horário' }),
-          row('flag', 'Prioridade', t.prio ? `${ic('flag', 14)}${PRIO[t.prio].n}` : '', 'dprio', { ph: 'Nenhuma', style: t.prio ? `color:${PRIO[t.prio].c}` : '' }),
-          `<div class="prop"><span class="pl">${ic('tag', 16)}Etiquetas</span><div class="pv wrap">${tagsH}<button class="pval ${tagsH ? 'add' : 'empty'}" data-act="dtags">${tagsH ? ic('plus', 13) : 'Adicionar'}</button></div></div>`,
-          t.cover ? '' : `<div class="prop"><span class="pl">${ic('cover', 16)}Capa</span><div class="pv"><label class="pval empty filebtn">Adicionar foto<input type="file" accept="image/*" hidden data-f="cover"></label></div></div>`,
-          typeof gcalReady === 'function' && db.s.gClient ? `<div class="prop"><span class="pl">${ic('google', 16)}Google</span><div class="pv"><label class="sw-t"><input type="checkbox" data-f="gc" ${t.gc || (t.gcOn !== false && db.s.gPush && (t.due || t.start)) ? 'checked' : ''} ${t.due || t.start ? '' : 'disabled'}><span></span></label><span class="mut sm">${t.gc ? 'Na sua agenda' : t.due || t.start ? 'Enviar para a agenda' : 'Defina uma data'}</span></div></div>` : '',
-        ].join('');
-      })()}
-    </div>
-
-    <section class="dsec"><h3>${ic('todo', 18)}Itens <span class="cnt">${chk.length ? chk.filter(c => c.done).length + '/' + chk.length : ''}</span></h3>
+    ${showChk ? `<section class="dsec"><h3>${ic('todo', 16)}Itens <span class="cnt">${chk.length ? chk.filter(c => c.done).length + '/' + chk.length : ''}</span></h3>
       ${chk.length ? `<div class="prog"><span style="width:${Math.round(chk.filter(c => c.done).length / chk.length * 100)}%"></span></div>` : ''}
       <div class="chklist">${chk.map((c, i) => `<div class="ck${c.done ? ' done' : ''}" data-drag="ck:${t.id}:${c.id}" data-drop="ck:${c.id}"><button class="cbox${c.done ? ' on' : ''}" data-act="ckt" data-i="${i}" role="checkbox" aria-checked="${c.done}" aria-label="Item ${esc(c.t)}">${ic('check', 12)}</button><input class="ckin" data-keep data-i="${i}" value="${esc(c.t)}" aria-label="Texto do item"><button class="mini" data-act="ckdel" data-i="${i}" aria-label="Remover item">${ic('x', 14)}</button></div>`).join('')}</div>
       <div class="addline" data-keep>${ic('plus', 16)}<input class="ckadd" placeholder="Adicionar item" aria-label="Adicionar item"></div>
-    </section>
+    </section>` : ''}
 
-    ${t.par ? '' : `<section class="dsec"><h3>${ic('sub', 18)}Subtarefas <span class="cnt">${subs.length ? subs.filter(s => s.done).length + '/' + subs.length : ''}</span></h3>
+    ${showSubs ? `<section class="dsec"><h3>${ic('sub', 16)}Subtarefas <span class="cnt">${subs.length ? subs.filter(s => s.done).length + '/' + subs.length : ''}</span></h3>
       <div class="subl">${subs.map(s => rowHtml(s, { lvl: 0, withDone: 1 })).join('')}</div>
       <div class="addline addsub" data-keep>${ic('plus', 16)}<input placeholder="Adicionar subtarefa" aria-label="Adicionar subtarefa"></div>
-    </section>`}
+    </section>` : ''}
 
-    <section class="dsec"><h3>${ic('clip', 18)}Anexos <span class="cnt">${(t.att || []).length || ''}</span></h3>
+    ${showAtt ? `<section class="dsec"><h3>${ic('clip', 16)}Anexos <span class="cnt">${(t.att || []).length || ''}</span></h3>
       <div class="atts">${(t.att || []).map((m, i) => `<div class="att"><button class="attm" data-act="aopen" data-i="${i}">${ic(fileIcon(m), 22)}<span class="an">${esc(m.name)}</span><span class="mut sm">${fmtSize(m.size)}${m.pending ? ' · só neste aparelho' : ''}</span></button><button class="mini" data-act="adel" data-i="${i}" aria-label="Remover anexo">${ic('trash', 16)}</button></div>`).join('')}</div>
       <label class="btn ghost sm filebtn">${ic('up', 16)}Anexar arquivos<input type="file" multiple hidden data-f="files"></label>
-    </section>
+    </section>` : `<input type="file" multiple hidden data-f="files" id="dfiles">`}
+    ${t.cover ? '' : `<input type="file" accept="image/*" hidden data-f="cover" id="dcover">`}
 
-    <section class="dsec"><h3>${ic('link', 18)}Vínculos</h3>
+    ${showLn ? `<section class="dsec"><h3>${ic('link', 16)}Vínculos</h3>
       <div class="links">
         ${ln.d.map(id => { const d = get('d', id); return d ? `<div class="lnk"><a href="#/doc/${d.id}" class="lnkm"><span class="dicon">${esc(d.icon || '📄')}</span><span>${esc(d.title || 'Sem título')}</span></a><button class="mini" data-act="unlink" data-k="d" data-id="${id}" aria-label="Desvincular">${ic('x', 14)}</button></div>` : ''; }).join('')}
         ${ln.t.map(id => { const x = get('t', id); return x ? `<div class="lnk"><button class="lnkm" data-act="topen" data-id="${x.id}"><span class="chk sm p${x.prio || 0}${x.done ? ' on' : ''}"><span>${ic('check', 10)}</span></span><span>${esc(x.title)}</span>${x.due ? `<span class="mut sm">${esc(fmtWhen(x.due))}</span>` : ''}</button><button class="mini" data-act="unlink" data-k="t" data-id="${id}" aria-label="Desvincular">${ic('x', 14)}</button></div>` : ''; }).join('')}
@@ -88,20 +80,21 @@ function renderDetail(det) {
         ${docRefs.map(d => `<div class="lnk back"><a class="lnkm" href="#/doc/${d.id}"><span class="dicon">${esc(d.icon || '📄')}</span><span>${esc(d.title || 'Sem título')}</span><span class="mut sm">menciona esta tarefa</span></a></div>`).join('')}
       </div>
       <div class="row"><button class="btn ghost sm" data-act="link" data-k="d">${ic('doc', 16)}Vincular documento</button><button class="btn ghost sm" data-act="link" data-k="t">${ic('todo', 16)}Vincular tarefa</button><button class="btn ghost sm" data-act="newdocfor">${ic('plus', 16)}Novo documento</button></div>
-    </section>
+    </section>` : ''}
 
-    <section class="dsec dcms"><h3>${ic('chat', 18)}Comentários <span class="cnt">${(t.cm || []).length || ''}</span></h3>
+    ${showCm ? `<section class="dsec dcms"><h3>${ic('chat', 16)}Comentários <span class="cnt">${(t.cm || []).length || ''}</span></h3>
       <div class="cms">${cmList(t)}</div>
       <form class="cmform"><span class="cmav">${esc(cmInitial())}</span><div class="cmbox"><textarea class="in cmin" rows="1" placeholder="Escreva um comentário…" maxlength="4000"></textarea><div class="cmbar"><span class="hint">${isMobile() ? '' : 'Ctrl + Enter para enviar'}</span><button class="btn red sm" type="submit" disabled>${ic('send', 15)}Comentar</button></div></div></form>
-    </section>
-
-    <footer class="dfoot mut sm">
-      ${focusMin ? `<span>${ic('focus', 14)} ${fmtDur(focusMin)} de foco</span>` : ''}
-      <span>Criada ${esc(fmtDay(ymd(new Date(t.c || Date.now())), true).toLowerCase())}</span>
-      ${t.done && t.dt ? `<span>Concluída ${esc(fmtDay(ymd(new Date(t.dt)), true).toLowerCase())} às ${hm(new Date(t.dt))}</span>` : ''}
-      ${(t.hist || []).length ? `<span>${plural(t.hist.length, 'ocorrência concluída', 'ocorrências concluídas')}</span>` : ''}
-    </footer>
-  </div></div>`;
+    </section>` : ''}
+  </div>
+  <footer class="dbot">
+    <button class="dlistb" data-act="dlist" title="Mover para outra lista">${l.emoji ? `<span class="nemo">${esc(l.emoji)}</span>` : `<span class="ldot" style="background:${esc(l.color || '#808080')}"></span>`}<span>${esc(l.name)}${t.sec && secs.find(s => s.id === t.sec) ? ' / ' + esc(secs.find(s => s.id === t.sec).name) : ''}</span></button>
+    <span class="sp"></span>
+    ${focusMin ? `<span class="mut sm dfmin" title="Tempo de foco">${ic('focus', 14)}${fmtDur(focusMin)}</span>` : ''}
+    <button class="ib" data-act="dfocus" title="Iniciar foco" aria-label="Iniciar foco">${ic('focus', 18)}</button>
+    <button class="ib" data-act="dopen" data-k="cm" title="Comentários" aria-label="Comentários">${ic('chat', 18)}${(t.cm || []).length ? `<i class="dbadge">${t.cm.length}</i>` : ''}</button>
+    <button class="ib" data-act="dmore2" title="Mais opções" aria-label="Mais opções">${ic('more', 18)}</button>
+  </footer></div>`;
   bindDetail(det, t);
   bindComments(det, t);
   loadTaskImgs(det);
@@ -215,7 +208,7 @@ function bindDetail(det, t) {
     inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const i = +inp.dataset.i; t.chk.splice(i + 1, 0, { id: uid(), t: '', done: false }); t.chk[i].t = inp.value; put('t', t); render(true); const n = $$('#detail .ckin')[i + 1]; if (n) n.focus(); } if (e.key === 'Backspace' && !inp.value) { e.preventDefault(); const i = +inp.dataset.i; t.chk.splice(i, 1); put('t', t); render(true); const p = $$('#detail .ckin')[i - 1]; if (p) p.focus(); } };
   });
   const ca = det.querySelector('.ckadd');
-  ca.onkeydown = e => { if (e.key === 'Enter' && ca.value.trim()) { e.preventDefault(); t.chk = (t.chk || []).concat({ id: uid(), t: ca.value.trim(), done: false }); put('t', t); render(true); const n = $('#detail .ckadd'); if (n) n.focus(); } };
+  if (ca) ca.onkeydown = e => { if (e.key === 'Enter' && ca.value.trim()) { e.preventDefault(); t.chk = (t.chk || []).concat({ id: uid(), t: ca.value.trim(), done: false }); put('t', t); render(true); const n = $('#detail .ckadd'); if (n) n.focus(); } };
   const sa = det.querySelector('.addsub input');
   if (sa) sa.onkeydown = e => { if (e.key === 'Enter' && sa.value.trim()) { e.preventDefault(); const s = taskFromSmart(sa.value.trim(), { list: t.list, sec: t.sec, par: t.id, o: Date.now() }); put('t', s); OPEN_SUBS.add(t.id); render(true); const n = $('#detail .addsub input'); if (n) n.focus(); } };
 }
@@ -262,6 +255,37 @@ Object.assign(ACTS, {
   duntag: b => { const t = get('t', R.sel); t.tags = (t.tags || []).filter(x => x !== b.dataset.g); put('t', t); },
   dfocus: () => startFocusOn(R.sel),
   dmore: b => taskMenu(get('t', R.sel), b),
+  dopen: b => {
+    const t = get('t', R.sel); if (!t) return; const k = b.dataset.k; DET_OPEN.add(t.id + ':' + k); render(true);
+    setTimeout(() => { const f = { chk: '#detail .ckadd', subs: '#detail .addsub input', cm: '#detail .cmin' }[k]; const el = f && $(f); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.focus(); } }, 60);
+  },
+  dmore2: b => {
+    const t = get('t', R.sel); if (!t) return;
+    const lnk = t.ln || { d: [], t: [] };
+    menu(b, [
+      { html: `<div class="mprio">${[3, 2, 1, 0].map(p => `<button class="pbtn${(t.prio || 0) === p ? ' on' : ''}" data-p="${p}" style="color:${PRIO[p].c}" aria-label="Prioridade ${PRIO[p].n}">${ic('flag', 20)}</button>`).join('')}</div>` },
+      { sep: 1 },
+      { label: t.start ? 'Alterar data de início' : 'Data de início', icon: 'startd', act: () => ACTS.dpstart(b) },
+      { label: t.rep ? 'Repetição: ' + repText(t.rep) : 'Repetir', icon: 'repeat', act: () => ACTS.drep(b) },
+      { label: 'Lembrete', icon: 'bell', act: () => ACTS.drem(b) },
+      { label: 'Etiquetas', icon: 'tag', act: () => ACTS.dtags(b) },
+      { sep: 1 },
+      { label: 'Lista de itens', icon: 'todo', act: () => ACTS.dopen({ dataset: { k: 'chk' } }) },
+      t.par ? null : { label: 'Subtarefa', icon: 'sub', act: () => ACTS.dopen({ dataset: { k: 'subs' } }) },
+      { label: 'Anexar arquivo', icon: 'clip', act: () => { const i = $('#detail [data-f=files]'); i && i.click(); } },
+      t.cover ? null : { label: 'Foto de capa', icon: 'cover', act: () => { const i = $('#detail #dcover'); i && i.click(); } },
+      { label: 'Vincular documento ou tarefa', icon: 'link', act: () => ACTS.dopen({ dataset: { k: 'ln' } }) },
+      { label: 'Criar documento desta tarefa', icon: 'doc', act: () => ACTS.newdocfor() },
+      { sep: 1 },
+      { label: t.note ? 'Converter em tarefa' : 'Converter em anotação', icon: t.note ? 'todo' : 'doc', act: () => toggleNote(t) },
+      { label: 'Duplicar', icon: 'copy', act: () => { duplicateTask(t); toast('Tarefa duplicada'); } },
+      { label: 'Exportar…', icon: 'export', act: () => exportMenu(b, { kind: 'task', id: t.id }) },
+      { sep: 1 },
+      { html: `<div class="dminfo">Criada ${esc(fmtDay(ymd(new Date(t.c || Date.now())), true).toLowerCase())}${t.done && t.dt ? ` · concluída ${esc(fmtDay(ymd(new Date(t.dt)), true).toLowerCase())} às ${hm(new Date(t.dt))}` : ''}${(t.hist || []).length ? ` · ${plural(t.hist.length, 'ocorrência concluída', 'ocorrências concluídas')}` : ''}</div>` },
+      { label: 'Excluir', icon: 'trash', danger: 1, act: () => deleteTask(t) },
+    ].filter(Boolean), { right: 1 });
+    if (POP) POP.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { t.prio = +x.dataset.p; put('t', t); closePop(); });
+  },
   ckt: b => { const t = get('t', R.sel), c = t.chk[+b.dataset.i]; c.done = !c.done; put('t', t); if (c.done && t.chk.every(x => x.done)) toast('Todos os itens concluídos', 'Concluir tarefa', () => checkTask(t.id)); },
   ckdel: b => { const t = get('t', R.sel); t.chk.splice(+b.dataset.i, 1); put('t', t); },
   aopen: b => openFile(get('t', R.sel).att[+b.dataset.i]),
@@ -294,3 +318,9 @@ DROPS.push((src, dst, before) => {
   if (!before) to++;
   t.chk.splice(to, 0, it); put('t', t); return true;
 });
+
+/* anotação: item da lista sem "concluir" (ícone de documento no lugar da bolinha) */
+function toggleNote(t, quiet) {
+  t.note = !t.note; if (t.note) { t.done = false; t.dt = null; } put('t', t);
+  if (!quiet) toast(t.note ? 'Convertida em anotação' : 'Convertida em tarefa', 'Desfazer', () => { t.note = !t.note; put('t', t); });
+}
