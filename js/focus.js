@@ -250,7 +250,7 @@ function notify(title, body, tag) {
   if (typeof pushOn === 'function' && pushOn()) return;   /* este aparelho já recebe pelo push */
   try {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(r => r.showNotification(title, { body, tag, icon: 'assets/icon-192.png', badge: 'assets/icon-192.png' })).catch(() => new Notification(title, { body, tag }));
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.ready.then(r => r.showNotification(title, { body, tag, icon: 'assets/icon-v4-192.png', badge: 'assets/icon-v4-192.png' })).catch(() => new Notification(title, { body, tag }));
     else new Notification(title, { body, tag });
   } catch (e) {}
 }

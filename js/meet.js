@@ -56,7 +56,7 @@ setInterval(() => {
     if (now >= s - 60000 && now <= s + 5 * 60000) {
       MT.prompted.add(e.id);
       toast(`“${e.title}” está começando. Faço a ata?`, 'Gravar ata', () => meetStart(e), 15000);
-      try { if (Notification.permission === 'granted' && document.hidden) new Notification('Reunião começando', { body: `${e.title} — abra o app para eu fazer a ata`, icon: 'assets/icon-192.png' }); } catch (er) {}
+      try { if (Notification.permission === 'granted' && document.hidden) new Notification('Reunião começando', { body: `${e.title} — abra o app para eu fazer a ata`, icon: 'assets/icon-v4-192.png' }); } catch (er) {}
     }
   });
 }, 30000);

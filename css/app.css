@@ -1627,3 +1627,8 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 .pfx.heart.h3{left:48%;font-size:15px;top:2%}
 .petcv{image-rendering:pixelated;image-rendering:crisp-edges}
 .pet.hop .petb{animation:none}
+/* logo "progresso" (2026-10-28) */
+.lgtrk{fill:none;stroke:var(--onacc);stroke-opacity:.3;stroke-width:4.4}
+.lgarc{fill:none;stroke:var(--onacc);stroke-width:4.4;stroke-linecap:round;stroke-dasharray:81;stroke-dashoffset:81;animation:draw .8s .15s cubic-bezier(.4,0,.2,1) forwards}
+.lgmark .lgchk{stroke-width:4;stroke-dasharray:22;stroke-dashoffset:22;animation:draw .4s .75s var(--ease) forwards}
+@media (prefers-reduced-motion:reduce){.lgarc,.lgmark .lgchk{animation:none;stroke-dashoffset:0}}
