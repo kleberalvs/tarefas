@@ -127,6 +127,7 @@ function sideHtml() {
   /* trilho de ícones (à esquerda) */
   const RB = (id, icon, label, to, on) => { const p = NAVS[id] ? navPref(id) : {}; if (p.hide) return ''; return `<a class="rbtn${on ? ' on' : ''}" href="#/${to}" title="${esc(p.name || label)}" aria-label="${esc(p.name || label)}"${NAVS[id] ? ` data-ctx="nav:${id}"` : ''} style="--nc:${p.c || 'var(--red)'}">${p.emoji ? `<span class="nemo">${esc(p.emoji)}</span>` : ic(icon, 22)}${id === 'tasks' && ov ? '<i class="rdot"></i>' : ''}</a>`; };
   const rail = `<div class="rail">
+    <button class="ravatar" data-act="profmenu" aria-label="Perfil, conquistas e configurações" title="${esc((db.s.name || WHO || 'Perfil').trim())}">${avatarHtml('sm')}<i class="sdot ${esc(SYNC.cls)}" id="sync" title="${esc(SYNC.txt)}"></i></button>
     ${RB('home', 'home', 'Painel', 'home', cur === 'home')}
     ${RB('tasks', 'todo', 'Tarefas', 'l/' + (db.s.lastList || 'today'), sec === 'tasks')}
     ${RB('cal', 'cal', 'Calendário', 'cal', cur === 'cal')}
@@ -138,26 +139,26 @@ function sideHtml() {
     ${RB('meet', 'mic', 'Reuniões', 'meet', cur === 'meet')}
     ${RB('search', 'search', 'Buscar', 'search', cur === 'search')}
     <span class="rsp"></span>
-    <a class="rbtn${cur === 'me' || cur === 'ach' || cur === 'pets' ? ' on' : ''}" href="#/me" title="Perfil e conquistas" aria-label="Perfil e conquistas">${ic('star', 21)}</a>
-    ${typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? `<a class="rbtn${cur === 'users' ? ' on' : ''}" href="#/users" title="Usuários" aria-label="Usuários">${ic('users', 21)}</a>` : ''}
-    <a class="rbtn${cur === 'settings' ? ' on' : ''}" href="#/settings" title="Configurações" aria-label="Configurações">${ic('gear', 21)}<i class="sdot ${esc(SYNC.cls)}" id="sync" title="${esc(SYNC.txt)}"></i></a>
   </div>`;
   const head = (title, btns) => `<div class="sphead"><b>${title}</b><span class="sp"></span>${btns}<button class="ib hide-m" data-act="side" aria-label="Recolher painel" title="Recolher painel">${ic('side', 18)}</button></div>`;
   const tasksPanel = `${head('Tarefas', `<button class="ib" data-act="quick" aria-label="Adicionar tarefa" title="Adicionar tarefa (Q)">${ic('plus', 19)}</button>`)}
     <nav class="snav">${['today', 'tomorrow', 'week', 'inbox'].map(n => NV(n, cur, ov)).join('')}</nav>
     <hr class="sdiv">
-    <div class="sgroup" data-drop="folder:"><div class="sgh"><span>Listas</span><button class="mini" data-act="newlist" aria-label="Nova lista" title="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" data-k="l" aria-label="Nova pasta" title="Nova pasta">${ic('folder', 16)}</button></div>${lh || '<p class="hint">Crie listas para organizar suas tarefas</p>'}</div>
-    <div class="sgroup"><div class="sgh"><span>Etiquetas</span><button class="mini" data-act="newtag" aria-label="Nova etiqueta">${ic('plus', 16)}</button></div>
-      ${tags.length ? tags.map(g => `<a class="nav${cur === 'tag:' + g.id ? ' on' : ''}" href="#/tag/${g.id}" data-drop="tag:${g.id}" data-ctx="tag:${g.id}">${g.emoji ? `<span class="nemo">${esc(g.emoji)}</span>` : `<span class="nic" style="--nc:${esc(g.color)}">${ic('tag', 19)}</span>`}<span class="nm">${esc(g.name)}</span><span class="cnt">${db.t.filter(t => live(t) && (t.tags || []).includes(g.id)).length || ''}</span></a>`).join('') : '<p class="hint">Use #etiqueta ao criar uma tarefa</p>'}
-    </div>
+    <div class="sgroup${sgShut('lists') ? ' shut' : ''}" data-drop="folder:">${sgHead('lists', 'Listas', `<button class="mini" data-act="newlist" aria-label="Nova lista" title="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" data-k="l" aria-label="Nova pasta" title="Nova pasta">${ic('folder', 16)}</button>`)}<div class="sgbody">${lh || '<p class="hint">Crie listas para organizar suas tarefas</p>'}</div></div>
+    <div class="sgroup${sgShut('tags') ? ' shut' : ''}">${sgHead('tags', 'Etiquetas', `<button class="mini" data-act="newtag" aria-label="Nova etiqueta">${ic('plus', 16)}</button>`)}<div class="sgbody">
+      ${tags.length ? tags.map(g => `<a class="nav${cur === 'tag:' + g.id ? ' on' : ''}" href="#/tag/${g.id}" data-drop="tag:${g.id}" data-ctx="tag:${g.id}">${g.emoji ? `<span class="nemo">${esc(g.emoji)}</span>` : `<span class="nic" style="--nc:${esc(g.color || '#808080')}">${ic('tag', 19)}</span>`}<span class="nm">${esc(g.name)}</span><span class="cnt">${db.t.filter(t => live(t) && (t.tags || []).includes(g.id)).length || ''}</span><button class="mini more" data-act="ctx" data-ctx="tag:${g.id}" aria-label="Opções da etiqueta ${esc(g.name)}">${ic('more', 16)}</button></a>`).join('') : '<p class="hint">Use #etiqueta ao criar uma tarefa</p>'}
+    </div></div>
     <nav class="snav low">${NAV_LOW.map(n => NV(n, cur, ov)).join('')}</nav>`;
   const docsPanel = `${head('Documentos', `<button class="ib" data-act="dnew" aria-label="Novo documento" title="Novo documento (D)">${ic('plus', 19)}</button>`)}
     <nav class="snav">${navItem('docs', 'doc', 'Todos os documentos', { on: cur === 'docs' && !R.id, nc: 'var(--red)', drop: 'dfold:' })}${navItem('notes', 'note', 'Notas rápidas', { on: cur === 'notes', nc: 'var(--red)' })}</nav>
     <hr class="sdiv">
-    <div class="sgroup" data-drop="dfold:"><div class="sgh"><span>Pastas</span><button class="mini" data-act="newfolder" data-k="d" aria-label="Nova pasta de documentos" title="Nova pasta">${ic('plus', 16)}</button></div>${dh || '<p class="hint">Crie pastas para organizar documentos</p>'}</div>`;
+    <div class="sgroup${sgShut('dfolds') ? ' shut' : ''}" data-drop="dfold:">${sgHead('dfolds', 'Pastas', `<button class="mini" data-act="newfolder" data-k="d" aria-label="Nova pasta de documentos" title="Nova pasta">${ic('plus', 16)}</button>`)}<div class="sgbody">${dh || '<p class="hint">Crie pastas para organizar documentos</p>'}</div></div>`;
   const panel = sec === 'docs' ? docsPanel : sec === 'tasks' || isMobile() ? tasksPanel : '';
   return rail + (panel ? `<div class="spanel">${panel}</div>` : '');
 }
+/* grupos do menu que abrem e fecham (Listas, Etiquetas, Pastas) */
+const sgShut = g => !!((db.s.sgc || {})[g]);
+const sgHead = (g, title, btns) => `<div class="sgh"><button class="sgt" data-act="sgtog" data-g="${g}" aria-expanded="${!sgShut(g)}">${ic('chev', 13)}<span>${title}</span></button>${btns}</div>`;
 /* seção do menu: tarefas (listas e filtros) ou documentos mostram o painel ao lado do trilho */
 function sideSection() {
   if (R.v === 'list' || R.v === 'tag' || R.v === 'log') return 'tasks';
@@ -457,10 +458,13 @@ function ctxMenu(spec, anchor, at) {
   } else if (k === 'tag') {
     const g = get('g', id); if (!g) return;
     menu(anchor, [
+      { html: `<div class="mtitle">Cor da etiqueta</div><div class="navcols">${COLORS.concat(['#1D1D1F']).map(c => `<button class="swb${(g.color || '') === c ? ' on' : ''}" data-tc="${c}" style="--c:${c}" aria-label="Cor ${c}"></button>`).join('')}</div>` },
+      { label: g.emoji ? 'Trocar emoji' : 'Usar um emoji', icon: 'star', act: () => emojiPicker(anchor, e => { g.emoji = e || null; put('g', g); }, { none: 1 }) },
       { label: 'Editar etiqueta', icon: 'edit', act: () => editTag(g) },
       { sep: 1 },
       { label: 'Excluir etiqueta', icon: 'trash', danger: 1, act: () => { db.t.forEach(t => { if ((t.tags || []).includes(id)) { t.tags = t.tags.filter(x => x !== id); put('t', t, { silent: true }); } }); hardDel('g', id); if (R.id === 'tag:' + id) go('l/today'); } },
     ], { at });
+    if (POP) POP.addEventListener('click', e => { const b = e.target.closest('[data-tc]'); if (b) { g.color = b.dataset.tc; put('g', g); closePop(); } });
   }
 }
 /* arrastar listas e pastas */
@@ -646,6 +650,20 @@ function initDnd() {
 /* ---------- ações globais (delegação de cliques) ---------- */
 const ACTS = {
   go: b => go(b.dataset.to),
+  sgtog: b => { const g = b.dataset.g; db.s.sgc = Object.assign({}, db.s.sgc || {}, { [g]: !sgShut(g) }); put('s', db.s); },
+  profmenu: b => {
+    const nm = (db.s.name || '').trim();
+    menu(b, [
+      { html: `<div class="pmhead">${avatarHtml('md')}<div><b>${esc(nm || 'Seu nome')}</b><span>${esc(WHO || 'Modo local (sem conta)')}</span><small><i class="sdot ${esc(SYNC.cls)}"></i>${esc(SYNC.txt)}</small></div></div>` },
+      { label: 'Perfil', icon: 'users', act: () => go('me') },
+      { label: 'Editar foto e nome', icon: 'img', act: () => editProfile() },
+      { label: 'Conquistas', icon: 'star', act: () => go('ach') },
+      { label: 'Pets', icon: 'smile', act: () => go('pets') },
+      { sep: 1 },
+      { label: 'Configurações', icon: 'gear', act: () => go('settings') },
+      typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? { label: 'Usuários', icon: 'users', act: () => go('users') } : null,
+    ].filter(Boolean));
+  },
   side: () => { if (isMobile()) { R.drawer = !R.drawer; render(); } else { db.s.side = !db.s.side; put('s', db.s); } },
   drawer: () => { R.drawer = !R.drawer; render(); },
   fold: b => { const f = get('f', b.dataset.id); f.open = f.open === false; put('f', f); },
@@ -760,3 +778,16 @@ function initSwipe() {
     else if (act === 'date') { const t = get('t', id); datePicker(row, taskToDp(t), v => { dpToTask(t, v); put('t', t); gcalPushTask(t); }); }
   });
 }
+/* celular: segurar o dedo numa lista, pasta ou etiqueta do menu abre as opções (cor, nome, excluir…) */
+(() => {
+  let tm = null, fired = false, sx = 0, sy = 0;
+  document.addEventListener('touchstart', e => {
+    const c = e.target.closest && e.target.closest('#side [data-ctx]'); if (!c || e.touches.length > 1) return;
+    fired = false; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    tm = setTimeout(() => { fired = true; if (navigator.vibrate) navigator.vibrate(12); ctxMenu(c.dataset.ctx, c); }, 480);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => { if (tm && Math.hypot(e.touches[0].clientX - sx, e.touches[0].clientY - sy) > 8) { clearTimeout(tm); tm = null; } }, { passive: true });
+  document.addEventListener('touchend', () => { clearTimeout(tm); tm = null; });
+  document.addEventListener('click', e => { if (fired && e.target.closest && e.target.closest('#side [data-ctx]')) { e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
+  document.addEventListener('contextmenu', e => { if (isMobile() && e.target.closest && e.target.closest('#side [data-ctx]')) e.preventDefault(); });
+})();
