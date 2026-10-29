@@ -1765,3 +1765,11 @@ body.side-rail .rail{border-right:0}
 .cards>*{flex-shrink:0}
 .trow.card .ttl{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .trow.card .ttl a.alink{word-break:break-all}
+/* calendário: painel "Sem data" sem sobreposição */
+.cside{width:290px}
+.sside>*{flex-shrink:0}
+.sside .trow.card{padding:10px 11px}
+.sside .trow.card .ttl{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.sside .trow.card .tact{opacity:0;pointer-events:none;transition:opacity .15s}
+.sside .trow.card:hover .tact,.sside .trow.card:focus-within .tact{opacity:1;pointer-events:auto}
+.tallc>*,.ntagpick>div>*{flex-shrink:0}
