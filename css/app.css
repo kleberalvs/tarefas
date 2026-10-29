@@ -1975,3 +1975,15 @@ body.selmode .fab{display:none}
 /* quadro: colunas vão até o fim da tela (sem espaço vazio embaixo) */
 .tlist.isboard{padding:0!important}
 @media (max-width:759px){.board{padding-bottom:12px!important}}
+/* matriz fixa: os 4 quadrantes cabem na tela e cada um rola por dentro */
+@media (min-width:760px){
+  .scroll.mtxwrap{overflow:hidden;display:flex;flex-direction:column}
+  .mtxwrap .matrix{flex:1;min-height:0;width:100%;grid-template-rows:minmax(0,1fr) minmax(0,1fr);padding:4px 32px 24px}
+  .mtxwrap .quad{min-height:0;display:flex;flex-direction:column}
+  .mtxwrap .quad header{flex:none}
+  .mtxwrap .qlist{flex:1;min-height:0;overflow-y:auto;margin-right:-8px;padding-right:8px;scrollbar-width:thin}
+}
+@media (max-width:759px){
+  .mtxwrap .quad{display:flex;flex-direction:column;max-height:62dvh}
+  .mtxwrap .qlist{flex:1;min-height:0;overflow-y:auto}
+}

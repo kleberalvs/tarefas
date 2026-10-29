@@ -208,7 +208,7 @@ const QUADS = [{ p: 3, n: 'Urgente e importante', h: 'Faça agora', c: '#DB4035'
 VIEWS.matrix = main => {
   const liveT = db.t.filter(t => live(t) && !t.par);
   GMAP = {};
-  main.innerHTML = headHtml('Matriz de prioridades', 'Arraste as tarefas entre os quadrantes para mudar a prioridade') + `<div class="scroll"><div class="matrix">${QUADS.map(q => {
+  main.innerHTML = headHtml('Matriz de prioridades', 'Arraste as tarefas entre os quadrantes para mudar a prioridade') + `<div class="scroll mtxwrap"><div class="matrix">${QUADS.map(q => {
     const it = liveT.filter(t => (t.prio || 0) === q.p).sort((a, b) => sortTasks(a, b, 'date'));
     GMAP['q:' + q.p] = { set: { prio: q.p }, ids: it.map(t => t.id) };
     return `<section class="quad" style="--qc:${q.c}" data-drop="grp:q:${q.p}"><header><b>${q.n}</b><span class="mut">${q.h}</span><span class="cnt">${it.length}</span></header><div class="qlist">${it.map(t => rowHtml(t, { showList: 1 })).join('') || '<p class="hint">Nenhuma tarefa</p>'}${qaHtml('q:' + q.p)}</div></section>`;
