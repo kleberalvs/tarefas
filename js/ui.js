@@ -376,6 +376,8 @@ function editList(l, preset = {}) {
   l = l || Object.assign({ id: uid(), name: '', color: COLORS[db.l.length % COLORS.length], view: 'list', sec: [], o: db.l.length + 1 }, preset);
   const el = modal(`<h2>${isNew ? 'Nova lista' : 'Editar lista'}</h2><form>
     <label class="lab">Nome<input class="in" name="n" value="${esc(l.name)}" required maxlength="80" autofocus placeholder="Ex.: Casa, Estudos 📚"></label>
+    <span class="lab">Tipo de lista</span>
+    <div class="ltype"><label class="ltopt"><input type="radio" name="k" value="tasks" ${l.kind !== 'notes' ? 'checked' : ''}><span>${ic('todo', 20)}<b>Tarefas</b><small>Itens com bolinha para concluir</small></span></label><label class="ltopt"><input type="radio" name="k" value="notes" ${l.kind === 'notes' ? 'checked' : ''}><span>${ic('doc', 20)}<b>Anotações</b><small>Textos e referências, sem concluir</small></span></label></div>
     <span class="lab">Ícone</span>${iconField(l.emoji)}
     <span class="lab">Cor</span>${colorRow(l.color)}
     <label class="lab">Pasta<select class="in" name="f"><option value="">Sem pasta</option>${folderOptions('l', l.folder)}</select></label>
@@ -387,6 +389,14 @@ function editList(l, preset = {}) {
     e.preventDefault();
     const f = new FormData(e.target);
     l.name = f.get('n').trim(); l.color = f.get('color') || l.color; l.folder = f.get('f') || null; l.view = f.get('v'); l.emoji = f.get('emoji') || null;
+    const kind = f.get('k') === 'notes' ? 'notes' : null, was = l.kind || null;
+    if (kind) l.kind = kind; else delete l.kind;
+    /* ao trocar o tipo, as tarefas da lista acompanham */
+    if (!isNew && kind !== was) {
+      const ts = db.t.filter(x => live(x) && x.list === l.id && (kind ? !x.note && !x.done : x.note));
+      ts.forEach(x => { x.note = !!kind; put('t', x, { silent: true }); });
+      if (ts.length) setTimeout(() => toast(`${plural(ts.length, 'item convertido', 'itens convertidos')} em ${kind ? 'anotação' : 'tarefa'}`), 50);
+    }
     if (l.view === 'board' && !(l.sec || []).length) l.sec = [{ id: uid(), name: 'A fazer' }, { id: uid(), name: 'Em andamento' }, { id: uid(), name: 'Feito' }];
     put('l', l); closeModal();
     if (isNew) go('l/' + l.id);

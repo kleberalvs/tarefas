@@ -113,7 +113,8 @@ function rowHtml(t, opts = {}) {
   </div>${subs.length && open && !opts.card ? subs.sort((a, b) => (a.o || 0) - (b.o || 0)).filter(s => !s.done || opts.withDone).map(s => rowHtml(s, Object.assign({}, opts, { lvl: lvl + 1 }))).join('') : ''}`;
 }
 function qaHtml(gkey, ph) {
-  if (QA !== gkey) return `<button class="qa-open" data-act="qa" data-g="${esc(gkey)}">${ic('plus', 18)}<span>Adicionar tarefa</span></button>`;
+  const nl = R.v === 'list' && (get('l', R.id) || {}).kind === 'notes';
+  if (QA !== gkey) return `<button class="qa-open" data-act="qa" data-g="${esc(gkey)}">${ic('plus', 18)}<span>${nl ? 'Adicionar anotação' : 'Adicionar tarefa'}</span></button>`;
   return `<div class="qa" data-keep data-g="${esc(gkey)}">
     <input class="qin" placeholder="${esc(ph || 'Ex.: Dentista amanhã às 15h #saúde !alta')}" aria-label="Nova tarefa" autocomplete="off" enterkeyhint="done">
     <input class="qnote" placeholder="Descrição" aria-label="Descrição">

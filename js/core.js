@@ -365,6 +365,7 @@ const subsOf = id => db.t.filter(x => x.par === id && !x.del);
 function newTask(o = {}) {
   const T = Object.assign({ id: uid(), title: '', notes: '', list: db.s.defList || 'inbox', sec: null, prio: 0, tags: [], start: null, due: null, rep: null, rem: [], chk: [], par: null, att: [], ln: { d: [], t: [] }, done: false, dt: null, del: null, c: Date.now(), o: Date.now(), hist: [] }, o);
   if (!get('l', T.list)) T.list = 'inbox';
+  if (o.note == null && (get('l', T.list) || {}).kind === 'notes') T.note = true;
   return T;
 }
 function tagIdsFromNames(names) {
