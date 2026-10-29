@@ -71,7 +71,7 @@ VIEWS.focus = main => {
     <div class="fcard">
       <div class="seg">${Object.entries(FMODES).map(([k, n]) => `<button class="${FS.mode === k ? 'on' : ''}" data-act="fmode" data-m="${k}">${n}</button>`).join('')}</div>
       <div class="fxpick" role="radiogroup" aria-label="Animação do foco">${FX_ANIMS.map(([k, e, n]) => `<button class="${fxAnim() === k ? 'on' : ''}" data-act="fxanim" data-k="${k}" role="radio" aria-checked="${fxAnim() === k}"><span>${e}</span>${n}</button>`).join('')}</div>
-      ${fxAnim() !== 'ring' ? fxSceneHtml().replace('</div></div>', `</div><div class="fxtime"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><small>${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? (fxAnim() === 'forest' ? 'Sua árvore está crescendo' : 'Focando') : 'Descansando') : FS.began ? 'Pausado' : 'Pronto'}</small>${FS.mode === 'watch' ? '' : `<div class="fxbar"><i id="fxbar" style="width:${Math.round(fxFrac() * 100)}%"></i></div>`}</div></div>`) : `<div class="fring m-${FS.mode}">
+      ${fxAnim() !== 'ring' ? fxSceneHtml().replace('</div></div>', `</div><div class="fxtime"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><small>${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? (fxAnim() === 'forest' ? 'Sua árvore está crescendo' : fxAnim() === 'room' ? 'Trabalhando' : 'Focando') : 'Descansando') : FS.began ? 'Pausado' : 'Pronto'}</small>${FS.mode === 'watch' ? '' : `<div class="fxbar"><i id="fxbar" style="width:${Math.round(fxFrac() * 100)}%"></i></div>`}</div></div>`) : `<div class="fring m-${FS.mode}">
         <svg viewBox="0 0 260 260" aria-hidden="true"><circle cx="130" cy="130" r="118" class="rbg"/>${FS.mode === 'watch' ? '' : `<circle id="fring" cx="130" cy="130" r="118" class="rfg" stroke-dasharray="${C.toFixed(1)}" style="stroke-dashoffset:${(C * (1 - s / len)).toFixed(1)}" transform="rotate(-90 130 130)"/>`}</svg>
         <div class="fin"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><span class="mut">${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? 'Focando' : 'Descansando') : 'Pronto'}</span></div>
       </div>`}
@@ -82,7 +82,7 @@ VIEWS.focus = main => {
         ${FS.mode !== 'watch' && !FS.run ? `<button class="ib" data-act="fskip" aria-label="Pular para a próxima etapa">${ic('right')}</button>` : ''}
         ${t && !t.done ? `<button class="btn big ghost" data-act="fdone">${ic('check', 18)}Concluir tarefa</button>` : ''}
       </div>
-      ${fxAnim() === 'cats' ? `<button class="link fxdeco" data-act="fxdecor">🛋️ Decorar a casa dos gatinhos</button>` : fxAnim() === 'forest' ? `<p class="hint fxhint">Cada sessão planta uma árvore: curtas viram arbustos, 45 min+ viram árvores grandes e 90 min+ um ipê florido. Desistir no meio deixa uma árvore seca.</p>` : ''}
+      ${fxAnim() === 'cats' ? `<button class="link fxdeco" data-act="fxdecor">🛋️ Decorar a casa dos gatinhos</button>` : fxAnim() === 'room' ? `<button class="link fxdeco" data-act="rmcustom">🎨 Personalizar o quartinho</button>` : fxAnim() === 'forest' ? `<p class="hint fxhint">Cada sessão planta uma árvore: curtas viram arbustos, 45 min+ viram árvores grandes e 90 min+ um ipê florido. Desistir no meio deixa uma árvore seca.</p>` : ''}
     </div>
     <div class="fstats">
       <div class="stat"><b>${st.todayN}</b><span>pomodoros hoje</span></div>

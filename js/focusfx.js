@@ -227,12 +227,14 @@ function drawGrowing(x, cx, by, g) {
 }
 
 /* ---------- tela ---------- */
-const FX_ANIMS = [['cats', '🐱', 'Gatinhos'], ['forest', '🌳', 'Floresta'], ['ring', '⏱️', 'Clássico']];
+const FX_ANIMS = [['cats', '🐱', 'Gatinhos'], ['room', '🏠', 'Quartinho'], ['forest', '🌳', 'Floresta'], ['ring', '⏱️', 'Clássico']];
+const fxSize = a => a === 'room' ? [RMW, RMH] : [FXW, FXH];
+const RM_ACT = { desk: 'Trabalhando no computador', coffee: 'Pausa para o café', read: 'Lendo um pouco', sleep: 'Dormindo', music: 'Ouvindo música' };
 function fxFrac() { const s = fLeft(), len = modeLen(FS.mode); return FS.mode === 'watch' ? Math.min(1, s / (25 * 60)) : len ? 1 - s / len : 0; }
 function fxPlannedKind() { const m = FS.mode === 'watch' ? 25 : db.s.pomo.focus; return m < 15 ? 'bush' : m < 25 ? 'bush' : m < 45 ? (hashS(FS.began + '') < .5 ? 'round' : 'pine') : m < 90 ? 'big' : 'ipe'; }
 function fxNextGift() {
   const c = fxCounts();
-  const n = [...HOUSE_ITEMS, ...HOUSE_WALLS, ...HOUSE_FLOORS].filter(i => !i.rare && !fxHas(i, c)).sort((a, b) => a.need - b.need)[0];
+  const n = (fxAnim() === 'room' ? ROOM_ITEMS : [...HOUSE_ITEMS, ...HOUSE_WALLS, ...HOUSE_FLOORS]).filter(i => !i.rare && !fxHas(i, c)).sort((a, b) => a.need - b.need)[0];
   return n ? { it: n, left: n.need - c.s } : null;
 }
 function fxSceneHtml() {
@@ -242,29 +244,70 @@ function fxSceneHtml() {
   const mon = FX.month || today().slice(0, 7), d = pd(mon + '-01');
   const cnt = a === 'forest' ? forestSessions(mon).length : 0;
   const ng = fxNextGift();
-  const top = a === 'cats'
+  const top = a === 'room' ? `<span class="fxchip">🏠 Meu quartinho · ${esc(RM_ACT[rmActivity()] || '')}</span>${ng ? `<span class="fxchip mut">🎁 ${esc(ng.it.n)} em ${plural(ng.left, 'sessão', 'sessões')}</span>` : ''}`
+    : a === 'cats'
     ? `<span class="fxchip">${FS.run && focusing ? '🌙 Silêncio, estão dormindo' : `🏠 Casa dos gatinhos · ${houseItemsSet().size} itens`}</span>${ng ? `<span class="fxchip mut">🎁 ${esc(ng.it.n)} em ${plural(ng.left, 'sessão', 'sessões')}</span>` : ''}`
     : `<span class="fxchip">${FS.run ? '' : `<button class="fxnav" data-act="fxmon" data-d="-1" aria-label="Mês anterior">‹</button>`}🌳 ${esc(cap(monNames[d.getMonth()]))}${d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''} · ${plural(cnt, 'árvore', 'árvores')}${FS.run || mon >= today().slice(0, 7) ? '' : `<button class="fxnav" data-act="fxmon" data-d="1" aria-label="Próximo mês">›</button>`}</span>`;
-  return `<div class="fxwrap a-${a}${FS.run ? ' run' : ''}"><canvas id="fxcv" width="${FXW}" height="${FXH}" aria-hidden="true"></canvas><div class="fxtop">${top}</div></div>`;
+  const [cw, ch] = fxSize(a);
+  return `<div class="fxwrap a-${a}${FS.run ? ' run' : ''}"><canvas id="fxcv" class="fxcv" width="${cw}" height="${ch}" aria-hidden="true"></canvas><div class="fxtop">${top}</div><button class="fxexp" data-act="fxfull" aria-label="Expandir animação para a tela cheia" title="Tela cheia">${ic('expand', 18)}</button></div>`;
 }
 function fxDraw() {
-  const cv = $('#fxcv'); if (!cv) return false;
-  const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
+  const cvs = [...document.querySelectorAll('canvas.fxcv')]; if (!cvs.length) return false;
   const a = fxAnim(), focusing = FS.run && (FS.mode === 'focus' || FS.mode === 'watch');
+  cvs.forEach(cv => fxDrawOn(cv, a, focusing));
+  const b = $('#fxbar'); if (b) b.style.width = Math.round(fxFrac() * 100) + '%';
+  fxFullTick();
+  return true;
+}
+function fxDrawOn(cv, a, focusing) {
+  const [cw, ch] = fxSize(a); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+  const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
   try {
-    if (a === 'cats') drawHouseScene(x, focusing);
+    if (a === 'room') drawRoomScene(x, FX.t);
+    else if (a === 'cats') drawHouseScene(x, focusing);
     else if (a === 'forest') {
       const mon = FX.month || today().slice(0, 7);
       drawForestScene(x, mon, (FS.mode === 'focus' || FS.mode === 'watch') && FS.began && mon === today().slice(0, 7) ? { f: fxFrac(), kind: fxPlannedKind() } : null);
     }
   } catch (e) { console.warn('fx', e); }
-  const b = $('#fxbar'); if (b) b.style.width = Math.round(fxFrac() * 100) + '%';
-  return true;
 }
-function fxStart() { clearInterval(FX.loop); FX.loop = setInterval(() => { if (R.v !== 'focus' || document.hidden) return; FX.t++; if (!fxDraw()) { clearInterval(FX.loop); FX.loop = null; } }, 200); fxDraw(); }
+function fxStart() { clearInterval(FX.loop); FX.loop = setInterval(() => { if ((R.v !== 'focus' && !$('#fxfull')) || document.hidden) return; FX.t++; if (!fxDraw()) { clearInterval(FX.loop); FX.loop = null; } }, 200); fxDraw(); }
+
+/* ---------- tela cheia ---------- */
+function fxFullOpen() {
+  if ($('#fxfull')) return;
+  const a = fxAnim() === 'ring' ? 'cats' : fxAnim(), [cw, ch] = fxSize(a);
+  const el = document.createElement('div'); el.id = 'fxfull'; el.className = 'a-' + a;
+  el.innerHTML = `<canvas class="fxcv" width="${cw}" height="${ch}" aria-hidden="true"></canvas>
+    <div class="fxfbar" role="toolbar" aria-label="Foco"><span class="fxclock" role="timer">${mmss(fLeft())}</span><span class="fxflabel"></span>
+    <button class="fxfb" data-fx="play" aria-label="Iniciar ou pausar"></button><button class="fxfb" data-fx="close" aria-label="Sair da tela cheia" title="Reduzir (Esc)">${ic('shrink', 18)}</button></div>`;
+  document.body.appendChild(el); document.body.classList.add('fxfull-on');
+  el.addEventListener('click', e => { const b = e.target.closest('[data-fx]'); if (!b) return; if (b.dataset.fx === 'close') fxFullClose(); else { FS.run ? fPause() : fStart(); fxFullTick(); } });
+  let hide; const wake = () => { el.classList.remove('idle'); clearTimeout(hide); hide = setTimeout(() => el.classList.add('idle'), 3500); };
+  el.addEventListener('pointermove', wake); el.addEventListener('pointerdown', wake); wake();
+  if (!isMobile() && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+  if (!FX.loop) fxStart(); fxDraw();
+}
+function fxFullClose() {
+  const el = $('#fxfull'); if (!el) return;
+  el.classList.add('out'); document.body.classList.remove('fxfull-on'); setTimeout(() => el.remove(), 200);
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+function fxFullTick() {
+  const el = $('#fxfull'); if (!el) return;
+  const c = el.querySelector('.fxclock'); if (c) c.textContent = mmss(fLeft());
+  const t = FS.task && get('t', FS.task), focusing = FS.mode === 'focus' || FS.mode === 'watch';
+  const lb = el.querySelector('.fxflabel'), txt = (FS.run ? (focusing ? 'Focando' : 'Pausa') : FS.began ? 'Pausado' : 'Pronto') + (t ? ' · ' + t.title : '');
+  if (lb && lb.textContent !== txt) lb.textContent = txt;
+  const pb = el.querySelector('[data-fx=play]'), want = FS.run ? 'pause' : 'play'; if (pb && pb.dataset.ic !== want) { pb.dataset.ic = want; pb.innerHTML = ic(want, 18); }
+  const cv = el.querySelector('canvas'); if (cv && (FX.t % 10 === 0 || !el.dataset.bg)) { el.dataset.bg = 1; try { const g = cv.getContext('2d'), p1 = g.getImageData(1, 1, 1, 1).data, p2 = g.getImageData(1, cv.height - 2, 1, 1).data; el.style.background = `linear-gradient(rgb(${p1[0]},${p1[1]},${p1[2]}),rgb(${p2[0]},${p2[1]},${p2[2]}))`; } catch (e) {} }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#fxfull')) fxFullClose(); });
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#fxfull') && !isMobile()) fxFullClose(); });
 
 /* ---------- presente ao concluir ---------- */
 function fxAfterSession() {
+  if (typeof ROOM_ITEMS !== 'undefined') { const c = fxCounts(), got = ROOM_ITEMS.filter(i => fxHas(i, c)).map(i => i.id), seen = db.s.roomSeen; if (!seen) db.s.roomSeen = got; else { const fresh = got.filter(k => !seen.includes(k)); if (fresh.length) { db.s.roomSeen = got; if (fxAnim() === 'room') { put('s', db.s); toast('🎁 Novo no seu quartinho: ' + fresh.map(k => ROOM_ITEMS.find(i => i.id === k).n).join(', '), 'Ver', () => roomCustom(), 8000); return; } } } }
   const hc = houseCfg(), now = houseUnlocked();
   if (!hc.seen) { db.s.house = Object.assign(hc, { seen: now }); put('s', db.s, { silent: true }); return; }
   const fresh = now.filter(k => !hc.seen.includes(k));
@@ -313,5 +356,6 @@ function fxDecor() {
 Object.assign(ACTS, {
   fxanim: b => { db.s.fx = Object.assign(fxCfg(), { anim: b.dataset.k }); put('s', db.s); },
   fxdecor: () => fxDecor(),
+  fxfull: () => ($('#fxfull') ? fxFullClose() : fxFullOpen()),
   fxmon: b => { const cur = FX.month || today().slice(0, 7); const d = pd(cur + '-01'); d.setMonth(d.getMonth() + (+b.dataset.d)); const m = ymd(d).slice(0, 7); FX.month = m > today().slice(0, 7) ? null : m; render(true); },
 });
