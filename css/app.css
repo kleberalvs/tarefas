@@ -2077,3 +2077,9 @@ body.selmode .fab{display:none}
   .month:not(.mob) .mgrid{grid-template-rows:repeat(6,minmax(92px,1fr));overflow-y:auto;scrollbar-width:thin}
   .month:not(.mob) .mcell{min-height:0}
 }
+/* agenda da semana no Painel */
+.agweek{display:flex;flex-direction:column;gap:6px;max-height:440px;overflow-y:auto;margin-right:-6px;padding-right:6px;scrollbar-width:thin}
+.agday h4{display:flex;align-items:baseline;gap:8px;margin:8px 0 0;font-size:calc(12px * var(--fs,1));font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
+.agday h4 small{font-size:calc(12px * var(--fs,1));font-weight:500;text-transform:none;letter-spacing:0;color:var(--mut2)}
+.agday.tdy h4{color:var(--red)}
+.agday:first-child h4{margin-top:0}

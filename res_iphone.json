@@ -1,0 +1,553 @@
+{
+ "home": {
+  "over": [],
+  "small": [
+   ".agn<button>Revisar orçamento  226x28",
+   ".agn<button>Finados 226x28",
+   ".chk<button> 19x19"
+  ],
+  "tiny": [
+   "<text>29 7.5",
+   "<small>qui, 29 out 10",
+   "<small>2 nov 10",
+   "<text>0 10.5",
+   "<text>1 10.5",
+   "<text>2 10.5",
+   "<text>3 10.5",
+   "<text>4 10.5",
+   "<text>16 10.5",
+   "<text>17 10.5",
+   "<text>18 10.5",
+   "<text>19 10.5"
+  ],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "today": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "pessoal": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "board": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "pessoal_back": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "matrix": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "cal_m": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "cal_w": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "cal_d": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "docs": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "doc": {
+  "over": [],
+  "small": [
+   ".cbox<button> 18x18",
+   ".cemo<button>💡 25x26"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "doc_style": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "doc_themes": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "doc_export": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "doc_menu": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "notes": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "note_edit": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "note_pal": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "note_tag": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "note_more": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "ai": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "draw": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "focus": {
+  "over": [],
+  "small": [
+   ".vol<input> 257x16"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "habits": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "settings": {
+  "over": [],
+  "small": [
+   "<a>escolher 49x15"
+  ],
+  "tiny": [
+   "<text>29 7.5"
+  ],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "me": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "ach": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "pets": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "meet": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "meet_start": {
+  "over": [],
+  "small": [
+   "<a>escolher 49x15"
+  ],
+  "tiny": [
+   "<text>29 7.5"
+  ],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "log": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "search": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "task": {
+  "over": [],
+  "small": [
+   ".chk.sq<button> 20x20"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "task_date": {
+  "over": [],
+  "small": [
+   ".chk.sq<button> 20x20"
+  ],
+  "tiny": [
+   "<text>29 7.5"
+  ],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "task_prio": {
+  "over": [],
+  "small": [
+   ".chk.sq<button> 20x20"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "task_more": {
+  "over": [],
+  "small": [
+   ".chk.sq<button> 20x20"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "task_cm": {
+  "over": [],
+  "small": [
+   ".chk.sq<button> 20x20"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "task_note": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "quickadd": {
+  "over": [],
+  "small": [
+   ".qnote<input> 354x28"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "newdoc": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "drawer": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19",
+   ".notemark<button> 20x20"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "more_tabs": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "newlist": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "profile": {
+  "over": [],
+  "small": [
+   "<input> 350x16"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "home_edit": {
+  "over": [],
+  "small": [
+   ".hbx<button> 28x28",
+   ".agn<button>Revisar orçamento  226x28",
+   ".agn<button>Finados 226x28",
+   ".chk<button> 19x19",
+   ".notemark<button> 20x20"
+  ],
+  "tiny": [
+   "<text>29 7.5",
+   "<small>qui, 29 out 10",
+   "<small>2 nov 10",
+   "<text>0 10.5",
+   "<text>1 10.5",
+   "<text>2 10.5",
+   "<text>3 10.5",
+   "<text>4 10.5",
+   "<text>16 10.5",
+   "<text>17 10.5",
+   "<text>18 10.5",
+   "<text>19 10.5"
+  ],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "home_add": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "home_done": {
+  "over": [],
+  "small": [
+   ".agn<button>Revisar orçamento  226x28",
+   ".agn<button>Finados 226x28",
+   ".chk<button> 19x19",
+   ".notemark<button> 20x20"
+  ],
+  "tiny": [
+   "<text>29 7.5",
+   "<small>qui, 29 out 10",
+   "<small>2 nov 10",
+   "<text>0 10.5",
+   "<text>1 10.5",
+   "<text>2 10.5",
+   "<text>3 10.5",
+   "<text>4 10.5",
+   "<text>16 10.5",
+   "<text>17 10.5",
+   "<text>18 10.5",
+   "<text>19 10.5"
+  ],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "noteslist": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "noteslist_open": {
+  "over": [],
+  "small": [
+   ".chk.sq<button> 20x20",
+   "<button> 18x18"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "noteslist_back": {
+  "over": [],
+  "small": [
+   ".chk<button> 19x19"
+  ],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "profmenu": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "tagmenu": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "settings_logged": {
+  "over": [],
+  "small": [
+   "<a>escolher 49x15"
+  ],
+  "tiny": [
+   "<text>29 7.5"
+  ],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "editfolder": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ },
+ "editfolder_emo": {
+  "over": [],
+  "small": [],
+  "tiny": [],
+  "ifont": [],
+  "clip": [],
+  "docW": 390
+ }
+}

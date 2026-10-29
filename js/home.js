@@ -3,7 +3,7 @@
 let HOME_RANGE = 14, HOME_EDIT = false;
 /* blocos do painel: nome e largura padrão (em colunas de 4 no computador; 2 no celular) */
 const HB_DEF = {
-  hero: { n: 'Saudação e atalhos', w: 4 }, aisum: { n: 'Resumo do dia (IA)', w: 2 }, agenda: { n: 'Agenda de hoje', w: 2 },
+  hero: { n: 'Saudação e atalhos', w: 4 }, aisum: { n: 'Resumo do dia (IA)', w: 2 }, agenda: { n: 'Agenda da semana', w: 2 },
   k_over: { n: 'Atrasadas (número)', w: 1 }, k_today: { n: 'Para hoje (número)', w: 1 }, k_week: { n: 'Próximos 7 dias (número)', w: 1 }, k_done: { n: 'Concluídas na semana', w: 1 },
   k_open: { n: 'Em aberto (número)', w: 1 }, k_habits: { n: 'Hábitos hoje (número)', w: 1 }, k_focus: { n: 'Foco hoje', w: 2 },
   today: { n: 'Tarefas de hoje', w: 2 }, week: { n: 'Próximos dias', w: 2 }, overdue: { n: 'Tarefas atrasadas', w: 2 },
@@ -139,21 +139,29 @@ VIEWS.home = main => {
   const L = homeLayout(), cols = isMobile() ? 2 : 4, gw = Math.min(1120, (main.clientWidth || 900)) - (isMobile() ? 28 : 64);
   const wOf = id => Math.min(cols, L.w[id] || HB_DEF[id].w);
   const chartW = Math.max(300, Math.round(gw * wOf('chart') / cols) - 40);
-  /* agenda de hoje: eventos do Google + tarefas com horário */
-  const evs = [...(typeof holItems === 'function' ? holItems(T, T) : []), ...(typeof GC !== 'undefined' && Array.isArray(GC.ev) ? GC.ev : [])].filter(e => e.start && String(e.start).slice(0, 10) <= T && String(e.end || e.start).slice(0, 10) >= T)
-    .map(e => ({ k: 'e', all: !!e.allDay || String(e.start).length <= 10, tm: String(e.start).length > 10 && String(e.start).slice(0, 10) === T ? String(e.start).slice(11, 16) : '', end: String(e.end || '').length > 10 ? String(e.end).slice(11, 16) : '', t: e.title, c: e.color || 'var(--red)', meet: e.meet, id: e.id }));
-  const tks = todayT.filter(t => tOnly(t.due || t.start)).map(t => ({ k: 't', id: t.id, tm: tOnly(t.due || t.start), t: t.title, c: PRIO[t.prio || 0].c || 'var(--mut2)', done: t.done }));
-  const ag = [...evs, ...tks].sort((a, b) => (a.all ? 0 : 1) - (b.all ? 0 : 1) || (a.tm || '').localeCompare(b.tm || ''));
-  const nowHM = hm(now);
-  const agHtml = ag.length ? `<ol class="agl">${ag.slice(0, 8).map(x => `<li class="${!x.all && x.tm && (x.end || x.tm) < nowHM ? 'past' : ''}"><span class="agt">${x.all ? 'Dia todo' : esc(x.tm)}${x.end ? `<small>${esc(x.end)}</small>` : ''}</span><i style="background:${esc(x.c)}"></i>${x.k === 't' ? `<button class="agn" data-act="topen" data-id="${x.id}">${ic('todo', 14)} ${esc(x.t)}</button>` : `<button class="agn" data-act="gopen" data-id="${esc(x.id)}">${esc(x.t)}</button>${x.meet && !(x.end && x.end < nowHM) ? `<a class="agmeet" href="${esc(x.meet)}" target="_blank" rel="noopener" data-stop title="Entrar na reunião">${ic('video', 15)}</a>` : ''}`}</li>`).join('')}</ol>${ag.length > 8 ? `<p class="hint pad">+ ${ag.length - 8} compromisso(s)</p>` : ''}`
-    : `<div class="hempty">${ic('cal', 22)}<p>Nenhum compromisso com horário hoje.</p>${typeof GC !== 'undefined' && GC.status !== 'on' && !icsOn() ? '<button class="link" data-act="go" data-to="settings">Conectar Google Agenda</button>' : ''}</div>`;
+  /* agenda da semana (hoje + 6 dias): eventos do Google, feriados e tarefas com horário */
+  const W7 = addD(T, 6), nowHM = hm(now);
+  const wk = (typeof calItems === 'function' ? calItems(T, W7) : []).filter(x => x.kind !== 't' || (!x.allDay && !x.t.del));
+  const agDays = [];
+  for (let d = T; d <= W7; d = addD(d, 1)) {
+    const its = wk.filter(x => dOnly(x.start) <= d && dOnly(x.end || x.start) >= d).map(x => {
+      const timed = !x.allDay && dOnly(x.start) === d;
+      return { k: x.kind === 't' ? 't' : 'e', id: x.id, all: !timed, tm: timed ? tOnly(x.start) : '', end: x.kind !== 't' && timed && dOnly(x.end) === d && tOnly(x.end) !== tOnly(x.start) ? tOnly(x.end) : '', t: x.title, c: x.kind === 't' ? (PRIO[x.prio || 0].c || 'var(--mut2)') : (x.color || 'var(--red)'), meet: x.meet, done: x.kind === 't' && x.t.done, hol: !!x.hol };
+    }).sort((a, b) => (a.all ? 0 : 1) - (b.all ? 0 : 1) || (a.hol ? 0 : 1) - (b.hol ? 0 : 1) || (a.tm || '').localeCompare(b.tm || ''));
+    if (its.length) agDays.push([d, its]);
+  }
+  const agRow = (x, d) => { const past = d === T && !x.all && (x.end || x.tm) < nowHM; return `<li class="${past || x.done ? 'past' : ''}"><span class="agt">${x.all ? (x.hol ? 'Feriado' : 'Dia todo') : esc(x.tm)}${x.end ? `<small>${esc(x.end)}</small>` : ''}</span><i style="background:${esc(x.c)}"></i>${x.k === 't' ? `<button class="agn" data-act="topen" data-id="${x.id}">${ic('todo', 14)} ${esc(x.t)}</button>` : `<button class="agn" data-act="gopen" data-id="${esc(x.id)}">${esc(x.t)}</button>${x.meet && !past ? `<a class="agmeet" href="${esc(x.meet)}" target="_blank" rel="noopener" data-stop title="Entrar na reunião">${ic('video', 15)}</a>` : ''}`}</li>`; };
+  const dayLbl = d => d === T ? 'Hoje' : d === addD(T, 1) ? 'Amanhã' : cap(wdNames[pd(d).getDay()]);
+  const dayDt = d => `${d === T || d === addD(T, 1) ? wdNames[pd(d).getDay()].slice(0, 3) + ', ' : ''}${pd(d).getDate()} ${monShort[pd(d).getMonth()]}`;
+  const agHtml = agDays.length ? `<div class="agweek">${agDays.map(([d, its]) => `<div class="agday${d === T ? ' tdy' : ''}"><h4><span>${esc(dayLbl(d))}</span><small>${esc(dayDt(d))}</small></h4><ol class="agl">${its.map(x => agRow(x, d)).join('')}</ol></div>`).join('')}</div>`
+    : `<div class="hempty">${ic('cal', 22)}<p>Nenhum compromisso nos próximos 7 dias.</p>${typeof GC !== 'undefined' && GC.status !== 'on' && !icsOn() ? '<button class="link" data-act="go" data-to="settings">Conectar Google Agenda</button>' : ''}</div>`;
   const recentNotes = (db.n || []).filter(n => !n.del && !n.arch).sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (b.u || b.c || 0) - (a.u || a.c || 0)).slice(0, 6);
   const recentDocs = db.d.filter(d => !d.del).sort((a, b) => (b.u || b.c || 0) - (a.u || a.c || 0)).slice(0, 5);
   const B = {
     hero: `<section class="hero hero2"><div><h2>${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}${nm ? `, ${esc(nm)}` : ''}</h2><p class="hdate">${esc(fmtLong(T))}</p>
         <p class="herotx">${over.length ? `Você tem <b class="red">${plural(over.length, 'tarefa atrasada', 'tarefas atrasadas')}</b> e ` : 'Você tem '}<b>${plural(todayT.length, 'tarefa', 'tarefas')} para hoje</b>.${doneToday ? ` Já concluiu ${doneToday} hoje.` : ''}</p>
         <div class="hacts"><button class="hact" data-act="quick">${ic('plus', 15)}Tarefa</button><button class="hact" data-act="qnote">${ic('note', 15)}Nota</button><button class="hact" data-act="dnew">${ic('doc', 15)}Documento</button><button class="hact" data-act="go" data-to="focus">${ic('focus', 15)}Foco</button></div></div>${ringHtml}</section>`,
-    agenda: `<section class="hcardx"><header><h3>${ic('cal', 16)}Agenda de hoje</h3><button class="link" data-act="go" data-to="cal">Calendário</button></header>${agHtml}</section>`,
+    agenda: `<section class="hcardx"><header><h3>${ic('cal', 16)}Agenda da semana</h3><button class="link" data-act="go" data-to="cal">Calendário</button></header>${agHtml}</section>`,
     notes: `<section class="hcardx"><header><h3>${ic('note', 16)}Notas recentes</h3><button class="link" data-act="go" data-to="notes">Ver todas</button></header>${recentNotes.length ? `<div class="hnotes">${recentNotes.map(n => `<button class="hnote" style="${esc(typeof noteStyle === 'function' ? noteStyle(n) : '')}" data-act="hnote" data-id="${n.id}">${n.title ? `<b>${esc(n.title)}</b>` : ''}<span>${esc((n.body || (n.items || []).map(i => (i.done ? '☑ ' : '☐ ') + i.t).join('\n') || '').slice(0, 140))}</span></button>`).join('')}</div>` : `<div class="hempty">${ic('note', 22)}<p>Nenhuma nota ainda.</p><button class="link" data-act="qnote">Criar nota</button></div>`}</section>`,
     docs: `<section class="hcardx"><header><h3>${ic('doc', 16)}Documentos recentes</h3><button class="link" data-act="go" data-to="docs">Ver todos</button></header>${recentDocs.length ? `<div class="hdocs">${recentDocs.map(d => `<a class="hdoc" href="#/doc/${d.id}"><span class="hdic">${d.icon === '' ? ic('doc', 16) : esc(d.icon || '📄')}</span><span class="hdt">${esc(d.title || 'Sem título')}</span><small>${esc(fmtDay(ymd(new Date(d.u || d.c)), true))}</small></a>`).join('')}</div>` : `<div class="hempty">${ic('doc', 22)}<p>Nenhum documento ainda.</p><button class="link" data-act="dnew">Criar documento</button></div>`}</section>`,
     aisum: aisumHtml(),
