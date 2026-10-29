@@ -1901,3 +1901,5 @@ body.selmode .fab{display:none}
 }
 .emtabs{overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
 .emtabs::-webkit-scrollbar{display:none}
+/* iPhone: segurar o dedo em itens do menu não abre a pré-visualização de link do Safari */
+#side a,#side button,#tabbar a,#tabbar button,a.nav,.rbtn,.hdoc,.fcard,.dcard,.tab{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
