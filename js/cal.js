@@ -235,15 +235,15 @@ VIEWS.cal = main => {
   const gbtn = !gcalReady() ? `<button class="btn ghost sm" data-act="go" data-to="settings">${ic('google', 16)}<span class="hide-s">Conectar Google</span></button>`
     : gOn() ? `<button class="ib" data-act="gmenu" aria-label="Google Agenda" title="Google Agenda conectado">${ic('google')}</button>`
     : `<button class="btn ghost sm" data-act="gconn">${ic('google', 16)}<span>${GC.status === 'exp' ? 'Reconectar' : 'Conectar'}</span></button>`;
-  const right = `<div class="seg">${[['month', 'Mês'], ['week', 'Semana'], ['3day', '3 dias'], ['day', 'Dia'], ['agenda', 'Agenda']].map(([k, n]) => `<button class="${m === k ? 'on' : ''}${k === 'week' ? ' hide-s' : ''}" data-act="cmode" data-m="${k}">${n}</button>`).join('')}</div>${gbtn}<button class="ib" data-act="cexport" aria-label="Exportar calendário">${ic('export')}</button>`;
+  const right = `${!isMobile() && m !== 'agenda' ? `<button class="ib${db.s.calSide ? ' on' : ''}" data-act="cside" title="Tarefas sem data" aria-label="Mostrar tarefas sem data">${ic('inbox', 19)}</button>` : ''}<div class="seg">${[['month', 'Mês'], ['week', 'Semana'], ['3day', '3 dias'], ['day', 'Dia'], ['agenda', 'Agenda']].map(([k, n]) => `<button class="${m === k ? 'on' : ''}${k === 'week' ? ' hide-s' : ''}" data-act="cmode" data-m="${k}">${n}</button>`).join('')}</div>${gbtn}<button class="ib" data-act="cexport" aria-label="Exportar calendário">${ic('export')}</button>`;
   const nav = `<div class="cnav"><button class="ib" data-act="cnav" data-d="-1" aria-label="Anterior">${ic('left')}</button><button class="btn ghost sm" data-act="ctoday">Hoje</button><button class="ib" data-act="cnav" data-d="1" aria-label="Próximo">${ic('right')}</button><b class="ctitle">${esc(title)}</b>${GC.busy ? `<span class="mut sm spin">${ic('sync', 14)}</span>` : ''}</div>`;
   let body = '';
   if (m === 'month') body = monthHtml(from, items);
   else if (m === 'agenda') body = agendaHtml(from, to, items);
   else body = gridHtml(m === 'week' ? 7 : m === '3day' ? 3 : 1, from, items);
   const unsched = db.t.filter(t => live(t) && !t.par && !t.due && !t.start).sort((a, b) => b.prio - a.prio || (a.o || 0) - (b.o || 0));
-  const side = !isMobile() && CAL.side && m !== 'agenda' ? `<aside class="cside"><header><b>Sem data</b><span class="cnt">${unsched.length}</span><button class="mini" data-act="cside" aria-label="Fechar painel">${ic('x', 14)}</button></header><p class="hint">Arraste para o calendário</p><div class="sside">${unsched.map(t => rowHtml(t, { card: 1, noMeta: 0, showList: 1 })).join('') || '<p class="hint">Todas as tarefas têm data.</p>'}</div></aside>` : '';
-  main.innerHTML = headHtml('Calendário', '', right) + `<div class="calwrap">${nav}<div class="calbody${side ? ' with-side' : ''}"><div class="calmain">${body}</div>${side}${!side && !isMobile() && m !== 'agenda' ? `<button class="sidetab" data-act="cside">Sem data (${unsched.length})</button>` : ''}</div></div><button class="fab" data-act="cadd" aria-label="Adicionar">${ic('plus', 26)}</button>`;
+  const side = !isMobile() && !!db.s.calSide && m !== 'agenda' ? `<aside class="cside"><header><b>Sem data</b><span class="cnt">${unsched.length}</span><button class="mini" data-act="cside" aria-label="Fechar painel">${ic('x', 14)}</button></header><p class="hint">Arraste para o calendário</p><div class="sside">${unsched.map(t => rowHtml(t, { card: 1, noMeta: 0, showList: 1 })).join('') || '<p class="hint">Todas as tarefas têm data.</p>'}</div></aside>` : '';
+  main.innerHTML = headHtml('Calendário', '', right) + `<div class="calwrap">${nav}<div class="calbody${side ? ' with-side' : ''}"><div class="calmain">${body}</div>${side}</div></div><button class="fab" data-act="cadd" aria-label="Adicionar">${ic('plus', 26)}</button>`;
   const g = main.querySelector('.tgrid .tscroll');
   if (g) { if (CAL.scroll == null) { const now = new Date(); CAL.scroll = Math.max(0, (CAL.date === today() ? now.getHours() - 2 : 7) * HOUR); } g.scrollTop = CAL.scroll; g.onscroll = () => { CAL.scroll = g.scrollTop; }; }
 };
@@ -326,7 +326,7 @@ Object.assign(ACTS, {
   cgoday: b => { CAL.mode = 'day'; CAL.date = b.dataset.d; render(true); },
   cslot: (b, e) => { if (e.target.closest('.tev')) return; const r = b.getBoundingClientRect(); const min = Math.floor((e.clientY - r.top) / HOUR * 60 / 30) * 30; newAt({ x: e.clientX, y: e.clientY }, b.dataset.d, pad(Math.floor(min / 60)) + ':' + pad(min % 60)); },
   cadd: b => newAt(b, CAL.mode === 'month' ? CAL.sel : CAL.date),
-  cside: () => { CAL.side = !CAL.side; render(true); },
+  cside: () => { db.s.calSide = !db.s.calSide; put('s', db.s); },
   gconn: () => gConnect(),
   gopen: b => { const ev = GC.ev.find(e => e.id === b.dataset.id); if (ev) editGEvent(ev); },
   gmenu: b => menu(b, [
