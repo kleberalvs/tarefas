@@ -1993,7 +1993,7 @@ body.selmode .fab{display:none}
   body.has-detail:not(.side-rail):not(.side-off) #app{grid-template-columns:var(--side-w) minmax(0,1fr) 0!important}
   body.side-rail.has-detail #app,body.side-off.has-detail #app{grid-template-columns:var(--rail-w) minmax(0,1fr) 0!important}
   body.has-detail #detbg{display:block;position:fixed;inset:0;z-index:64;background:rgba(10,10,12,.42);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:fade .18s}
-  #detail{position:fixed!important;z-index:65;left:50%;top:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(780px,calc(100vw - 48px))!important;height:min(86vh,920px);border:1px solid var(--line)!important;border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.35);overflow:hidden;animation:detpop .22s var(--spring)}
+  #detail{position:fixed!important;z-index:65;left:50%;top:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(660px,calc(100vw - 64px))!important;height:min(78vh,780px);border:1px solid var(--line)!important;border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.35);overflow:hidden;animation:detpop .22s var(--spring)}
   body.det-full #detail{left:0;top:0;transform:none;width:100vw!important;height:100vh;height:100dvh;border-radius:0;border:0!important;animation:none}
   body.det-full.has-detail #detbg{background:transparent;backdrop-filter:none}
   #detail .detres{display:none!important}

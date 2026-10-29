@@ -9,6 +9,7 @@ function openTask(id) {
   setTimeout(() => { const d = $('#detail .dscroll'); if (d) d.scrollTop = 0; }, 0);
 }
 function closeTask() {
+  DET_FULL = false; document.body.classList.remove('det-full');
   if (!R.sel) return;
   if (history.state && history.state.sel) { history.back(); return; }
   R.sel = null; render(true);
@@ -232,7 +233,7 @@ Object.assign(ACTS, {
     ta.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); box.querySelector('[data-ok]').click(); } if (e.key === 'Escape') { e.stopPropagation(); render(true); } };
   },
   dclose: () => closeTask(),
-  dfull: () => { const on = !detFull(); try { localStorage.setItem('tt_detfull', on ? '1' : ''); } catch (e) {} document.body.classList.toggle('det-full', on); render(true); },
+  dfull: () => { DET_FULL = !DET_FULL; document.body.classList.toggle('det-full', DET_FULL); render(true); },
   covopen: () => { const t = get('t', R.sel); if (t && t.cover) lightbox(t.cover); },
   tcovrm: () => { const t = get('t', R.sel); if (t && t.cover) { const m = t.cover; t.cover = null; put('t', t); FILES.remove(m); } },
   dcheck: b => checkTask(R.sel),
@@ -333,5 +334,6 @@ function toggleNote(t, quiet) {
 }
 
 /* tarefa aberta numa janela no centro; pode expandir para a tela inteira (preferência fica salva no aparelho) */
-function detFull() { try { return localStorage.getItem('tt_detfull') === '1'; } catch (e) { return false; } }
-document.body.classList.toggle('det-full', detFull());
+let DET_FULL = false;
+function detFull() { return DET_FULL; }
+try { localStorage.removeItem('tt_detfull'); } catch (e) {}
