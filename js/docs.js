@@ -317,7 +317,7 @@ function blockHtml(b, i, arr, num) {
     case 'hr': inner = '<hr>'; break;
     case 'pb': inner = `<div class="pbreak"><span>Quebra de página</span></div>`; break;
     case 'img': inner = b.file ? `<figure class="bimg sz-${esc(b.size || 'l')}"><img alt="${esc(stripHtml(b.text) || b.file.name)}" data-img="${esc(b.file.id)}"><figcaption class="bx" data-keep contenteditable="true" data-ph="Legenda">${b.text || ''}</figcaption></figure>` : `<label class="bup">${ic('img', 20)}Escolher imagem<input type="file" accept="image/*" hidden data-bup="img"></label>`; break;
-    case 'file': inner = b.file ? `<button class="bfile" data-bact="openfile">${ic('file', 22)}<span><b>${esc(b.file.name)}</b><span class="mut sm">${fmtSize(b.file.size)}</span></span>${ic('dl', 18)}</button>` : `<label class="bup">${ic('clip', 20)}Escolher arquivo<input type="file" hidden data-bup="file"></label>`; break;
+    case 'file': inner = b.file ? `<button class="bfile" data-bact="openfile"><span class="fthumb sm" data-bthumb="${esc(b.file.id)}"><span class="ftph">${ic(KIND_IC[fileKind(b.file)], 20)}</span></span><span><b>${esc(b.file.name)}</b><span class="mut sm">${fmtSize(b.file.size)} · toque para ver</span></span>${ic('eye', 18)}</button>` : `<label class="bup">${ic('clip', 20)}Escolher arquivo<input type="file" hidden data-bup="file"></label>`; break;
     case 'task': {
       const t = get('t', b.ref);
       inner = t ? `<button class="chk p${t.prio || 0}${t.done ? ' on' : ''}" data-bact="tcheck" role="checkbox" aria-checked="${t.done}" aria-label="Concluir tarefa"><span>${ic('check', 12)}</span></button><div class="bx ttask${t.done ? ' done' : ''}" data-keep contenteditable="true" data-ph="Tarefa">${esc(t.title)}</div><button class="tinfo" data-bact="topen">${t.due ? `<span class="md${overdue(t) ? ' red' : ''}">${ic('cal', 13)}${esc(fmtWhen(t.due))}</span>` : ''}<span class="md">${esc(listOf(t).name)}</span>${ic('chev', 14)}</button>`
@@ -347,6 +347,7 @@ function drawBlocks() {
   box.innerHTML = h;
   box.querySelectorAll('.bx:not(.code)').forEach(el => autoLinkEditable(el, () => el.dispatchEvent(new Event('input', { bubbles: true }))));
   box.querySelectorAll('img[data-img]').forEach(loadImg);
+  box.querySelectorAll('[data-bthumb]').forEach(el => { const bb = d.b.find(x => x.file && x.file.id === el.dataset.bthumb); if (bb) fillThumb(el, bb.file); });
   const cv = $('.pcover img[data-img]'); if (cv) loadImg(cv);
   setTimeout(updStats, 60);
 }
@@ -673,7 +674,7 @@ function bindEditor(box) {
     if (k === 'emoji') emojiPick(btn, em => { b.emoji = em; restructure(); });
     if (k === 'tcheck') { checkTask(b.ref); setTimeout(() => drawBlocks(), 320); }
     if (k === 'topen') openTask(b.ref);
-    if (k === 'openfile') openFile(b.file);
+    if (k === 'openfile') fileViewer(b.file);
     if (k === 'plus') { const nb = insertAfter(b, { id: uid(), type: 'p', text: '', lvl: b.lvl || 0 }); restructure(nb.id, 0); setTimeout(() => { const el = $(`#blocks .blk[data-id="${nb.id}"] .bx`); if (el) { document.execCommand('insertText', false, '/'); } }, 10); }
     if (k === 'menu') blockMenu(b, btn);
     if (k === 'trow') { b.rows.push(b.rows[0].map(() => '')); restructure(); }
