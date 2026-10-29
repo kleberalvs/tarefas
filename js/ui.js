@@ -37,6 +37,7 @@ function doRender(force) {
   document.body.classList.toggle('drawer', !!R.drawer);
   document.body.classList.toggle('has-detail', !!R.sel && !!get('t', R.sel));
   document.body.classList.toggle('compact', !!db.s.compact);
+  document.body.classList.toggle('v-focus', R.v === 'focus');
   const side = $('#side'), main = $('#main'), det = $('#detail');
   if (force || !busy(side)) side.innerHTML = sideHtml();
   document.body.classList.toggle('side-rail', !side.querySelector('.spanel'));
