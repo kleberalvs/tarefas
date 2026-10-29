@@ -1713,3 +1713,5 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 .hgx{align-items:stretch}
 .hb .hbin>.hcardx,.hb .hbin>.aisum{height:100%}
 .donutw{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.kpi.kpi2::after{content:none;display:none}
+.hero.hero2{background:var(--card)}
