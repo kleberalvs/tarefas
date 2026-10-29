@@ -39,6 +39,7 @@ function doRender(force) {
   document.body.classList.toggle('compact', !!db.s.compact);
   const side = $('#side'), main = $('#main'), det = $('#detail');
   if (force || !busy(side)) side.innerHTML = sideHtml();
+  document.body.classList.toggle('side-rail', !side.querySelector('.spanel'));
   if (force || !busy(main)) {
     const sc = main.querySelector('.scroll'), top = sc ? sc.scrollTop : 0, key = R.v + ':' + R.id;
     const fn = VIEWS[R.v] || VIEWS.list;
@@ -76,7 +77,7 @@ function NV(id, cur, ov) {
   const p = navPref(id); if (p.hide) return '';
   const [href, icon, name, o] = NAVS[id];
   const on = id === 'docs' ? ((cur === 'docs' && !R.id) || cur === 'doc') : cur === id;
-  return navItem(href, icon, p.name || name, { on, count: o.cnt && !p.nocnt ? countFor(o.cnt) : 0, red: id === 'today' && ov > 0, drop: o.drop, nc: p.c || 'var(--red)', emoji: p.emoji, ctx: 'nav:' + id });
+  return navItem(href, icon, p.name || name, { on, count: o.cnt && !p.nocnt ? countFor(o.cnt) : 0, red: id === 'today' && ov > 0, drop: o.drop, nc: p.c || 'var(--txt2)', emoji: p.emoji, ctx: 'nav:' + id });
 }
 function navMenu(id, anchor, at) {
   const p = navPref(id), set = (k, v) => { db.s.nav = db.s.nav || {}; db.s.nav[id] = Object.assign({}, navPref(id), { [k]: v }); if (v == null) delete db.s.nav[id][k]; put('s', db.s); };
@@ -122,26 +123,46 @@ function sideHtml() {
   const lh = folderKids(null, 'l').map(f => fold(f, 0, 'l')).join('') + lists.filter(l => !l.folder || !get('f', l.folder)).map(l => li(l, 0)).join('');
   const dh = folderKids(null, 'd').map(f => fold(f, 0, 'd')).join('');
   const tags = db.g.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt'));
-  const nm = (db.s.name || '').trim();
-  return `
-  <div class="prof">
-    <button class="pbtn0" data-act="go" data-to="me" aria-label="Abrir perfil e conquistas">${avatarHtml()}<span class="pname"><b>${esc(nm || 'Toque para pôr seu nome')}</b><span class="psub"><i class="sdot ${esc(SYNC.cls)}" id="sync" title="${esc(SYNC.txt)}"></i><span id="syncline2">${esc(SYNC.txt)}</span></span></span>${(() => { try { const n = Object.keys(db.s.ach || {}).length; return n ? `<span class="pmed" title="${n} medalhas">🏅${n}</span>` : ''; } catch (e) { return ''; } })()}</button>
-    <button class="ib" data-act="go" data-to="search" aria-label="Buscar">${ic('search')}</button>
-    <button class="ib hide-m" data-act="side" aria-label="Recolher barra lateral">${ic('side')}</button>
-  </div>
-  <button class="addbtn" data-act="quick"><span class="addic">${ic('plus', 16)}</span><span>Adicionar tarefa</span><kbd class="hide-m">Q</kbd></button>
-  <button class="addbtn doc" data-act="dnew"><span class="addic">${ic('doc', 15)}</span><span>Novo documento</span><kbd class="hide-m">D</kbd></button><button class="addbtn doc" data-act="qnote"><span class="addic">${ic('note', 15)}</span><span>Nota rápida</span><kbd class="hide-m">K</kbd></button>
-  <nav class="snav">${NAV_TOP.map(n => NV(n, cur, ov)).join('')}</nav>
-  <div class="sgroup" data-drop="folder:"><div class="sgh"><span>Listas</span><button class="mini" data-act="newlist" aria-label="Nova lista" title="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" data-k="l" aria-label="Nova pasta de listas" title="Nova pasta">${ic('folder', 16)}</button></div>${lh || '<p class="hint">Nenhuma lista ainda</p>'}</div>
-  <div class="sgroup" data-drop="dfold:"><div class="sgh"><span>Pastas de documentos</span><button class="mini" data-act="newfolder" data-k="d" aria-label="Nova pasta de documentos" title="Nova pasta">${ic('plus', 16)}</button></div>${dh || '<p class="hint">Crie pastas para organizar documentos</p>'}</div>
-  <div class="sgroup"><div class="sgh"><span>Etiquetas</span><button class="mini" data-act="newtag" aria-label="Nova etiqueta">${ic('plus', 16)}</button></div>
-    ${tags.map(g => `<a class="nav${cur === 'tag:' + g.id ? ' on' : ''}" href="#/tag/${g.id}" data-drop="tag:${g.id}" data-ctx="tag:${g.id}">${g.emoji ? `<span class="nemo">${esc(g.emoji)}</span>` : `<span class="nic" style="--nc:${esc(g.color)}">${ic('tag', 18)}</span>`}<span class="nm">${esc(g.name)}</span><span class="cnt">${countFor('tag:' + g.id) || ''}</span><button class="mini more" data-act="ctx" data-ctx="tag:${g.id}" aria-label="Opções da etiqueta">${ic('more', 16)}</button></a>`).join('') || '<p class="hint">Use #etiqueta ao digitar uma tarefa</p>'}
-  </div>
-  <nav class="snav low">
-    ${NAV_LOW.map(n => NV(n, cur, ov)).join('')}
-    ${typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? navItem('users', 'users', 'Usuários', { on: cur === 'users', nc: 'var(--red)' }) : ''}
-    ${navItem('settings', 'gear', 'Configurações', { on: cur === 'settings', nc: 'var(--red)' })}
-  </nav>`;
+  const sec = sideSection();
+  /* trilho de ícones (à esquerda) */
+  const RB = (id, icon, label, to, on) => { const p = NAVS[id] ? navPref(id) : {}; if (p.hide) return ''; return `<a class="rbtn${on ? ' on' : ''}" href="#/${to}" title="${esc(p.name || label)}" aria-label="${esc(p.name || label)}"${NAVS[id] ? ` data-ctx="nav:${id}"` : ''} style="--nc:${p.c || 'var(--red)'}">${p.emoji ? `<span class="nemo">${esc(p.emoji)}</span>` : ic(icon, 22)}${id === 'tasks' && ov ? '<i class="rdot"></i>' : ''}</a>`; };
+  const rail = `<div class="rail">
+    ${RB('home', 'home', 'Painel', 'home', cur === 'home')}
+    ${RB('tasks', 'todo', 'Tarefas', 'l/' + (db.s.lastList || 'today'), sec === 'tasks')}
+    ${RB('cal', 'cal', 'Calendário', 'cal', cur === 'cal')}
+    ${RB('matrix', 'matrix', 'Matriz de prioridades', 'matrix', cur === 'matrix')}
+    ${RB('focus', 'focus', 'Foco', 'focus', cur === 'focus')}
+    ${RB('habits', 'habit', 'Hábitos', 'habits', cur === 'habits')}
+    ${RB('docs', 'doc', 'Documentos', 'docs', sec === 'docs')}
+    ${RB('notes', 'note', 'Notas rápidas', 'notes', cur === 'notes')}
+    ${RB('meet', 'mic', 'Reuniões', 'meet', cur === 'meet')}
+    ${RB('search', 'search', 'Buscar', 'search', cur === 'search')}
+    <span class="rsp"></span>
+    <a class="rbtn${cur === 'me' || cur === 'ach' || cur === 'pets' ? ' on' : ''}" href="#/me" title="Perfil e conquistas" aria-label="Perfil e conquistas">${ic('star', 21)}</a>
+    ${typeof IS_ADMIN !== 'undefined' && IS_ADMIN ? `<a class="rbtn${cur === 'users' ? ' on' : ''}" href="#/users" title="Usuários" aria-label="Usuários">${ic('users', 21)}</a>` : ''}
+    <a class="rbtn${cur === 'settings' ? ' on' : ''}" href="#/settings" title="Configurações" aria-label="Configurações">${ic('gear', 21)}<i class="sdot ${esc(SYNC.cls)}" id="sync" title="${esc(SYNC.txt)}"></i></a>
+  </div>`;
+  const head = (title, btns) => `<div class="sphead"><b>${title}</b><span class="sp"></span>${btns}<button class="ib hide-m" data-act="side" aria-label="Recolher painel" title="Recolher painel">${ic('side', 18)}</button></div>`;
+  const tasksPanel = `${head('Tarefas', `<button class="ib" data-act="quick" aria-label="Adicionar tarefa" title="Adicionar tarefa (Q)">${ic('plus', 19)}</button>`)}
+    <nav class="snav">${['today', 'tomorrow', 'week', 'inbox'].map(n => NV(n, cur, ov)).join('')}</nav>
+    <hr class="sdiv">
+    <div class="sgroup" data-drop="folder:"><div class="sgh"><span>Listas</span><button class="mini" data-act="newlist" aria-label="Nova lista" title="Nova lista">${ic('plus', 16)}</button><button class="mini" data-act="newfolder" data-k="l" aria-label="Nova pasta" title="Nova pasta">${ic('folder', 16)}</button></div>${lh || '<p class="hint">Crie listas para organizar suas tarefas</p>'}</div>
+    <div class="sgroup"><div class="sgh"><span>Etiquetas</span><button class="mini" data-act="newtag" aria-label="Nova etiqueta">${ic('plus', 16)}</button></div>
+      ${tags.length ? tags.map(g => `<a class="nav${cur === 'tag:' + g.id ? ' on' : ''}" href="#/tag/${g.id}" data-drop="tag:${g.id}" data-ctx="tag:${g.id}">${g.emoji ? `<span class="nemo">${esc(g.emoji)}</span>` : `<span class="nic" style="--nc:${esc(g.color)}">${ic('tag', 19)}</span>`}<span class="nm">${esc(g.name)}</span><span class="cnt">${db.t.filter(t => live(t) && (t.tags || []).includes(g.id)).length || ''}</span></a>`).join('') : '<p class="hint">Use #etiqueta ao criar uma tarefa</p>'}
+    </div>
+    <nav class="snav low">${NAV_LOW.map(n => NV(n, cur, ov)).join('')}</nav>`;
+  const docsPanel = `${head('Documentos', `<button class="ib" data-act="dnew" aria-label="Novo documento" title="Novo documento (D)">${ic('plus', 19)}</button>`)}
+    <nav class="snav">${navItem('docs', 'doc', 'Todos os documentos', { on: cur === 'docs' && !R.id, nc: 'var(--red)', drop: 'dfold:' })}${navItem('notes', 'note', 'Notas rápidas', { on: cur === 'notes', nc: 'var(--red)' })}</nav>
+    <hr class="sdiv">
+    <div class="sgroup" data-drop="dfold:"><div class="sgh"><span>Pastas</span><button class="mini" data-act="newfolder" data-k="d" aria-label="Nova pasta de documentos" title="Nova pasta">${ic('plus', 16)}</button></div>${dh || '<p class="hint">Crie pastas para organizar documentos</p>'}</div>`;
+  const panel = sec === 'docs' ? docsPanel : sec === 'tasks' || isMobile() ? tasksPanel : '';
+  return rail + (panel ? `<div class="spanel">${panel}</div>` : '');
+}
+/* seção do menu: tarefas (listas e filtros) ou documentos mostram o painel ao lado do trilho */
+function sideSection() {
+  if (R.v === 'list' || R.v === 'tag' || R.v === 'log') return 'tasks';
+  if (R.v === 'docs' || R.v === 'doc') return 'docs';
+  return '';
 }
 /* perfil: nome e foto (recortada no centro) */
 function editProfile() {
