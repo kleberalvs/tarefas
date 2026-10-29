@@ -1624,3 +1624,6 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 .pan small{font-size:calc(12.5px * var(--fs,1));color:var(--mink,var(--mut))}
 .pauthor+.pmeta{margin-top:2px}
 .pcover .phead .pauthor,.page.cfull .pauthor{color:#fff}
+.pfx.heart.h3{left:48%;font-size:15px;top:2%}
+.petcv{image-rendering:pixelated;image-rendering:crisp-edges}
+.pet.hop .petb{animation:none}
