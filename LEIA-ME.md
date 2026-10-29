@@ -44,6 +44,11 @@ Observação: sem um servidor de e-mail próprio, o Supabase envia poucos e-mail
 4. SQL Editor: rode `supabase/agendador-notificacoes.sql`, trocando `COLE_AQUI_O_CRON_SECRET` pelo mesmo valor do segredo `CRON_SECRET`.
 5. No app: **Configurações → Tornar-me administrador** (só o primeiro usuário vê esse botão) e **Notificações → Ativar** em cada aparelho.
 
+**Atualizar a função depois de uma nova versão:** Supabase → Edge Functions → `tarefas` → **Code** → apague tudo, cole de novo o arquivo `supabase/functions/tarefas/index.ts` → **Deploy**. Os segredos e o agendador continuam valendo.
+
+### 5. Google Agenda pelo link secreto (só leitura)
+No computador: calendar.google.com → Configurações → (sua agenda) → Integrar agenda → copie o **Endereço secreto no formato iCal**. No app: Configurações → Google Agenda → cole e toque em Adicionar. Os eventos são buscados pela função `tarefas` (ação `ical`), por isso ela precisa estar atualizada.
+
 No iPhone, as notificações só funcionam com o app instalado na Tela de Início (iOS 16.4 ou mais recente).
 
 ### 5. Google Agenda (opcional)

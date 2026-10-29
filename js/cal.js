@@ -77,7 +77,7 @@ async function gLoadEvents(from, to, force) {
         if (!j.nextPageToken) break; page = j.nextPageToken;
       }
     }));
-    GC.ev = out; GC.loaded = key; GC.at = Date.now(); GC.status = 'on';
+    GC.ev = out; GC.src = 'api'; GC.loaded = key; GC.at = Date.now(); GC.status = 'on';
   } catch (e) { console.warn('google', e); if (GC.status !== 'exp') GC.status = 'err'; }
   finally { GC.busy = false; render(); }
 }
@@ -202,7 +202,7 @@ function calItems(from, to) {
       items.push({ kind: 't', id: t.id, t, title: t.title, start: s, end: e, allDay, color: t.done ? 'var(--mut2)' : PRIO[t.prio || 0].p ? '' : (listOf(t).color || '#808080'), lc: listOf(t).color || '#808080', done: t.done || (o.virt && false), virt: o.virt, prio: t.prio || 0 });
     });
   });
-  if (gOn()) GC.ev.forEach(e => { if (dOnly(e.end) >= from && dOnly(e.start) <= to) items.push(e); });
+  if (gOn() || GC.src === 'ics') GC.ev.forEach(e => { if (dOnly(e.end) >= from && dOnly(e.start) <= to) items.push(e); });
   return items;
 }
 const onDay = (it, d) => dOnly(it.start) <= d && dOnly(it.end || it.start) >= d;
@@ -219,6 +219,7 @@ function calRange(force) {
   else if (m === 'day') { from = to = d; }
   else { from = d; to = addD(d, 30); }
   if (gOn()) gLoadEvents(from, to, force);
+  else if (typeof icsOn === 'function' && icsOn()) { if (GC.src !== 'ics') icsApply(); icsRefresh(force); }
   return { from, to };
 }
 
@@ -232,11 +233,11 @@ VIEWS.cal = main => {
   if (m === 'month') title = cap(monNames[d.getMonth()]) + ' ' + d.getFullYear();
   else if (m === 'day') title = fmtDay(CAL.date, true);
   else title = `${pd(from).getDate()} ${monShort[pd(from).getMonth()]} – ${pd(to).getDate()} ${monShort[pd(to).getMonth()]}`;
-  const gbtn = !gcalReady() ? `<button class="btn ghost sm" data-act="go" data-to="settings">${ic('google', 16)}<span class="hide-s">Conectar Google</span></button>`
+  const gbtn = !gOn() && icsOn() ? `<button class="ib" data-act="go" data-to="settings" aria-label="Google Agenda" title="Google Agenda (link iCal)">${ic('google')}</button>` : !gcalReady() ? `<button class="btn ghost sm" data-act="go" data-to="settings">${ic('google', 16)}<span class="hide-s">Conectar Google</span></button>`
     : gOn() ? `<button class="ib" data-act="gmenu" aria-label="Google Agenda" title="Google Agenda conectado">${ic('google')}</button>`
     : `<button class="btn ghost sm" data-act="gconn">${ic('google', 16)}<span>${GC.status === 'exp' ? 'Reconectar' : 'Conectar'}</span></button>`;
   const right = `${!isMobile() && m !== 'agenda' ? `<button class="ib${db.s.calSide ? ' on' : ''}" data-act="cside" title="Tarefas sem data" aria-label="Mostrar tarefas sem data">${ic('inbox', 19)}</button>` : ''}<div class="seg">${[['month', 'Mês'], ['week', 'Semana'], ['3day', '3 dias'], ['day', 'Dia'], ['agenda', 'Agenda']].map(([k, n]) => `<button class="${m === k ? 'on' : ''}${k === 'week' ? ' hide-s' : ''}" data-act="cmode" data-m="${k}">${n}</button>`).join('')}</div>${gbtn}<button class="ib" data-act="cexport" aria-label="Exportar calendário">${ic('export')}</button>`;
-  const nav = `<div class="cnav"><button class="ib" data-act="cnav" data-d="-1" aria-label="Anterior">${ic('left')}</button><button class="btn ghost sm" data-act="ctoday">Hoje</button><button class="ib" data-act="cnav" data-d="1" aria-label="Próximo">${ic('right')}</button><b class="ctitle">${esc(title)}</b>${GC.busy ? `<span class="mut sm spin">${ic('sync', 14)}</span>` : ''}</div>`;
+  const nav = `<div class="cnav"><button class="ib" data-act="cnav" data-d="-1" aria-label="Anterior">${ic('left')}</button><button class="btn ghost sm" data-act="ctoday">Hoje</button><button class="ib" data-act="cnav" data-d="1" aria-label="Próximo">${ic('right')}</button><b class="ctitle">${esc(title)}</b>${GC.busy || ICS.busy ? `<span class="mut sm spin">${ic('sync', 14)}</span>` : ''}</div>`;
   let body = '';
   if (m === 'month') body = monthHtml(from, items);
   else if (m === 'agenda') body = agendaHtml(from, to, items);
@@ -328,7 +329,7 @@ Object.assign(ACTS, {
   cadd: b => newAt(b, CAL.mode === 'month' ? CAL.sel : CAL.date),
   cside: () => { db.s.calSide = !db.s.calSide; put('s', db.s); },
   gconn: () => gConnect(),
-  gopen: b => { const ev = GC.ev.find(e => e.id === b.dataset.id); if (ev) editGEvent(ev); },
+  gopen: b => { const ev = GC.ev.find(e => e.id === b.dataset.id); if (ev) (ev.ics ? icsOpen(ev) : editGEvent(ev)); },
   gmenu: b => menu(b, [
     { head: 'Google Agenda' },
     { label: 'Atualizar agora', icon: 'sync', act: () => { GC.loaded = ''; calRange(true); gFlush(); } },

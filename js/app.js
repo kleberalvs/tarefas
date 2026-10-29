@@ -54,6 +54,8 @@ VIEWS.settings = main => {
       <p>Nos documentos, digite <b>@</b> para inserir datas, tarefas e outros documentos, e <b>/</b> para inserir blocos.</p></details>
   </section>
   <section class="sgrp"><h2>${ic('google', 18)}Google Agenda</h2>
+    ${icsSettingsHtml()}
+    <details class="help gadv"${s.gClient ? ' open' : ''}><summary>Avançado: conectar com login do Google (ver e editar)</summary>
     ${s.gClient ? `
       <div class="srow"><div><b>${gOn() ? 'Conectado' : GC.status === 'exp' ? 'Sessão expirada' : 'Não conectado'}</b><p class="mut sm">${gOn() ? 'Eventos aparecem no calendário e tarefas com data vão para a sua agenda.' : 'Toque em conectar para entrar com sua conta Google.'}</p></div>${gOn() ? `<button class="btn ghost sm" data-act="gdisc">Desconectar</button>` : `<button class="btn red sm" data-act="gconn">${ic('google', 16)}Conectar</button>`}</div>
       ${gOn() && cals.length ? `<p class="lab">Agendas exibidas no calendário</p><div class="cals">${cals.map(c => `<label class="calc"><input type="checkbox" data-gcal="${esc(c.id)}" ${(s.gCals || []).includes(c.id) ? 'checked' : ''}><span class="ldot" style="background:${esc(c.color || '#888')}"></span>${esc(c.name)}</label>`).join('')}</div>
@@ -64,6 +66,7 @@ VIEWS.settings = main => {
     : `<p>Para ligar o Google Agenda, crie um "ID do cliente OAuth" gratuito no Google Cloud (passo a passo no arquivo LEIA-ME do projeto) e cole aqui:</p>
       <div class="row"><input class="in" id="gcid" placeholder="000000000000-xxxxxxxx.apps.googleusercontent.com"><button class="btn red sm" data-act="gsave">Salvar</button></div>
       <p class="hint">Origem autorizada a cadastrar no Google: <b>${esc(location.origin)}</b></p>`}
+    <p class="hint">Com o login, você também cria e edita eventos e envia tarefas para o Google. O acesso dura 1 hora por vez; quando expira, o app volta a usar o link acima.</p></details>
   </section>
   <section class="sgrp"><h2>${ic('bell', 18)}Notificações</h2>
     <div class="srow"><div><b>${PUSH.on ? 'Ativadas neste aparelho' : 'Desativadas neste aparelho'}</b><p class="mut sm">${PUSH.on ? 'Lembretes de tarefas, hábitos e fim do Pomodoro chegam mesmo com o app fechado.' : PUSH.supported ? 'Ative para receber lembretes mesmo com o app fechado.' : isIOS() ? 'No iPhone, primeiro instale o app na Tela de Início (Compartilhar → Adicionar à Tela de Início) e abra por lá.' : 'Este navegador não suporta notificações.'}</p>${PUSH.err ? `<p class="err">${esc(PUSH.err)}</p>` : ''}</div>${PUSH.on ? `<div class="row"><button class="btn ghost sm" data-act="pushtest">Testar</button><button class="btn ghost sm" data-act="pushoff">Desativar</button></div>` : PUSH.supported ? `<button class="btn red sm" data-act="pushon" ${PUSH.busy ? 'disabled' : ''}>${PUSH.busy ? 'Ativando…' : 'Ativar'}</button>` : ''}</div>
@@ -86,6 +89,7 @@ VIEWS.settings = main => {
   main.querySelectorAll('[data-navc]').forEach(i => i.onchange = () => { db.s.nav = db.s.nav || {}; db.s.nav[i.dataset.navc] = Object.assign({}, navPref(i.dataset.navc), { c: i.value }); put('s', s); });
   main.querySelectorAll('[data-navshow]').forEach(i => i.onchange = () => { db.s.nav = db.s.nav || {}; const p = Object.assign({}, navPref(i.dataset.navshow)); if (i.checked) delete p.hide; else p.hide = 1; db.s.nav[i.dataset.navshow] = p; put('s', s); });
   main.querySelectorAll('[data-pk]').forEach(i => i.onchange = () => { s.pomo[i.dataset.pk] = i.checked; put('s', s); });
+  icsBindSettings(main);
   main.querySelectorAll('[data-gcal]').forEach(i => i.onchange = () => { const id = i.dataset.gcal; s.gCals = (s.gCals || []).filter(x => x !== id); if (i.checked) s.gCals.push(id); GC.loaded = ''; put('s', s); });
 };
 Object.assign(ACTS, {
@@ -170,5 +174,7 @@ function boot() {
   boot.d = today();
   if (gcalReady() && !gOn() && localStorage.getItem('tt_gok')) GC.status = 'exp';
   if (gOn()) { gLoadCals().then(() => { render(); gFlush(); }).catch(() => {}); }
+  if (icsOn()) { icsApply(); setTimeout(() => icsRefresh(), 1500); setTimeout(() => { if (!ICS.at || Date.now() - ICS.at > 10 * 60000) icsRefresh(); }, 7000); }
+  icsFromLaunch();
 }
 document.addEventListener('DOMContentLoaded', boot);

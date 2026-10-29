@@ -1,7 +1,8 @@
 // Função "tarefas" (Supabase Edge Function)
 // 1) Administração de usuários (só para administradores do app)
 // 2) Notificações push: o agendador chama esta função a cada minuto e ela avisa os aparelhos
-//    sobre lembretes de tarefas, hábitos e fim do Pomodoro — mesmo com o app fechado.
+//    sobre lembretes de tarefas, hábitos, fim do Pomodoro e reuniões da agenda — mesmo com o app fechado.
+// 3) Google Agenda pelo link secreto (iCal): baixa o arquivo da agenda para o app (o navegador não pode baixar direto).
 // Segredos necessários (Edge Functions → Secrets): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -76,8 +77,8 @@ async function pushTick(admin: any) {
   for (const uid of Object.keys(byUser)) {
     const tz = byUser[uid][0].tz || 'America/Sao_Paulo';
     const T = todayIn(tz);
-    const { data: rows } = await admin.from('tarefas_registros').select('kind,id,data').eq('user_id', uid).in('kind', ['t', 'h', 'z']);
-    const due: { key: string; title: string; body: string; url: string }[] = [];
+    const { data: rows } = await admin.from('tarefas_registros').select('kind,id,data').eq('user_id', uid).in('kind', ['t', 'h', 'z', 's']);
+    const due: { key: string; title: string; body: string; url: string; meet?: string; rec?: string }[] = [];
     for (const r of rows || []) {
       const x = r.data || {};
       if (r.kind === 't') {
@@ -99,6 +100,16 @@ async function pushTick(admin: any) {
         if (((x.log || {})[T] || 0) >= (x.goal || 1)) continue;
         const fire = zoned(T, x.rem, tz);
         if (fire > from && fire <= now) due.push({ key: `${uid}|h|${x.id}|${T}`, title: `${x.emoji || ''} ${x.name}`.trim(), body: 'Lembrete do hábito', url: './#/habits' });
+      } else if (r.kind === 's' && Array.isArray(x.gUp)) {
+        const rem = x.gIcsRem ?? 10;
+        if (!rem) continue;
+        for (const e of x.gUp) {
+          const fire = (+e.at || 0) - rem * 60000;
+          if (fire > from && fire <= now) {
+            const hh = new Intl.DateTimeFormat('pt-BR', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(+e.at));
+            due.push({ key: `${uid}|g|${e.k}|${e.at}`, title: e.t || 'Reunião', body: `Começa em ${fmtMin(rem)} · ${hh}${e.m ? ' · toque para entrar' : ''}`, url: './#/meet', meet: e.m || '', rec: e.k || '' });
+          }
+        }
       } else if (r.kind === 'z' && x.end) {
         if (x.end > from && x.end <= now) due.push({ key: `${uid}|z|${x.end}`, title: x.mode === 'focus' ? 'Sessão de foco concluída' : 'Pausa encerrada', body: x.mode === 'focus' ? 'Hora de descansar um pouco.' : 'Vamos voltar ao foco?', url: './#/focus' });
       }
@@ -108,7 +119,7 @@ async function pushTick(admin: any) {
       if (!ins || !ins.length) continue;
       for (const s of byUser[uid]) {
         try {
-          const p = await buildPush(s, { title: n.title, body: n.body, tag: n.key, url: n.url }, keys);
+          const p = await buildPush(s, { title: n.title, body: n.body, tag: n.key, url: n.url, meet: n.meet || '', rec: n.rec || '' }, keys);
           const res = await fetch(p.url, p.init);
           if (res.status === 404 || res.status === 410) await admin.from('tarefas_push').delete().eq('endpoint', s.endpoint);
           else if (res.ok) sent++;
@@ -141,6 +152,18 @@ Deno.serve(async (req) => {
       let ok = 0;
       for (const s of subs || []) { const p = await buildPush(s, { title: 'Tarefas', body: 'Notificações funcionando neste aparelho ✅', tag: 'teste', url: './' }, keys); const r = await fetch(p.url, p.init); if (r.ok) ok++; else if (r.status === 404 || r.status === 410) await admin.from('tarefas_push').delete().eq('endpoint', s.endpoint); }
       return json({ ok, total: (subs || []).length });
+    }
+
+    if (body.action === 'ical') {
+      let u: URL;
+      try { u = new URL(String(body.url || '').replace(/^webcal:\/\//i, 'https://')); } catch (_) { return json({ error: 'Endereço inválido' }); }
+      if (u.protocol !== 'https:' || !/^(calendar\.google\.com|www\.google\.com|outlook\.office365\.com|outlook\.live\.com|outlook\.office\.com|p\d+-caldav\.icloud\.com)$/i.test(u.hostname)) return json({ error: 'Só aceito links de agenda do Google, Outlook ou iCloud' });
+      const r = await fetch(u.toString(), { headers: { 'User-Agent': 'Tarefas/1.0' }, redirect: 'follow' });
+      if (!r.ok) return json({ error: r.status === 404 ? 'O Google não encontrou essa agenda (o link secreto pode ter sido trocado)' : 'O Google respondeu com erro ' + r.status });
+      const text = await r.text();
+      if (!/BEGIN:VCALENDAR/.test(text.slice(0, 2000))) return json({ error: 'Esse link não devolveu uma agenda (.ics)' });
+      if (text.length > 15_000_000) return json({ error: 'Agenda grande demais' });
+      return json({ text });
     }
 
     const { data: adm } = await admin.from('tarefas_admins').select('user_id');

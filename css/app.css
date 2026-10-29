@@ -2052,3 +2052,23 @@ body.selmode .fab{display:none}
 /* miniatura do estilo na página de temas */
 .skin[data-k=vidro] .sk{background:var(--kb)}.skin[data-k=vidro] .skm{background:transparent}
 .skin[data-k=vidro] .sks{background:rgba(255,255,255,.08);box-shadow:inset -1px 0 0 rgba(255,255,255,.12)}
+/* ---------- Google Agenda pelo link (iCal) ---------- */
+.icsrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.icsrow input[type=color]{width:26px;height:26px;border:0;padding:0;border-radius:50%;background:none;cursor:pointer;flex:none}
+.icsrow input[type=color]::-webkit-color-swatch-wrapper{padding:0}.icsrow input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
+.icsrow p{margin:2px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
+.redt{color:var(--red)}
+.gadv{margin-top:14px}
+.mbox.icsmodal{max-width:520px}
+.icsev .icshd{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.icsev .icshd .ldot{width:12px;height:12px;border-radius:4px;flex:none;margin-top:8px}
+.icsev h2{margin:0;font-size:calc(20px * var(--fs,1));line-height:1.3}
+.icsw{display:flex;align-items:flex-start;gap:10px;margin:6px 0;color:var(--txt2)}
+.icsw svg{flex:none;margin-top:2px;color:var(--mut)}
+.icsbtns{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
+.icsbtns .btn{min-height:42px}
+.icsdesc{margin:12px 0 0;padding:12px 14px;border-radius:12px;background:var(--sunk);max-height:34vh;overflow-y:auto;font-size:calc(13.5px * var(--fs,1));line-height:1.55;word-break:break-word}
+.icsfoot{display:flex;align-items:center;gap:6px;margin:12px 0}
+.agmeet{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;color:#fff;background:#1a73e8;margin-left:6px}
+.agmeet:hover{filter:brightness(1.1)}
+.agl li{grid-template-columns:62px 4px minmax(0,1fr) auto}
