@@ -828,3 +828,12 @@ function initSwipe() {
   const start = () => { const det = document.getElementById('detail'); if (!det) return setTimeout(start, 300); ensure(); new MutationObserver(ensure).observe(det, { childList: true }); };
   start();
 })();
+
+/* sem zoom no app: pinça, duplo toque, Ctrl + roda do mouse e Ctrl +/− */
+(() => {
+  const no = e => e.preventDefault();
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, no, { passive: false }));
+  document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1 && !e.target.closest('.dwstage')) e.preventDefault(); }, { passive: false });
+  window.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
+  window.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0', '_'].includes(e.key)) e.preventDefault(); });
+})();

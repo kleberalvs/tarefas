@@ -139,7 +139,7 @@ function fontScale() { try { return clamp(+(localStorage.getItem('tt_fs') || 1),
 function applyFontScale() { document.documentElement.style.setProperty('--fs', fontScale()); }
 function hideSplash() {
   const s = $('#splash'); if (!s) return;
-  const wait = Math.max(0, 1500 - (performance.now() || 0));
+  const wait = Math.max(0, 2250 - (performance.now() || 0));
   setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), 600); }, wait);
 }
 function accentHex() {

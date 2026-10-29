@@ -2160,3 +2160,29 @@ body.fxfull-on #pets{display:none}
   .fxpick button span{font-size:17px}
 }
 body.v-focus #pets{display:none!important}
+/* sem zoom por pinça em lugar nenhum (desenho e arrastes mantêm o próprio controle) */
+*,*::before,*::after{touch-action:pan-x pan-y}
+.bdrag,.pet,.dwstage,.dwstage canvas,.hbres,.detres{touch-action:none}
+/* ---------- abertura: continua a tela do Android (ícone grande no fundo escuro) e anima até o logo com o nome ---------- */
+#splash{background:#1f1f1f;color:#fff;gap:14px}
+#splash::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 60% at 50% 38%,color-mix(in srgb,var(--red) 16%,#1f1f1f),#141416 72%);opacity:0;animation:spbg .9s .15s ease forwards}
+:root:not([data-theme=dark]) #splash::before{background:radial-gradient(90% 60% at 50% 38%,color-mix(in srgb,var(--red) 10%,#fff),#f6f4f1 72%)}
+:root:not([data-theme=dark]) #splash .spw{color:#202020}
+:root:not([data-theme=dark]) #splash .sptag{color:#6e6e6e}
+@keyframes spbg{to{opacity:1}}
+#splash .spglow{opacity:0;animation:spglowin .9s .45s ease forwards,spglow 2.4s 1.3s ease-in-out infinite alternate}
+@keyframes spglowin{to{opacity:1}}
+#splash .lgmark.spl{width:96px;height:96px;position:relative;margin-bottom:4px;animation:spshrink .85s .12s cubic-bezier(.65,0,.25,1) both;filter:drop-shadow(0 14px 30px color-mix(in srgb,var(--red) 40%,transparent))}
+@keyframes spshrink{from{transform:scale(2.2)}55%{transform:scale(.92)}to{transform:scale(1)}}
+#splash .spw{opacity:1;animation:none;display:flex;font-size:calc(34px * var(--fs,1));font-weight:800;letter-spacing:-.02em}
+#splash .spw span{display:inline-block;opacity:0;transform:translateY(14px) scale(.9);animation:spletter .5s calc(.62s + var(--i) * .055s) cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes spletter{to{opacity:1;transform:none}}
+#splash .sptag{animation:up .6s 1.1s var(--ease) forwards}
+#splash.out{opacity:0;transform:scale(1.04);filter:blur(3px);transition:opacity .5s var(--ease),transform .55s var(--ease),filter .55s}
+/* o primeiro quadro é igual à tela do Android: logo completo, bem no centro */
+#splash .lgarc,#splash .lgmark .lgchk{animation:none!important;stroke-dashoffset:0!important}
+#splash .lgmark.spl{position:absolute;left:50%;top:50%;margin:-48px 0 0 -48px;animation:spshrink2 .9s .12s cubic-bezier(.65,0,.25,1) both}
+@keyframes spshrink2{from{transform:translateY(0) scale(2.2)}60%{transform:translateY(-34px) scale(.92)}to{transform:translateY(-30px) scale(1)}}
+#splash .spglow{position:absolute;left:50%;top:50%;margin:-200px 0 0 -170px}
+#splash .spw{position:absolute;left:0;right:0;top:calc(50% + 34px);justify-content:center}
+#splash .sptag{position:absolute;left:0;right:0;top:calc(50% + 82px);text-align:center}
