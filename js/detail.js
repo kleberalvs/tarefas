@@ -42,8 +42,8 @@ function renderDetail(det) {
   <div class="dscroll">
     ${t.cover ? `<div class="tcover"><img alt="Capa da tarefa" data-act="covopen" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"><div class="tcbtns"><label class="btn ghost sm">${ic('img', 16)}Trocar<input type="file" accept="image/*" hidden data-f="cover"></label><button class="btn ghost sm" data-act="tcovrm">Remover</button></div></div>` : ''}
     ${t.par ? `<button class="link dparent" data-act="topen" data-id="${t.par}">${ic('left', 14)} ${esc((get('t', t.par) || {}).title || 'Tarefa principal')}</button>` : ''}
-    <textarea class="dtitle" data-keep rows="1" placeholder="Título da tarefa" aria-label="Título">${esc(t.title)}</textarea>
-    <div class="dnotes rich" data-keep contenteditable="true" data-ph="Descrição, ideias, links…" aria-label="Descrição">${clean(t.notes)}</div>
+    <textarea class="dtitle" data-keep rows="1" placeholder="Título da tarefa" aria-label="Título">${esc(t.title)}</textarea><div class="dtlinks">${linkChips(findLinks(t.title))}</div>
+    <div class="dnotes rich" data-keep contenteditable="true" data-ph="Descrição, ideias, links…" aria-label="Descrição">${linkifyHtml(clean(t.notes))}</div>
 
     <div class="props">
       ${(() => {
@@ -108,7 +108,7 @@ function renderDetail(det) {
 }
 /* comentários */
 function cmInitial() { return ((db.s.name || 'Você').trim()[0] || 'V').toUpperCase(); }
-function cmText(s) { return esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>'); }
+function cmText(s) { return linkifyText(s).replace(/\n/g, '<br>'); }
 function cmWhen(at) {
   const d = new Date(at), m = Math.round((Date.now() - at) / 60000);
   if (m < 1) return 'agora'; if (m < 60) return `há ${m} min`;
@@ -161,7 +161,7 @@ function bindDetail(det, t) {
   const fit = () => { ti.style.height = 'auto'; ti.style.height = ti.scrollHeight + 'px'; };
   fit(); requestAnimationFrame(fit); setTimeout(fit, 250);
   const saveTitle = debounce(() => { t.title = ti.value.replace(/\n/g, ' '); put('t', t); }, 350);
-  ti.oninput = () => { fit(); saveTitle(); };
+  ti.oninput = () => { fit(); saveTitle(); const lk = det.querySelector('.dtlinks'); if (lk) lk.innerHTML = linkChips(findLinks(ti.value)); };
   ti.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); ti.blur(); } };
   ti.onblur = () => {
     const p = parseSmart(ti.value);
@@ -179,6 +179,7 @@ function bindDetail(det, t) {
   const no = det.querySelector('.dnotes'); if (no) bulletRich(no);
   const saveNotes = debounce(() => { t.notes = clean(no.innerHTML); put('t', t); }, 500);
   no.oninput = saveNotes;
+  autoLinkEditable(no, saveNotes);
   no.onblur = () => { t.notes = clean(no.innerHTML); put('t', t); gcalPushTask(t); };
   no.addEventListener('paste', e => { e.preventDefault(); const h = e.clipboardData.getData('text/html'), tx = e.clipboardData.getData('text/plain'); document.execCommand('insertHTML', false, h ? clean(h) : esc(tx).replace(/\n/g, '<br>')); });
   det.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('change', async () => {

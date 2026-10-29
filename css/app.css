@@ -1715,3 +1715,14 @@ body{font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-sm
 .donutw{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .kpi.kpi2::after{content:none;display:none}
 .hero.hero2{background:var(--card)}
+/* ---------- links automáticos ---------- */
+a.alink,.bx a,.dnotes a,.cmt a{color:var(--red);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;word-break:break-word;cursor:pointer}
+.page.themed .bx a{color:var(--acc)}
+.ncard a.alink{color:inherit;text-decoration-color:currentColor;opacity:.9}
+.lchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.lchip{display:inline-flex;align-items:center;gap:6px;max-width:100%;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:calc(13px * var(--fs,1));text-decoration:none;transition:border-color .15s,background-color .15s}
+.lchip:hover{border-color:color-mix(in srgb,var(--red) 40%,var(--line));background:var(--hover)}
+.lchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+.lchip svg{flex:none;color:var(--mut)}
+.lchip svg:first-child{color:var(--red)}
+.nelinks .lchips{margin:6px 0 2px}.nelinks .lchip{background:color-mix(in srgb,var(--card) 70%,transparent)}

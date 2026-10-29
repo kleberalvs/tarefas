@@ -305,7 +305,7 @@ function saveNow() { if (ED.doc) put('d', ED.doc); }
 function blockHtml(b, i, arr, num) {
   const cls = `blk t-${b.type}${b.color ? ' tc-' + b.color : ''}${b.bg ? ' bc-' + b.bg : ''}${b.st ? ' st-' + b.st : ''}${b.checked ? ' checked' : ''}${b.align ? ' al-' + b.align : ''}`;
   const head = `<div class="bh"><button class="bplus" data-bact="plus" aria-label="Inserir bloco abaixo">${ic('plus', 16)}</button><button class="bdrag" data-handle data-bact="menu" aria-label="Opções do bloco">${ic('drag', 16)}</button></div>`;
-  const bx = (ph, extra = '') => `<div class="bx" data-keep contenteditable="true" spellcheck="true" data-ph="${esc(ph)}" ${extra}>${b.text || ''}</div>`;
+  const bx = (ph, extra = '') => `<div class="bx" data-keep contenteditable="true" spellcheck="true" data-ph="${esc(ph)}" ${extra}>${linkifyHtml(b.text || '')}</div>`;
   let inner = '';
   switch (b.type) {
     case 'ul': inner = `<span class="bul">•</span>${bx('Item')}`; break;
@@ -345,6 +345,7 @@ function drawBlocks() {
     if (b.type === 'toggle' && b.open === false) hideBelow = lvl;
   });
   box.innerHTML = h;
+  box.querySelectorAll('.bx:not(.code)').forEach(el => autoLinkEditable(el, () => el.dispatchEvent(new Event('input', { bubbles: true }))));
   box.querySelectorAll('img[data-img]').forEach(loadImg);
   const cv = $('.pcover img[data-img]'); if (cv) loadImg(cv);
   setTimeout(updStats, 60);

@@ -62,7 +62,7 @@ function noteCard(n) {
     ${imgs.length ? `<div class="nimgs n${imgs.length}">${imgs.map(m => `<img data-nimg="${m.id}" data-n="${n.id}" alt="">`).join('')}</div>` : ''}
     <div class="nin">
       ${n.title ? `<h3>${esc(n.title)}</h3>` : ''}
-      ${n.list ? `<ul class="nchk">${open.slice(0, 8).map(i => `<li><span class="nbox"></span>${esc(i.t)}</li>`).join('')}${open.length > 8 ? `<li class="mut">…</li>` : ''}${done ? `<li class="mut sm">+ ${done} ${done === 1 ? 'item marcado' : 'itens marcados'}</li>` : ''}</ul>` : n.body ? `<p class="nbody">${esc(n.body)}</p>` : ''}
+      ${n.list ? `<ul class="nchk">${open.slice(0, 8).map(i => `<li><span class="nbox"></span>${linkifyText(i.t, { short: 1 })}</li>`).join('')}${open.length > 8 ? `<li class="mut">…</li>` : ''}${done ? `<li class="mut sm">+ ${done} ${done === 1 ? 'item marcado' : 'itens marcados'}</li>` : ''}</ul>` : n.body ? `<p class="nbody">${linkifyText(n.body, { short: 1 })}</p>` : ''}
       ${!n.title && !n.body && !items.length && !imgs.length && !(n.aud || []).length ? '<p class="mut">Nota vazia</p>' : ''}
       ${(n.aud || []).length ? `<div class="nauds">${n.aud.map(a => `<span class="naud">${ic('mic', 14)}${fmtAud(a.dur)}</span>`).join('')}</div>` : ''}
       ${(n.tags || []).length ? `<div class="ntags">${n.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
@@ -132,6 +132,7 @@ function drawNoteEditor() {
       <div class="nehead"><input class="ntitle" id="ne_t" placeholder="Título" value="${esc(n.title || '')}" maxlength="200"><button class="npin${n.pin ? ' on' : ''}" data-ne="pin" aria-label="Fixar">${ic('pin', 19)}</button><button class="npin nclose" data-ne="close" aria-label="Fechar a nota" title="Fechar">${ic('x', 20)}</button></div>
       ${n.list ? `<div class="nitems">${items.map((i, k) => i.done ? '' : itemRow(i, k)).join('')}<div class="nitem add">${ic('plus', 16)}<input class="nit" id="ne_add" placeholder="Item da lista"></div>${items.some(i => i.done) ? `<p class="mut sm nmk">${items.filter(i => i.done).length} marcado(s)</p>${items.map((i, k) => i.done ? itemRow(i, k) : '').join('')}` : ''}</div>`
         : `<textarea class="nbodyin" id="ne_b" placeholder="Criar uma nota…" rows="3">${esc(n.body || '')}</textarea>`}
+      <div class="nelinks">${linkChips(findLinks([n.body || '', ...(n.items || []).map(i => i.t)].join(' ')))}</div>
       <div class="neauds">${(n.aud || []).map(a => `<div class="neaud"><audio controls preload="none" data-naud="${a.id}"></audio><span class="mut sm">${esc(a.name || 'Áudio')}</span><button class="ib xs" data-naudrm="${a.id}" aria-label="Remover áudio">${ic('trash', 15)}</button></div>`).join('')}</div>
       <div id="ne_rec"></div>
       ${(n.tags || []).length ? `<div class="ntags">${n.tags.map(t => `<span>${esc(t)}<button data-ntagrm="${esc(t)}" aria-label="Remover etiqueta">×</button></span>`).join('')}</div>` : ''}
@@ -154,7 +155,7 @@ function drawNoteEditor() {
   const t = box.querySelector('#ne_t'); t.oninput = () => { n.title = t.value; noteChanged(); };
   const b = box.querySelector('#ne_b');
   if (b) b.addEventListener('input', e => { const p = b.selectionStart; if (b.value[p - 1] === '/' && (p === 1 || b.value[p - 2] === '\n')) { b.value = b.value.slice(0, p - 1) + b.value.slice(p); b.setSelectionRange(p - 1, p - 1); n.body = b.value; noteChanged(); menu(b, [{ head: 'Escrever com IA' }, ...AI_ACTS.filter(a => !a.need || (n.body || '').trim()).map(a => ({ label: a.e + '  ' + a.n, act: () => NE_ACT.ai(null, null, a.k) }))]); } });
-  if (b) { bulletArea(b); const fit = () => { b.style.height = 'auto'; b.style.height = Math.min(innerHeight * .55, b.scrollHeight + 2) + 'px'; }; fit(); b.oninput = () => { n.body = b.value; fit(); noteChanged(); }; if (NE.isNew && !isMobile()) setTimeout(() => b.focus(), 50); }
+  if (b) { bulletArea(b); const fit = () => { b.style.height = 'auto'; b.style.height = Math.min(innerHeight * .55, b.scrollHeight + 2) + 'px'; }; fit(); b.oninput = () => { n.body = b.value; fit(); noteChanged(); const lk = box.querySelector('.nelinks'); if (lk) lk.innerHTML = linkChips(findLinks(b.value)); }; if (NE.isNew && !isMobile()) setTimeout(() => b.focus(), 50); }
   box.querySelectorAll('[data-nit]').forEach(i => { i.oninput = () => { n.items[+i.dataset.nit].t = i.value; noteChanged(); }; i.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); n.items.splice(+i.dataset.nit + 1, 0, { id: uid(), t: '', done: false }); noteChanged(); drawNoteEditor(); const nx = $('#modal [data-nit="' + (+i.dataset.nit + 1) + '"]'); nx && nx.focus(); } }; });
   box.querySelectorAll('[data-nck]').forEach(c => c.onchange = () => { n.items[+c.dataset.nck].done = c.checked; noteChanged(); drawNoteEditor(); });
   box.querySelectorAll('[data-nrm]').forEach(c => c.onclick = () => { n.items.splice(+c.dataset.nrm, 1); noteChanged(); drawNoteEditor(); });
