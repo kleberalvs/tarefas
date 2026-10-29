@@ -722,12 +722,13 @@ const SKINS = [
   ['champanhe', 'Champanhe', 'dourado e marfim', '#A27A45', '#F8F4EC', '#FFFEFB', '#2A241B'],
   ['rose', 'Rosé', 'rosa elegante', '#D2557A', '#FBF4F6', '#FFFFFF', '#2B1F23'],
   ['noite', 'Meia-noite', 'escuro com dourado', '#C9A86A', '#14171D', '#0E1014', '#ECE8E0'],
+  ['vidro', 'Vidro líquido', 'escuro translúcido, estilo Apple', '#0A84FF', 'rgba(255,255,255,.10)', 'linear-gradient(140deg,#1B2340,#0A0B12 55%,#2A1636)', '#F5F5F7'],
 ];
 function applyTheme() {
   const skin = db.s.skin || 'classico';
   let t = db.s.theme || 'auto';
   if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  if (skin === 'noite') t = 'dark';
+  if (skin === 'noite' || skin === 'vidro') t = 'dark';
   document.documentElement.dataset.theme = t;
   document.documentElement.dataset.skin = skin;
   requestAnimationFrame(() => { const m = $('meta[name=theme-color]'); if (m) m.content = getComputedStyle(document.body).backgroundColor || (t === 'dark' ? '#1f1f1f' : '#ffffff'); });
