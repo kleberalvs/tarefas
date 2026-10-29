@@ -45,6 +45,7 @@ function renderDetail(det) {
     ${eD ? `<button class="pclr" data-act="pclr" data-k="due" aria-label="Limpar data">${ic('x', 12)}</button>` : ''}
     <span class="sp"></span>
     <button class="ib" data-act="dprio" aria-label="Prioridade" title="Prioridade" style="color:${t.prio ? PRIO[t.prio].c : 'var(--mut)'}">${ic('flag', 19)}</button>
+    <button class="ib hide-m" data-act="dfull" aria-label="${detFull() ? 'Voltar para janela' : 'Expandir para a tela inteira'}" title="${detFull() ? 'Voltar para janela' : 'Tela inteira'}">${ic(detFull() ? 'shrink' : 'expand', 18)}</button>
     <button class="ib hide-m" data-act="dclose" aria-label="Fechar">${ic('x', 19)}</button>
   </header>
   <div class="dscroll">
@@ -231,6 +232,7 @@ Object.assign(ACTS, {
     ta.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); box.querySelector('[data-ok]').click(); } if (e.key === 'Escape') { e.stopPropagation(); render(true); } };
   },
   dclose: () => closeTask(),
+  dfull: () => { const on = !detFull(); try { localStorage.setItem('tt_detfull', on ? '1' : ''); } catch (e) {} document.body.classList.toggle('det-full', on); render(true); },
   covopen: () => { const t = get('t', R.sel); if (t && t.cover) lightbox(t.cover); },
   tcovrm: () => { const t = get('t', R.sel); if (t && t.cover) { const m = t.cover; t.cover = null; put('t', t); FILES.remove(m); } },
   dcheck: b => checkTask(R.sel),
@@ -329,3 +331,7 @@ function toggleNote(t, quiet) {
   t.note = !t.note; if (t.note) { t.done = false; t.dt = null; } put('t', t);
   if (!quiet) toast(t.note ? 'Convertida em anotação' : 'Convertida em tarefa', 'Desfazer', () => { t.note = !t.note; put('t', t); });
 }
+
+/* tarefa aberta numa janela no centro; pode expandir para a tela inteira (preferência fica salva no aparelho) */
+function detFull() { try { return localStorage.getItem('tt_detfull') === '1'; } catch (e) { return false; } }
+document.body.classList.toggle('det-full', detFull());
