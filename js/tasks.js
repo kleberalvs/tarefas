@@ -103,7 +103,7 @@ function rowHtml(t, opts = {}) {
   const subs = subsOf(t.id), open = OPEN_SUBS.has(t.id);
   const lvl = opts.lvl || 0;
   const sh = opts.show || SHOW_DEF;
-  const cov = t.cover && sh.cover ? (opts.card ? `<div class="ccov"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></div>` : `<span class="rthumb"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></span>`) : '';
+  const cov = t.cover && sh.cover ? (opts.card ? `<div class="ccov" data-act="topen" data-id="${t.id}"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></div>` : `<span class="rthumb" data-act="topen" data-id="${t.id}"><img alt="" data-timg="${esc(t.cover.id)}" data-tid="${t.id}"></span>`) : '';
   return `<div class="trow p${sh.prio ? t.prio || 0 : 0}${t.done ? ' done' : ''}${R.sel === t.id ? ' sel' : ''}${opts.card ? ' card' : ''}${cov && opts.card ? ' hascov' : ''}" style="--lvl:${lvl}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}">${opts.card ? cov : ''}
     ${subs.length && !opts.card ? `<button class="caret${open ? ' open' : ''}" data-act="subs" data-id="${t.id}" aria-label="${open ? 'Ocultar' : 'Mostrar'} subtarefas">${ic('chev', 14)}</button>` : ''}
     ${t.note ? `<button class="notemark" data-act="topen" data-id="${t.id}" aria-label="Anotação: ${esc(t.title)}" title="Anotação">${ic('doc', 16)}</button>` : `<button class="chk" data-act="tcheck" data-id="${t.id}" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'}: ${esc(t.title)}"><span>${ic('check', 12)}</span></button>`}

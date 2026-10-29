@@ -1971,3 +1971,4 @@ body.selmode .fab{display:none}
 .fvnav.l{left:10px}.fvnav.r{right:10px}
 .fvnav:hover{background:rgba(255,255,255,.22)}
 @media (max-width:759px){.fvnav{display:none}.fvdoc{padding:20px 18px}}
+.ccov,.rthumb{cursor:pointer}
