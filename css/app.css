@@ -1755,3 +1755,13 @@ body.side-rail .rail{border-right:0}
   .rail{padding-top:calc(14px + var(--safe-t));padding-bottom:calc(16px + var(--safe-b))}
   .spanel{padding-top:calc(10px + var(--safe-t));padding-bottom:calc(24px + var(--safe-b))}
 }
+/* quadro (kanban): rolagem lateral visível e cartões sem cortes */
+.tlist.isboard{width:100%;max-width:none;min-width:0;overflow:hidden;height:100%}
+.board{scrollbar-width:auto;scrollbar-color:color-mix(in srgb,var(--txt) 28%,transparent) transparent;padding-bottom:18px}
+.board::-webkit-scrollbar{height:12px}
+.board::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--txt) 24%,transparent);border-radius:8px;border:3px solid transparent;background-clip:padding-box}
+.board::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--txt) 40%,transparent)}
+.board::-webkit-scrollbar-track{background:transparent}
+.cards>*{flex-shrink:0}
+.trow.card .ttl{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.trow.card .ttl a.alink{word-break:break-all}

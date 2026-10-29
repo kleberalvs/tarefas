@@ -10,12 +10,19 @@ function linkTrim(u) {
   return t;
 }
 const linkHref = u => /^https?:\/\//i.test(u) ? u : 'https://' + u;
-const linkLabel = u => { try { const x = new URL(linkHref(u)); return x.hostname.replace(/^www\./, '') + (x.pathname.length > 1 ? x.pathname.replace(/\/$/, '') : ''); } catch (e) { return u; } };
+const linkLabel = u => { try { const x = new URL(linkHref(u)); let pth = x.pathname.length > 1 ? x.pathname.replace(/\/$/, '') : ''; if (pth.length > 22) pth = pth.slice(0, 18) + '…'; return x.hostname.replace(/^www\./, '') + pth; } catch (e) { return u; } };
 const linkHost = u => { try { return new URL(linkHref(u)).hostname.replace(/^www\./, ''); } catch (e) { return u; } };
 /* lista de links num texto simples */
 function findLinks(s) { const out = [], str = String(s || ''); str.replace(LINK_RE, (m, off) => { const u = linkTrim(m); if (u.includes('@') || str[off - 1] === '@') return m; if (!out.includes(u)) out.push(u); return m; }); return out; }
 /* texto simples → HTML com links (o resto escapado) */
+/* [texto](endereço) no estilo markdown vira um link com o texto */
+const MDLINK_RE = /\[([^\]\n]{1,200})\]\(\s*((?:https?:\/\/|www\.)?[^\s()]+\.[a-z]{2,}[^\s()]*)\s*\)/gi;
 function linkifyText(s, opts = {}) {
+  const src = String(s || ''); let res = '', p0 = 0;
+  src.replace(MDLINK_RE, (m, label, url, off) => { res += linkifyPlain(src.slice(p0, off), opts) + `<a class="alink" href="${esc(linkHref(url))}" target="_blank" rel="noopener" title="${esc(url)}">${esc(label.trim())}</a>`; p0 = off + m.length; return m; });
+  return res + linkifyPlain(src.slice(p0), opts);
+}
+function linkifyPlain(s, opts = {}) {
   const str = String(s || ''); let out = '', last = 0;
   str.replace(LINK_RE, (m, off) => {
     const u = linkTrim(m); if (str[off - 1] === '@' || u.includes('@')) return m;

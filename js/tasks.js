@@ -482,3 +482,11 @@ DROPS.push((src, dst, before) => {
   if (k === 'tag') { t.tags = [...new Set([...(t.tags || []), v])]; put('t', t); return true; }
   if (k === 'trash') { deleteTask(t); return true; }
 });
+/* quadro: a rodinha do mouse rola para os lados quando o ponteiro está fora de uma coluna com rolagem */
+document.addEventListener('wheel', e => {
+  const bd = e.target.closest && e.target.closest('.board'); if (!bd || e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+  const col = e.target.closest('.cards');
+  if (col && col.scrollHeight > col.clientHeight + 2) return;
+  if (bd.scrollWidth <= bd.clientWidth) return;
+  bd.scrollLeft += e.deltaY; e.preventDefault();
+}, { passive: false });
