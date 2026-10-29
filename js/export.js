@@ -486,6 +486,7 @@ function importFile(kind) {
 async function importBackup(txt) {
   const j = JSON.parse(txt);
   const data = j.dados || (j.t && j.l ? j : null);
+  if (j.tipo === 'lista' && j.lista) return importListPack(j);
   if (j.tipo === 'documento' && j.documento) { const d = j.documento; d.id = uid(); put('d', d); go('doc/' + d.id); toast('Documento importado'); return; }
   if (!data) throw new Error('arquivo não reconhecido');
   const mode = await new Promise(res => { const el = modal(`<h2>Importar backup</h2><p class="mut">${plural((data.t || []).length, 'tarefa', 'tarefas')}, ${plural((data.d || []).length, 'documento', 'documentos')}, ${plural((data.h || []).length, 'hábito', 'hábitos')}.</p><div class="row end"><button class="btn ghost" data-m="">Cancelar</button><button class="btn ghost" data-m="merge">Mesclar</button><button class="btn red" data-m="replace">Substituir tudo</button></div>`); el.onclick = e => { const b = e.target.closest('[data-m]'); if (b) { closeModal(); res(b.dataset.m); } }; });
@@ -540,4 +541,21 @@ function importTickTick(txt) {
   Object.values(lists).forEach(l => put('l', l, { silent: true }));
   changed(); render(true);
   toast(plural(n, 'tarefa importada', 'tarefas importadas') + ' do TickTick');
+}
+
+/* pacote de lista: { tipo: 'lista', pasta: 'Work', lista: { name, emoji, color }, tarefas: [{ title, notes, tags: [nomes] }] } */
+async function importListPack(j) {
+  const L = j.lista, n = (j.tarefas || []).length;
+  const fname = (j.pasta || '').trim();
+  let f = fname ? db.f.find(x => (x.kind || 'l') === 'l' && norm(x.name) === norm(fname)) : null;
+  const exists = db.l.find(l => !l.arch && norm(l.name) === norm(L.name) && (!f || l.folder === f.id));
+  if (!(await confirmBox(`Criar a lista “${L.name}”${fname ? ` em ${fname}` : ''} com ${plural(n, 'tarefa', 'tarefas')}?${exists ? ' Já existe uma lista com esse nome; as tarefas serão adicionadas a ela.' : ''}`))) return;
+  if (fname && !f) { f = { id: uid(), name: fname, kind: 'l', par: null, o: db.f.length + 1, open: true }; put('f', f, { silent: true }); }
+  let list = exists;
+  if (!list) { list = { id: uid(), name: L.name, emoji: L.emoji || null, color: L.color || '#808080', folder: f ? f.id : null, o: db.l.length + 1, view: L.view || 'list' }; put('l', list, { silent: true }); }
+  if (f && f.open === false) { f.open = true; put('f', f, { silent: true }); }
+  const tagId = name => { const nm = String(name).trim().replace(/^#/, '').replace(/\s+/g, '-'); let g = db.g.find(x => norm(x.name) === norm(nm)); if (!g) { g = { id: uid(), name: nm, color: COLORS[db.g.length % COLORS.length] }; put('g', g, { silent: true }); } return g.id; };
+  const base = Date.now();
+  (j.tarefas || []).forEach((t, i) => { const T = newTask({ title: t.title, notes: clean(t.notes || ''), tags: (t.tags || []).map(tagId) }); T.list = list.id; T.c = base - i; T.o = i + 1; put('t', T, { silent: true }); });
+  changed(); go('l/' + list.id); toast(`Lista “${L.name}” criada com ${plural(n, 'tarefa', 'tarefas')}`);
 }
