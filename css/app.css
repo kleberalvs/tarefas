@@ -1851,3 +1851,24 @@ body.detresizing #app{transition:none}
 .ltopt input:checked+span svg{color:var(--red)}
 .ltopt input:focus-visible+span{outline:2px solid var(--red);outline-offset:2px}
 @media (max-width:420px){.ltype{grid-template-columns:1fr}}
+/* ---------- lista de anotações ---------- */
+.nlist{max-width:980px;margin:0 auto;padding:4px 24px 140px}
+.nladd{display:flex;align-items:center;gap:8px;height:42px;padding:0 14px;border-radius:12px;background:var(--sunk);border:1px solid transparent;color:var(--mut);margin:0 0 12px;transition:border-color .15s,background-color .15s}
+.nladd:focus-within{border-color:color-mix(in srgb,var(--red) 45%,var(--line));background:var(--card)}
+.nladdin{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--txt);font:inherit;font-size:calc(14.5px * var(--fs,1))}
+.nladdin::placeholder{color:var(--mut)}
+.nlrows{display:flex;flex-direction:column}
+.nlrow{position:relative;display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 12px;border-radius:10px;cursor:pointer;transition:background-color .12s}
+.nlrow::after{content:"";position:absolute;left:40px;right:12px;bottom:0;height:1px;background:var(--line)}
+.nlrow:hover{background:var(--hover)}
+.nlrow.sel{background:color-mix(in srgb,var(--red) 10%,var(--hover))}
+.nlrow.sel::after,.nlrow:hover::after{opacity:0}
+.nlic{flex:none;color:var(--mut);display:inline-flex}
+.nlrow.sel .nlic{color:var(--red)}
+.nlt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(14.5px * var(--fs,1))}
+.nlr{flex:none;display:flex;align-items:center;gap:6px;color:var(--mut2)}
+.nltag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font-size:calc(12px * var(--fs,1));background:color-mix(in srgb,var(--c) 30%,transparent);color:color-mix(in srgb,var(--c) 55%,var(--txt))}
+.nlmi{display:inline-flex;color:var(--mut2)}
+.nlrow.done .nlt{color:var(--mut)}
+.ldot.big{width:12px;height:12px}
+@media (max-width:759px){.nlist{padding:4px 12px 140px}.nltag{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}

@@ -391,6 +391,7 @@ function editList(l, preset = {}) {
     l.name = f.get('n').trim(); l.color = f.get('color') || l.color; l.folder = f.get('f') || null; l.view = f.get('v'); l.emoji = f.get('emoji') || null;
     const kind = f.get('k') === 'notes' ? 'notes' : null, was = l.kind || null;
     if (kind) l.kind = kind; else delete l.kind;
+    if (kind) { l.view = 'list'; l.sec = []; db.t.forEach(x => { if (x.list === l.id && x.sec) { x.sec = null; put('t', x, { silent: true }); } }); }
     /* ao trocar o tipo, as tarefas da lista acompanham */
     if (!isNew && kind !== was) {
       const ts = db.t.filter(x => live(x) && x.list === l.id && (kind ? !x.note && !x.done : x.note));

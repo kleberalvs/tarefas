@@ -131,6 +131,7 @@ VIEWS.list = main => {
   const info = scopeInfo(id);
   if (!info) { main.innerHTML = headHtml('Lista não encontrada') + '<div class="scroll"><div class="empty"><p>Esta lista não existe mais.</p><a class="btn" href="#/l/today">Ir para Hoje</a></div></div>'; return; }
   db.s.lastList = id;
+  if (info.list && info.list.kind === 'notes') return renderNoteList(main, info);
   const cfg = viewCfg(id);
   const mode = cfg.group || info.group;
   const board = info.list && info.list.view === 'board';
@@ -493,3 +494,33 @@ document.addEventListener('wheel', e => {
   if (bd.scrollWidth <= bd.clientWidth) return;
   bd.scrollLeft += e.deltaY; e.preventDefault();
 }, { passive: false });
+
+ACTS.nlfocus = () => { const i = $('.nladdin'); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } };
+/* lista de anotações: linhas simples (estilo TickTick), sem seções e sem concluir */
+function renderNoteList(main, info) {
+  const l = info.list;
+  if ((l.sec || []).length || l.view === 'board') {
+    l.sec = []; l.view = 'list'; put('l', l, { silent: true });
+    db.t.forEach(t => { if (t.list === l.id && t.sec) { t.sec = null; put('t', t, { silent: true }); } });
+  }
+  const items = db.t.filter(t => !t.del && t.list === l.id && !t.par).sort((a, b) => (a.o || 0) - (b.o || 0) || (b.c || 0) - (a.c || 0));
+  GMAP = { notes: { set: { list: l.id }, ids: items.map(t => t.id) } };
+  const tagH = t => (t.tags || []).map(g => { const x = get('g', g); return x ? `<span class="nltag" style="--c:${esc(x.color || '#808080')}">${x.emoji ? esc(x.emoji) + ' ' : ''}${esc(x.name)}</span>` : ''; }).join('');
+  const rows = items.map(t => `<div class="nlrow${R.sel === t.id ? ' sel' : ''}${t.done ? ' done' : ''}" data-act="topen" data-id="${t.id}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}" tabindex="0">
+      <span class="nlic">${ic('doc', 17)}</span>
+      <span class="nlt">${linkifyText(t.title, { short: 1 }) || '<span class="mut">Sem título</span>'}</span>
+      <span class="nlr">${tagH(t)}${(t.att || []).length ? `<span class="nlmi" title="${plural(t.att.length, 'anexo', 'anexos')}">${ic('clip', 14)}</span>` : ''}${t.notes && stripHtml(t.notes).trim() ? `<span class="nlmi" title="Tem conteúdo">${ic('note', 14)}</span>` : ''}${t.due ? `<span class="nlmi" title="Lembrete: ${esc(fmtWhen(t.due))}">${ic('bell', 14)}</span>` : ''}</span>
+    </div>`).join('');
+  const right = `<button class="ib" data-act="vmore" aria-label="Mais opções">${ic('more')}</button>`;
+  const pre = l.emoji ? `<span class="nemo big">${esc(l.emoji)}</span>` : `<span class="ldot big" style="background:${esc(l.color || '#808080')}"></span>`;
+  main.innerHTML = headHtml(l.name, '', right, { pre }) + `<div class="scroll"><div class="nlist">
+    <form class="nladd" data-keep>${ic('plus', 17)}<input class="nladdin" placeholder="Adicionar anotação" aria-label="Adicionar anotação" autocomplete="off" enterkeyhint="done"></form>
+    <div class="nlrows">${rows || `<div class="empty"><p>${ic('doc', 28)}</p><p>Nenhuma anotação ainda. Escreva um título acima e aperte Enter.</p></div>`}</div>
+  </div></div><button class="fab" data-act="nlfocus" aria-label="Nova anotação">${ic('plus', 26)}</button>`;
+  const f = main.querySelector('.nladd'), inp = f.querySelector('input');
+  f.onsubmit = e => {
+    e.preventDefault(); const v = inp.value.trim(); if (!v) return;
+    const t = taskFromSmart(v, { list: l.id }); t.note = true; t.o = Math.min(0, ...items.map(x => x.o || 0)) - 1; put('t', t);
+    inp.value = ''; openTask(t.id);
+  };
+}

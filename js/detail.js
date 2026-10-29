@@ -41,7 +41,7 @@ function renderDetail(det) {
     <button class="ib show-m" data-act="dclose" aria-label="Voltar">${ic('left')}</button>
     ${t.note ? `<span class="notemark big" title="Anotação">${ic('doc', 18)}</span>` : `<button class="chk sq p${t.prio || 0}${t.done ? ' on' : ''}" data-act="dcheck" role="checkbox" aria-checked="${t.done}" aria-label="${t.done ? 'Reabrir' : 'Concluir'} tarefa"><span>${ic('check', 13)}</span></button>`}
     <i class="dvsep"></i>
-    <button class="ddate${overdue(t) ? ' red' : ''}${when ? ' set' : ''}" data-act="dpdue">${ic('cal', 17)}<span>${when ? esc(when) : 'Dia do vencimento'}</span>${t.rep ? ic('repeat', 14) : ''}${remTxt ? ic('bell', 14) : ''}</button>
+    <button class="ddate${overdue(t) ? ' red' : ''}${when ? ' set' : ''}" data-act="dpdue">${ic('cal', 17)}<span>${when ? esc(when) : t.note ? 'Definir lembrete' : 'Dia do vencimento'}</span>${t.rep ? ic('repeat', 14) : ''}${remTxt ? ic('bell', 14) : ''}</button>
     ${eD ? `<button class="pclr" data-act="pclr" data-k="due" aria-label="Limpar data">${ic('x', 12)}</button>` : ''}
     <span class="sp"></span>
     <button class="ib" data-act="dprio" aria-label="Prioridade" title="Prioridade" style="color:${t.prio ? PRIO[t.prio].c : 'var(--mut)'}">${ic('flag', 19)}</button>
