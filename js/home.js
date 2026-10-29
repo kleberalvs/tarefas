@@ -140,7 +140,7 @@ VIEWS.home = main => {
   const wOf = id => Math.min(cols, L.w[id] || HB_DEF[id].w);
   const chartW = Math.max(300, Math.round(gw * wOf('chart') / cols) - 40);
   /* agenda de hoje: eventos do Google + tarefas com horário */
-  const evs = (typeof GC !== 'undefined' && Array.isArray(GC.ev) ? GC.ev : []).filter(e => e.start && String(e.start).slice(0, 10) <= T && String(e.end || e.start).slice(0, 10) >= T)
+  const evs = [...(typeof holItems === 'function' ? holItems(T, T) : []), ...(typeof GC !== 'undefined' && Array.isArray(GC.ev) ? GC.ev : [])].filter(e => e.start && String(e.start).slice(0, 10) <= T && String(e.end || e.start).slice(0, 10) >= T)
     .map(e => ({ k: 'e', all: !!e.allDay || String(e.start).length <= 10, tm: String(e.start).length > 10 && String(e.start).slice(0, 10) === T ? String(e.start).slice(11, 16) : '', end: String(e.end || '').length > 10 ? String(e.end).slice(11, 16) : '', t: e.title, c: e.color || 'var(--red)', meet: e.meet, id: e.id }));
   const tks = todayT.filter(t => tOnly(t.due || t.start)).map(t => ({ k: 't', id: t.id, tm: tOnly(t.due || t.start), t: t.title, c: PRIO[t.prio || 0].c || 'var(--mut2)', done: t.done }));
   const ag = [...evs, ...tks].sort((a, b) => (a.all ? 0 : 1) - (b.all ? 0 : 1) || (a.tm || '').localeCompare(b.tm || ''));

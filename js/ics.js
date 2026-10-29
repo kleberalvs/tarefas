@@ -234,3 +234,51 @@ function icsFromLaunch() {
   const tryOpen = n => { const e = (GC.ev || []).find(x => x.id.endsWith(id)); if (e) meetStart(e); else if (n > 0) setTimeout(() => tryOpen(n - 1), 800); else meetStart(null); };
   setTimeout(() => tryOpen(8), 600);
 }
+
+/* ---------- feriados (calculados para qualquer ano) ---------- */
+const HOL_TYPES = { n: ['Feriado nacional', '#D93025'], e: ['Feriado estadual (Pernambuco)', '#E8710A'], m: ['Feriado municipal (Recife)', '#9334E6'], f: ['Ponto facultativo', '#80868B'] };
+function easter(y) { const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mo = Math.floor((h + l - 7 * m + 114) / 31), dd = ((h + l - 7 * m + 114) % 31) + 1; return `${y}-${pad(mo)}-${pad(dd)}`; }
+function holidaysOf(y) {
+  const P = easter(y), L = [];
+  const add = (d, t, k) => L.push({ d, t, k });
+  add(`${y}-01-01`, 'Confraternização Universal', 'n');
+  add(addD(P, -48), 'Carnaval', 'f'); add(addD(P, -47), 'Carnaval', 'f'); add(addD(P, -46), 'Quarta-feira de Cinzas', 'f');
+  add(`${y}-03-06`, 'Data Magna de Pernambuco', 'e');
+  add(addD(P, -2), 'Paixão de Cristo', 'n'); add(P, 'Páscoa', 'n');
+  add(`${y}-04-21`, 'Tiradentes', 'n');
+  add(`${y}-05-01`, 'Dia do Trabalho', 'n');
+  add(addD(P, 60), 'Corpus Christi', 'f');
+  add(`${y}-06-24`, 'São João', 'm');
+  add(`${y}-07-16`, 'Nossa Senhora do Carmo (padroeira do Recife)', 'm');
+  add(`${y}-09-07`, 'Independência do Brasil', 'n');
+  add(`${y}-10-12`, 'Nossa Senhora Aparecida', 'n');
+  add(`${y}-11-02`, 'Finados', 'n');
+  add(`${y}-11-15`, 'Proclamação da República', 'n');
+  if (y >= 2024) add(`${y}-11-20`, 'Dia Nacional de Zumbi e da Consciência Negra', 'n');
+  add(`${y}-12-08`, 'Nossa Senhora da Conceição', 'm');
+  add(`${y}-12-25`, 'Natal', 'n');
+  return L;
+}
+const holCfg = () => Object.assign({ n: true, e: true, m: true, f: true }, db.s.hol || {});
+function holItems(from, to) {
+  const c = holCfg(); if (!c.n && !c.e && !c.m && !c.f) return [];
+  const out = [];
+  for (let y = +from.slice(0, 4); y <= +to.slice(0, 4); y++) holidaysOf(y).forEach(h => {
+    if (!c[h.k] || h.d < from || h.d > to || (h.k === 'n' && h.t === 'Páscoa')) return;
+    out.push({ kind: 'g', hol: h.k, ics: true, rw: false, id: 'hol_' + h.d + '_' + h.k, title: h.t, start: h.d, end: h.d, allDay: true, color: HOL_TYPES[h.k][1], src: 'hol', desc: '', meet: '', att: [] });
+  });
+  return out;
+}
+function holOpen(id) {
+  const [, d, k] = id.split('_'); const h = holidaysOf(+d.slice(0, 4)).find(x => x.d === d && x.k === k); if (!h) return;
+  modal(`<div class="icsev"><div class="icshd"><span class="ldot" style="background:${HOL_TYPES[k][1]}"></span><h2>${esc(h.t)}</h2></div>
+    <p class="icsw">${ic('cal', 16)}<span>${esc(fmtDay(d, true))}</span></p>
+    <p class="icsw">${ic('flag', 16)}<span>${esc(HOL_TYPES[k][0])}</span></p>
+    <p class="mut sm">Para mostrar ou esconder tipos de feriado: Configurações → Google Agenda e feriados.</p>
+    <div class="row end"><button class="btn ghost" data-x>Fechar</button></div></div>`, { cls: 'icsmodal' }).querySelector('[data-x]').onclick = () => closeModal();
+}
+function holSettingsHtml() {
+  const c = holCfg();
+  return `<p class="lab" style="margin-top:16px">Feriados no calendário</p>${Object.entries({ n: 'Nacionais', e: 'Estaduais de Pernambuco (Data Magna, 6/3)', m: 'Municipais do Recife (São João, N. Sra. do Carmo, N. Sra. da Conceição)', f: 'Pontos facultativos (Carnaval, Cinzas, Corpus Christi)' }).map(([k, n]) => `<label class="srow"><span><span class="ldot" style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;background:${HOL_TYPES[k][1]}"></span>${n}</span><span class="sw-t"><input type="checkbox" data-hol="${k}" ${c[k] ? 'checked' : ''}><span></span></span></label>`).join('')}`;
+}
+document.addEventListener('change', e => { const k = e.target && e.target.dataset && e.target.dataset.hol; if (!k) return; db.s.hol = Object.assign(holCfg(), { [k]: e.target.checked }); put('s', db.s); });

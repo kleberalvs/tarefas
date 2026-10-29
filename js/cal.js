@@ -202,6 +202,7 @@ function calItems(from, to) {
       items.push({ kind: 't', id: t.id, t, title: t.title, start: s, end: e, allDay, color: t.done ? 'var(--mut2)' : PRIO[t.prio || 0].p ? '' : (listOf(t).color || '#808080'), lc: listOf(t).color || '#808080', done: t.done || (o.virt && false), virt: o.virt, prio: t.prio || 0 });
     });
   });
+  if (typeof holItems === 'function') items.push(...holItems(from, to));
   if (gOn() || GC.src === 'ics') GC.ev.forEach(e => { if (dOnly(e.end) >= from && dOnly(e.start) <= to) items.push(e); });
   return items;
 }
@@ -329,7 +330,7 @@ Object.assign(ACTS, {
   cadd: b => newAt(b, CAL.mode === 'month' ? CAL.sel : CAL.date),
   cside: () => { db.s.calSide = !db.s.calSide; put('s', db.s); },
   gconn: () => gConnect(),
-  gopen: b => { const ev = GC.ev.find(e => e.id === b.dataset.id); if (ev) (ev.ics ? icsOpen(ev) : editGEvent(ev)); },
+  gopen: b => { if (String(b.dataset.id).startsWith('hol_')) { holOpen(b.dataset.id); return; } const ev = GC.ev.find(e => e.id === b.dataset.id); if (ev) (ev.ics ? icsOpen(ev) : editGEvent(ev)); },
   gmenu: b => menu(b, [
     { head: 'Google Agenda' },
     { label: 'Atualizar agora', icon: 'sync', act: () => { GC.loaded = ''; calRange(true); gFlush(); } },

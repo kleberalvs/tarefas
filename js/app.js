@@ -53,8 +53,9 @@ VIEWS.settings = main => {
       <li><b>Etiquetas:</b> #trabalho · <b>Lista:</b> ~compras · <b>Lembrete:</b> lembrar 30 min antes</li></ul>
       <p>Nos documentos, digite <b>@</b> para inserir datas, tarefas e outros documentos, e <b>/</b> para inserir blocos.</p></details>
   </section>
-  <section class="sgrp"><h2>${ic('google', 18)}Google Agenda</h2>
+  <section class="sgrp"><h2>${ic('google', 18)}Google Agenda e feriados</h2>
     ${icsSettingsHtml()}
+    ${holSettingsHtml()}
     <details class="help gadv"${s.gClient ? ' open' : ''}><summary>Avançado: conectar com login do Google (ver e editar)</summary>
     ${s.gClient ? `
       <div class="srow"><div><b>${gOn() ? 'Conectado' : GC.status === 'exp' ? 'Sessão expirada' : 'Não conectado'}</b><p class="mut sm">${gOn() ? 'Eventos aparecem no calendário e tarefas com data vão para a sua agenda.' : 'Toque em conectar para entrar com sua conta Google.'}</p></div>${gOn() ? `<button class="btn ghost sm" data-act="gdisc">Desconectar</button>` : `<button class="btn red sm" data-act="gconn">${ic('google', 16)}Conectar</button>`}</div>
