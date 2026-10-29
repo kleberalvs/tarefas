@@ -160,7 +160,7 @@ VIEWS.list = main => {
     body = `<div class="board">${groups.map(g => `<section class="bcol" data-drop="grp:${esc(g.key)}">
       <header class="bch" ${g.sec ? `data-act="secmenu" data-sec="${g.sec.id}"` : ''}><b>${esc(g.name || 'Tarefas')}</b><span class="cnt">${g.items.length}</span>${g.sec ? `<button class="mini" data-act="secmenu" data-sec="${g.sec.id}" aria-label="Opções da seção">${ic('more', 16)}</button>` : ''}</header>
       <div class="cards">${g.items.map(t => rowHtml(t, { card: 1, showList, show })).join('')}${qaHtml(g.key)}</div></section>`).join('')}
-      ${info.list ? `<button class="bcol addcol" data-act="addsec">${ic('plus', 18)}<span>Nova seção</span></button>` : ''}</div>`;
+      ${info.list ? `<button class="bcol addcol" data-act="addsec" title="Nova seção" aria-label="Nova seção">${ic('plus', 18)}<span>Nova seção</span></button>` : ''}</div>`;
   } else {
     body = groups.map(g => {
       const shut = SHUT_GROUPS.has(id + g.key);

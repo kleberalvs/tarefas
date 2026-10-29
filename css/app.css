@@ -2002,3 +2002,13 @@ body.selmode .fab{display:none}
   body.det-full .dclean .dtop,body.det-full .dbot{padding-left:max(14px,calc((100vw - 940px) / 2));padding-right:max(10px,calc((100vw - 940px) / 2))}
 }
 @keyframes detpop{from{opacity:0;transform:translate(-50%,-48%) scale(.97)}to{opacity:1;transform:translate(-50%,-50%)}}
+/* capas do quadro: baixas e com a imagem inteira, centralizada */
+.ccov{height:96px!important;max-height:96px;display:flex;align-items:center;justify-content:center;background:var(--sunk)}
+.ccov img{object-fit:contain!important;object-position:center;width:100%;height:100%}
+/* colunas do quadro se ajustam para caberem lado a lado */
+@media (min-width:760px){
+  .board{gap:12px;padding-left:20px!important;padding-right:20px!important}
+  .board .bcol:not(.addcol){flex:1 1 0;min-width:180px;max-width:360px}
+  .board .bcol.addcol{flex:0 0 46px;width:46px;min-height:46px;padding:0;justify-content:center}
+  .board .bcol.addcol span{display:none}
+}
