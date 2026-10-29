@@ -360,7 +360,7 @@ function colorRow(cur, name = 'color') {
 
 /* ---------- listas, pastas e etiquetas ---------- */
 /* campo de ícone (emoji) usado nos formulários */
-function iconField(cur) { return `<div class="row"><button type="button" class="emobtn" data-emo>${cur ? esc(cur) : ic('plus', 18)}</button><span class="mut sm">Ícone (emoji) — opcional</span><input type="hidden" name="emoji" value="${esc(cur || '')}"></div>`; }
+function iconField(cur) { return `<div class="row"><button type="button" class="emobtn" data-emo data-pop>${cur ? esc(cur) : ic('plus', 18)}</button><span class="mut sm">Ícone (emoji) — opcional</span><input type="hidden" name="emoji" value="${esc(cur || '')}"></div>`; }
 function bindIconField(el) {
   const b = el.querySelector('[data-emo]'); if (!b) return;
   b.onclick = () => emojiPicker(b, e => { el.querySelector('[name=emoji]').value = e || ''; b.innerHTML = e ? esc(e) : ic('plus', 18); }, { none: 1 });

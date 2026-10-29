@@ -182,7 +182,7 @@ function editHabit(h) {
   h = h || { id: uid(), name: '', emoji: '✅', color: COLORS[db.h.length % COLORS.length], goal: 1, unit: '', freq: { t: 'daily' }, log: {}, c: Date.now(), o: db.h.length + 1 };
   const f0 = h.freq || { t: 'daily' };
   const el = modal(`<h2>${isNew ? 'Novo hábito' : 'Editar hábito'}</h2><form class="hform">
-    <div class="row"><button type="button" class="picon sm" data-emo>${esc(h.emoji || '✅')}</button><input class="in f1" name="n" value="${esc(h.name)}" placeholder="Ex.: Beber água" required maxlength="60" autofocus></div>
+    <div class="row"><button type="button" class="picon sm" data-emo data-pop>${esc(h.emoji || '✅')}</button><input class="in f1" name="n" value="${esc(h.name)}" placeholder="Ex.: Beber água" required maxlength="60" autofocus></div>
     <span class="lab">Cor</span>${colorRow(h.color)}
     <label class="lab">Frequência<select class="in" name="ft"><option value="daily">Todo dia</option><option value="week">Dias específicos</option><option value="times">Vezes por semana</option></select></label>
     <div class="wds" data-w>${[0, 1, 2, 3, 4, 5, 6].map(i => { const w = (i + weekStart()) % 7; return `<label class="wd"><input type="checkbox" name="wd" value="${w}" ${(f0.wd || []).includes(w) ? 'checked' : ''}><span>${wdShort[w]}</span></label>`; }).join('')}</div>
