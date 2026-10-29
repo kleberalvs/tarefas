@@ -2002,3 +2002,9 @@ body.selmode .fab{display:none}
   body.det-full .dclean .dtop,body.det-full .dbot{padding-left:max(14px,calc((100vw - 940px) / 2));padding-right:max(10px,calc((100vw - 940px) / 2))}
 }
 @keyframes detpop{from{opacity:0;transform:translate(-50%,-48%) scale(.97)}to{opacity:1;transform:translate(-50%,-50%)}}
+/* tablet e computador: a página nunca rola inteira — só as áreas internas (quadrantes, listas) */
+@media (min-width:760px){
+  html,body{overflow:hidden;overscroll-behavior:none;height:100%}
+  #app{position:fixed;inset:0;height:auto!important}
+  .scroll.mtxwrap,.mtxwrap .qlist{overscroll-behavior:contain}
+}
