@@ -23,14 +23,14 @@ function fPause() { if (!FS.run) return; FS.left = fLeft(); FS.run = false; save
 function fStop(log) {
   if (log && FS.began) {
     const secs = FS.mode === 'watch' ? fLeft() : modeLen(FS.mode) - fLeft();
-    if ((FS.mode === 'focus' || FS.mode === 'watch') && secs >= 60) put('p', { id: uid(), start: FS.began, end: Date.now(), dur: Math.round(secs / 60), task: FS.task, type: FS.mode });
+    if ((FS.mode === 'focus' || FS.mode === 'watch') && secs >= 60) { put('p', Object.assign({ id: uid(), start: FS.began, end: Date.now(), dur: Math.round(secs / 60), task: FS.task, type: FS.mode }, FS.mode === 'focus' && fLeft() > 0 ? { ab: 1 } : {})); setTimeout(() => typeof fxAfterSession === 'function' && fxAfterSession(), 400); }
   }
   FS.run = false; FS.left = null; FS.began = 0; FS.start = 0; saveFS(); syncTimer(); ambientFollow(); render(true);
 }
 function fSet(m) { if (FS.run && !confirm('Interromper a sessão atual?')) return; if (FS.run || FS.began) fStop(true); FS.mode = m; FS.left = null; saveFS(); render(true); }
 function fFinish() {
   const was = FS.mode;
-  if (was === 'focus') { put('p', { id: uid(), start: FS.began || Date.now() - modeLen('focus') * 1000, end: Date.now(), dur: db.s.pomo.focus, task: FS.task, type: 'focus' }); FS.n = (FS.n || 0) + 1; }
+  if (was === 'focus') { put('p', { id: uid(), start: FS.began || Date.now() - modeLen('focus') * 1000, end: Date.now(), dur: db.s.pomo.focus, task: FS.task, type: 'focus' }); FS.n = (FS.n || 0) + 1; setTimeout(() => typeof fxAfterSession === 'function' && fxAfterSession(), 600); }
   const next = was === 'focus' ? (FS.n % (db.s.pomo.every || 4) === 0 ? 'long' : 'short') : 'focus';
   notify(was === 'focus' ? 'Sessão de foco concluída' : 'Pausa encerrada', was === 'focus' ? 'Hora de uma ' + FMODES[next].toLowerCase() + '.' : 'Vamos voltar ao foco?');
   playAlarm();
@@ -70,10 +70,11 @@ VIEWS.focus = main => {
   main.innerHTML = headHtml('Foco', '', `<button class="ib" data-act="fset" aria-label="Ajustes do Pomodoro">${ic('gear')}</button>`) + `<div class="scroll"><div class="focus">
     <div class="fcard">
       <div class="seg">${Object.entries(FMODES).map(([k, n]) => `<button class="${FS.mode === k ? 'on' : ''}" data-act="fmode" data-m="${k}">${n}</button>`).join('')}</div>
-      <div class="fring m-${FS.mode}">
+      <div class="fxpick" role="radiogroup" aria-label="Animação do foco">${FX_ANIMS.map(([k, e, n]) => `<button class="${fxAnim() === k ? 'on' : ''}" data-act="fxanim" data-k="${k}" role="radio" aria-checked="${fxAnim() === k}"><span>${e}</span>${n}</button>`).join('')}</div>
+      ${fxAnim() !== 'ring' ? fxSceneHtml().replace('</div></div>', `</div><div class="fxtime"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><small>${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? (fxAnim() === 'forest' ? 'Sua árvore está crescendo' : 'Focando') : 'Descansando') : FS.began ? 'Pausado' : 'Pronto'}</small>${FS.mode === 'watch' ? '' : `<div class="fxbar"><i id="fxbar" style="width:${Math.round(fxFrac() * 100)}%"></i></div>`}</div></div>`) : `<div class="fring m-${FS.mode}">
         <svg viewBox="0 0 260 260" aria-hidden="true"><circle cx="130" cy="130" r="118" class="rbg"/>${FS.mode === 'watch' ? '' : `<circle id="fring" cx="130" cy="130" r="118" class="rfg" stroke-dasharray="${C.toFixed(1)}" style="stroke-dashoffset:${(C * (1 - s / len)).toFixed(1)}" transform="rotate(-90 130 130)"/>`}</svg>
         <div class="fin"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><span class="mut">${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? 'Focando' : 'Descansando') : 'Pronto'}</span></div>
-      </div>
+      </div>`}
       <button class="ftask" data-act="fpick">${t ? `<span class="chk sm p${t.prio || 0}"><span>${ic('check', 10)}</span></span><span>${esc(t.title)}</span>` : `${ic('todo', 18)}<span class="mut">Escolher tarefa para focar</span>`}${ic('chevd', 14)}</button>
       <div class="fbtns">
         ${FS.run ? `<button class="btn big ghost" data-act="fpause">${ic('pause', 20)}Pausar</button>` : `<button class="btn big red" data-act="fstart">${ic('play', 20)}${FS.began ? 'Continuar' : 'Iniciar'}</button>`}
@@ -81,6 +82,7 @@ VIEWS.focus = main => {
         ${FS.mode !== 'watch' && !FS.run ? `<button class="ib" data-act="fskip" aria-label="Pular para a próxima etapa">${ic('right')}</button>` : ''}
         ${t && !t.done ? `<button class="btn big ghost" data-act="fdone">${ic('check', 18)}Concluir tarefa</button>` : ''}
       </div>
+      ${fxAnim() === 'cats' ? `<button class="link fxdeco" data-act="fxdecor">🛋️ Decorar a casa dos gatinhos</button>` : fxAnim() === 'forest' ? `<p class="hint fxhint">Cada sessão planta uma árvore: curtas viram arbustos, 45 min+ viram árvores grandes e 90 min+ um ipê florido. Desistir no meio deixa uma árvore seca.</p>` : ''}
     </div>
     <div class="fstats">
       <div class="stat"><b>${st.todayN}</b><span>pomodoros hoje</span></div>
@@ -99,6 +101,8 @@ VIEWS.focus = main => {
     ${recent.length ? `<section class="fsec"><h3>Sessões recentes</h3>${recent.map(p => { const x = p.task && get('t', p.task); return `<div class="frow"><span>${esc(fmtDay(ymd(new Date(p.start))))} ${hm(new Date(p.start))} · ${esc(x ? x.title : FMODES[p.type] || 'Foco')}</span><b>${fmtDur(p.dur)}</b></div>`; }).join('')}<button class="link" data-act="fexport">Exportar sessões (CSV)</button></section>` : ''}
   </div></div>`;
   bindFocusSounds(main);
+  if (fxAnim() !== 'ring') fxStart();
+  if (!houseCfg().seen) fxAfterSession();
 };
 function bindFocusSounds(main) {
   const v = main.querySelector('[data-fvol]'); if (v) v.oninput = () => { setVolume(+v.value); saveVol(); };
