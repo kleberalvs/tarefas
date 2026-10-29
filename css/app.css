@@ -2072,3 +2072,8 @@ body.selmode .fab{display:none}
 .agmeet{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;color:#fff;background:#1a73e8;margin-left:6px}
 .agmeet:hover{filter:brightness(1.1)}
 .agl li{grid-template-columns:62px 4px minmax(0,1fr) auto}
+/* mês: em janelas baixas as semanas não se sobrepõem — a grade rola por dentro */
+@media (min-width:760px){
+  .month:not(.mob) .mgrid{grid-template-rows:repeat(6,minmax(92px,1fr));overflow-y:auto;scrollbar-width:thin}
+  .month:not(.mob) .mcell{min-height:0}
+}
