@@ -510,7 +510,7 @@ function renderNoteList(main, info) {
   const rows = items.map(t => `<div class="nlrow${R.sel === t.id ? ' sel' : ''}${t.done ? ' done' : ''}" data-act="topen" data-id="${t.id}" data-drag="t:${t.id}" data-drop="row:${t.id}" data-ctx="task:${t.id}" tabindex="0">
       <span class="nlic">${ic('doc', 17)}</span>
       <span class="nlt">${linkifyText(t.title, { short: 1 }) || '<span class="mut">Sem título</span>'}</span>
-      <span class="nlr">${tagH(t)}${(t.att || []).length ? `<span class="nlmi" title="${plural(t.att.length, 'anexo', 'anexos')}">${ic('clip', 14)}</span>` : ''}${t.notes && stripHtml(t.notes).trim() ? `<span class="nlmi" title="Tem conteúdo">${ic('note', 14)}</span>` : ''}${t.due ? `<span class="nlmi" title="Lembrete: ${esc(fmtWhen(t.due))}">${ic('bell', 14)}</span>` : ''}</span>
+      <span class="nlr">${tagH(t)}${(t.att || []).length ? `<span class="nlmi" title="${plural(t.att.length, 'anexo', 'anexos')}">${ic('clip', 14)}</span>` : ''}${t.due ? `<span class="nlmi" title="Lembrete: ${esc(fmtWhen(t.due))}">${ic('bell', 14)}</span>` : ''}</span>
     </div>`).join('');
   const right = `<button class="ib" data-act="vmore" aria-label="Mais opções">${ic('more')}</button>`;
   const pre = l.emoji ? `<span class="nemo big">${esc(l.emoji)}</span>` : `<span class="ldot big" style="background:${esc(l.color || '#808080')}"></span>`;

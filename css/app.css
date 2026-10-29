@@ -1972,3 +1972,6 @@ body.selmode .fab{display:none}
 .fvnav:hover{background:rgba(255,255,255,.22)}
 @media (max-width:759px){.fvnav{display:none}.fvdoc{padding:20px 18px}}
 .ccov,.rthumb{cursor:pointer}
+/* quadro: colunas vão até o fim da tela (sem espaço vazio embaixo) */
+.tlist.isboard{padding:0!important}
+@media (max-width:759px){.board{padding-bottom:12px!important}}
