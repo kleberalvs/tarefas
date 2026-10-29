@@ -1,5 +1,5 @@
 /* Service worker: abre sem internet, busca sempre a versão mais nova e mostra as notificações push. */
-const VERSAO = '2026.10.28-60';
+const VERSAO = '2026.10.28-61';
 const CACHE = 'tarefas-' + VERSAO;
 const ARQUIVOS = ['./', 'index.html', 'config.js', 'css/app.css', 'assets/fonts/inter-latin-wght-normal.woff2', 'assets/fonts/inter-latin-ext-wght-normal.woff2', 'js/core.js', 'js/emoji.js', 'js/ui.js', 'js/files.js', 'js/links.js', 'js/tasks.js', 'js/home.js', 'js/detail.js', 'js/cal.js', 'js/docs.js', 'js/focus.js', 'js/sounds.js', 'js/export.js', 'js/docshot.js', 'js/log.js', 'js/ach.js', 'js/pets.js', 'js/notes.js', 'js/draw.js', 'js/ai.js', 'js/dstyles.js', 'js/meet.js', 'js/users.js', 'js/push.js', 'js/sync.js', 'js/app.js',
   'vendor/supabase.js', 'manifest.webmanifest', 'assets/icon-v4-192.png', 'assets/apple-touch-icon-v4.png', 'assets/icon-v4-512.png', 'assets/badge-96.png'];

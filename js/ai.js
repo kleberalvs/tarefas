@@ -94,7 +94,7 @@ function aiPanel(ctx, act) {
     try {
       await aiGen(prompt, t => { out = t; txt.innerHTML = aiFmt(t) + '<span class="aicur"></span>'; box.scrollTop = box.scrollHeight; }, ctrl.signal);
       out = out.trim(); txt.innerHTML = aiFmt(out) || '<p class="mut">Sem resposta.</p>'; btns.hidden = !out;
-    } catch (e) { if (e.name !== 'AbortError') txt.innerHTML = `<p class="err">${esc(e.message || 'Não foi possível gerar o texto')}</p>`; }
+    } catch (e) { if (e.name !== 'AbortError') txt.innerHTML = `<p class="err">${esc(/fetch|network|load failed/i.test(e.message || '') ? 'Sem conexão com a IA agora. Verifique a internet e tente de novo.' : e.message || 'Não foi possível gerar o texto')}</p>`; }
   };
   const ask = k => { const a = AI_ACTS.find(x => x.k === k); if (!a) return; run(a.p + (has ? ctx.text : (ctx.all || q.value || 'organização pessoal'))); };
   el.querySelector('.aiq').onsubmit = e => { e.preventDefault(); const v = q.value.trim(); if (!v) return; run(has ? v + '\n\nTexto de referência:\n' + ctx.text : (ctx.all ? v + '\n\nContexto (texto atual):\n' + ctx.all.slice(0, 4000) : v)); };

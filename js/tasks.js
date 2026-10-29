@@ -396,8 +396,8 @@ function taskMenu(t, anchor, at) {
   m.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { t.prio = +b.dataset.p; put('t', t); closePop(); });
 }
 Object.assign(ACTS, {
-  tcheck: b => checkTask(b.dataset.id, b),
-  topen: b => openTask(b.dataset.id),
+  tcheck: b => { if (SELM) return selToggle(b.dataset.id); checkTask(b.dataset.id, b); },
+  topen: b => { if (SELM && b.closest('#main')) return selToggle(b.dataset.id); openTask(b.dataset.id); },
   subs: b => { const id = b.dataset.id; OPEN_SUBS.has(id) ? OPEN_SUBS.delete(id) : OPEN_SUBS.add(id); render(true); },
   gtoggle: b => { const k = b.dataset.g; SHUT_GROUPS.has(k) ? SHUT_GROUPS.delete(k) : SHUT_GROUPS.add(k); render(true); },
   tdate: b => { const t = get('t', b.dataset.id); datePicker(b, taskToDp(t), v => { dpToTask(t, v); put('t', t); if (typeof gcalPushTask === 'function') gcalPushTask(t); }, { right: 1 }); },
@@ -418,6 +418,7 @@ Object.assign(ACTS, {
   vmore: b => {
     const info = scopeInfo(R.id), c = viewCfg(R.id);
     menu(b, [
+      { label: 'Selecionar várias…', icon: 'todo', act: () => selStart() },
       { label: c.showDone ? 'Ocultar concluídas' : 'Mostrar concluídas', icon: 'done', act: () => setViewCfg(R.id, 'showDone', !c.showDone) },
       { label: 'Detalhes exibidos…', icon: 'eye', act: () => displayMenu(b, R.id) },
       { label: 'Exportar…', icon: 'export', act: () => exportMenu(b, { kind: 'scope', id: R.id }) },
@@ -524,3 +525,55 @@ function renderNoteList(main, info) {
     inp.value = ''; openTask(t.id);
   };
 }
+
+/* ---------- seleção em lote (excluir, concluir, mover várias de uma vez) ---------- */
+let SELM = null;
+function selVisibleIds() { const ids = []; $$('#main [data-drag^="t:"]').forEach(e => { const id = e.dataset.drag.slice(2); if (!ids.includes(id)) ids.push(id); }); return ids; }
+function selStart(first) { SELM = { ids: new Set(first ? [first] : []), scope: R.v + ':' + R.id }; if (R.sel) closeTask(); render(true); selBar(); }
+function selEnd() { SELM = null; const bar = $('#selbar'); if (bar) bar.remove(); document.body.classList.remove('selmode'); render(true); }
+function selToggle(id) { if (!SELM) return; SELM.ids.has(id) ? SELM.ids.delete(id) : SELM.ids.add(id); selPaint(); }
+function selPaint() {
+  if (!SELM) return;
+  $$('#main [data-drag^="t:"]').forEach(e => e.classList.toggle('picked', SELM.ids.has(e.dataset.drag.slice(2))));
+  selBar();
+}
+function selBar() {
+  if (!SELM) return;
+  document.body.classList.add('selmode');
+  let bar = $('#selbar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'selbar'; bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', 'Ações em lote'); document.body.appendChild(bar); }
+  const n = SELM.ids.size, all = selVisibleIds(), allOn = all.length && all.every(id => SELM.ids.has(id));
+  const sel = [...SELM.ids].map(id => get('t', id)).filter(Boolean), anyTask = sel.some(t => !t.note);
+  bar.innerHTML = `<button class="ib" data-sb="x" aria-label="Cancelar seleção" title="Cancelar">${ic('x', 19)}</button>
+    <b class="sbn">${n ? plural(n, 'selecionada', 'selecionadas') : 'Toque nos itens'}</b>
+    <button class="btn ghost sm" data-sb="all">${allOn ? '<span class="hide-m">Desmarcar </span>Nenhuma' : '<span class="hide-m">Selecionar </span>Todas'}</button>
+    <span class="sp"></span>
+    ${anyTask ? `<button class="ib" data-sb="done" ${n ? '' : 'disabled'} title="Concluir" aria-label="Concluir selecionadas">${ic('check', 19)}</button>` : ''}
+    <button class="ib" data-sb="move" ${n ? '' : 'disabled'} title="Mover para outra lista" aria-label="Mover selecionadas">${ic('folder', 19)}</button>
+    <button class="btn red sm" data-sb="del" ${n ? '' : 'disabled'}>${ic('trash', 16)}<span class="hide-m">Excluir</span></button>`;
+  bar.onclick = async e => {
+    const b = e.target.closest('[data-sb]'); if (!b) return;
+    const k = b.dataset.sb, list = [...SELM.ids].map(id => get('t', id)).filter(Boolean);
+    if (k === 'x') return selEnd();
+    if (k === 'all') { if (allOn) SELM.ids.clear(); else all.forEach(id => SELM.ids.add(id)); return selPaint(); }
+    if (!list.length) return;
+    if (k === 'del') {
+      if (list.length > 1 && !(await confirmBox(`Mover ${plural(list.length, 'item', 'itens')} para a Lixeira?`))) return;
+      const stamp = Date.now(), prev = list.map(t => [t, t.del]);
+      list.forEach(t => { t.del = stamp; put('t', t, { silent: true }); subsOf(t.id).forEach(x => { if (!x.del) { x.del = stamp; put('t', x, { silent: true }); } }); if (typeof gcalDeleteTask === 'function' && t.gc) gcalDeleteTask(t); });
+      selEnd(); changed();
+      toast(`${plural(list.length, 'item movido', 'itens movidos')} para a Lixeira`, 'Desfazer', () => { prev.forEach(([t, d]) => { t.del = d || null; put('t', t, { silent: true }); }); db.t.filter(x => x.del === stamp).forEach(x => { x.del = null; put('t', x, { silent: true }); }); changed(); }, 6000);
+    }
+    if (k === 'done') {
+      const ts = list.filter(t => !t.note && !t.done); ts.forEach(t => completeTask(t, true)); selEnd(); changed();
+      toast(plural(ts.length, 'tarefa concluída', 'tarefas concluídas'));
+    }
+    if (k === 'move') {
+      menu(b, db.l.filter(l => !l.arch).map(l => ({ label: l.name, color: l.color, act: () => { list.forEach(t => { t.list = l.id; t.sec = null; if (l.kind === 'notes') t.note = true; put('t', t, { silent: true }); }); selEnd(); changed(); toast(`${plural(list.length, 'item movido', 'itens movidos')} para ${l.name}`); } })), { right: 1 });
+    }
+  };
+}
+/* sair da seleção ao trocar de tela; repintar após cada renderização */
+addEventListener('hashchange', () => { if (SELM) { SELM = null; const bar = $('#selbar'); if (bar) bar.remove(); document.body.classList.remove('selmode'); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && SELM) selEnd(); });
+new MutationObserver(() => { if (SELM) { const m = $('#main'); if (m && !m.querySelector('.selhint')) selPaint(); } }).observe(document.getElementById('main') || document.body, { childList: true });

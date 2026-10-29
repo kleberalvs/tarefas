@@ -221,7 +221,7 @@ async function aisumMake() {
     if (!tx) throw new Error('A IA não respondeu agora.');
     db.s.aisum = { d: today(), tx, at: Date.now() }; put('s', db.s);
   } catch (e) {
-    AISUM_ERR = (e && e.message) || 'Não foi possível gerar o resumo agora.';
+    AISUM_ERR = e && /fetch|network|load failed/i.test(e.message || '') ? 'Sem conexão com a IA agora.' : (e && e.message) || 'Não foi possível gerar o resumo agora.';
   }
   AISUM_BUSY = false;
   if (R.v === 'home') render(true);
