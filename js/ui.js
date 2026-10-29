@@ -791,3 +791,25 @@ function initSwipe() {
   document.addEventListener('click', e => { if (fired && e.target.closest && e.target.closest('#side [data-ctx]')) { e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
   document.addEventListener('contextmenu', e => { if (isMobile() && e.target.closest && e.target.closest('#side [data-ctx]')) e.preventDefault(); });
 })();
+/* painel da tarefa/documento à direita: arraste a borda esquerda para aumentar ou diminuir (duplo clique volta ao padrão) */
+(() => {
+  const KEY = 'tt_detw';
+  const apply = w => { if (w) document.documentElement.style.setProperty('--det-w', w + 'px'); else document.documentElement.style.removeProperty('--det-w'); };
+  try { const w = +localStorage.getItem(KEY); if (w) apply(w); } catch (e) {}
+  const maxW = () => Math.max(420, Math.min(innerWidth - 420, Math.round(innerWidth * .75)));
+  const ensure = () => {
+    const det = document.getElementById('detail'); if (!det || det.querySelector(':scope > .detres')) return;
+    const h = document.createElement('div'); h.className = 'detres'; h.title = 'Arraste para ajustar a largura (duplo clique: padrão)'; h.setAttribute('role', 'separator'); h.setAttribute('aria-orientation', 'vertical');
+    det.prepend(h);
+    h.addEventListener('pointerdown', e => {
+      if (isMobile()) return; e.preventDefault(); h.setPointerCapture(e.pointerId);
+      document.body.classList.add('detresizing');
+      const move = ev => { const w = Math.round(Math.min(maxW(), Math.max(360, innerWidth - ev.clientX))); apply(w); };
+      const up = () => { h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); document.body.classList.remove('detresizing'); try { localStorage.setItem(KEY, parseInt(getComputedStyle(document.documentElement).getPropertyValue('--det-w'))); } catch (er) {} };
+      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
+    });
+    h.addEventListener('dblclick', () => { apply(null); try { localStorage.removeItem(KEY); } catch (er) {} });
+  };
+  const start = () => { const det = document.getElementById('detail'); if (!det) return setTimeout(start, 300); ensure(); new MutationObserver(ensure).observe(det, { childList: true }); };
+  start();
+})();

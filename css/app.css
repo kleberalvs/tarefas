@@ -1831,3 +1831,11 @@ body.side-rail .rail{border-right:0}
 .dclean .dwrap,.dwrap.dclean{display:flex;flex-direction:column;height:100%}
 .dwrap.dclean .dscroll{flex:1;min-height:0;overflow-y:auto}
 @media (max-width:759px){.dbot{padding-bottom:calc(8px + var(--safe-b))}.dclean .dscroll{padding:14px 16px 20px}}
+/* alça para redimensionar o painel da direita */
+@media (min-width:1100px){#detail{position:relative}}
+.detres{position:absolute;left:-5px;top:0;bottom:0;width:10px;cursor:col-resize;z-index:45;touch-action:none}
+.detres::after{content:"";position:absolute;left:4px;top:0;bottom:0;width:2px;background:transparent;transition:background-color .15s}
+.detres:hover::after,body.detresizing .detres::after{background:var(--red)}
+body.detresizing{cursor:col-resize;user-select:none}
+body.detresizing #app{transition:none}
+@media (max-width:759px){.detres{display:none}}
