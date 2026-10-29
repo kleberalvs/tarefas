@@ -157,7 +157,9 @@ function sideHtml() {
   return rail + (panel ? `<div class="spanel">${panel}</div>` : '');
 }
 /* grupos do menu que abrem e fecham (Listas, Etiquetas, Pastas) */
-const sgShut = g => !!((db.s.sgc || {})[g]);
+/* ao abrir o app, Listas, Etiquetas e Pastas começam guardadas; abrir/fechar vale até fechar o app */
+const SG_OPEN = new Set();
+const sgShut = g => !SG_OPEN.has(g);
 const sgHead = (g, title, btns) => `<div class="sgh"><button class="sgt" data-act="sgtog" data-g="${g}" aria-expanded="${!sgShut(g)}">${ic('chev', 13)}<span>${title}</span></button>${btns}</div>`;
 /* seção do menu: tarefas (listas e filtros) ou documentos mostram o painel ao lado do trilho */
 function sideSection() {
@@ -661,7 +663,7 @@ function initDnd() {
 /* ---------- ações globais (delegação de cliques) ---------- */
 const ACTS = {
   go: b => go(b.dataset.to),
-  sgtog: b => { const g = b.dataset.g; db.s.sgc = Object.assign({}, db.s.sgc || {}, { [g]: !sgShut(g) }); put('s', db.s); },
+  sgtog: b => { const g = b.dataset.g; SG_OPEN.has(g) ? SG_OPEN.delete(g) : SG_OPEN.add(g); render(); },
   profmenu: b => {
     const nm = (db.s.name || '').trim();
     menu(b, [
