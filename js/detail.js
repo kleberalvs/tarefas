@@ -67,7 +67,8 @@ function renderDetail(det) {
     </section>` : ''}
 
     ${showAtt ? `<section class="dsec"><h3>${ic('clip', 16)}Anexos <span class="cnt">${(t.att || []).length || ''}</span></h3>
-      <div class="atts">${(t.att || []).map((m, i) => `<div class="att"><button class="attm" data-act="aopen" data-i="${i}">${ic(fileIcon(m), 22)}<span class="an">${esc(m.name)}</span><span class="mut sm">${fmtSize(m.size)}${m.pending ? ' · só neste aparelho' : ''}</span></button><button class="mini" data-act="adel" data-i="${i}" aria-label="Remover anexo">${ic('trash', 16)}</button></div>`).join('')}</div>
+      ${(t.att || []).some(isImgAtt) ? `<div class="attimgs">${(t.att || []).map((m, i) => isImgAtt(m) ? `<div class="attimg"><button class="attib" data-act="aimg" data-i="${i}" aria-label="Abrir imagem ${esc(m.name)}"><img alt="" data-aimg="${i}"></button><button class="attx" data-act="adel" data-i="${i}" aria-label="Remover imagem">${ic('x', 13)}</button></div>` : '').join('')}</div>` : ''}
+      <div class="atts">${(t.att || []).map((m, i) => isImgAtt(m) ? '' : `<div class="att"><button class="attm" data-act="aopen" data-i="${i}">${ic(fileIcon(m), 22)}<span class="an">${esc(m.name)}</span><span class="mut sm">${fmtSize(m.size)}${m.pending ? ' · só neste aparelho' : ''}</span></button><button class="mini" data-act="adel" data-i="${i}" aria-label="Remover anexo">${ic('trash', 16)}</button></div>`).join('')}</div>
       <label class="btn ghost sm filebtn">${ic('up', 16)}Anexar arquivos<input type="file" multiple hidden data-f="files"></label>
     </section>` : `<input type="file" multiple hidden data-f="files" id="dfiles">`}
     ${t.cover ? '' : `<input type="file" accept="image/*" hidden data-f="cover" id="dcover">`}
@@ -129,7 +130,10 @@ function bindComments(det, t) {
   };
 }
 /* imagens de capa das tarefas (detalhe, quadro e lista) */
+const isImgAtt = m => m && (/^image\//.test(m.type || '') || /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(m.name || ''));
 async function loadTaskImgs(root) {
+  const t0 = get('t', R.sel);
+  if (t0) root.querySelectorAll('img[data-aimg]').forEach(async img => { const m = (t0.att || [])[+img.dataset.aimg]; if (!m) return; try { if (!IMG_URL.has(m.id)) IMG_URL.set(m.id, await FILES.url(m)); img.src = IMG_URL.get(m.id); } catch (e) { img.closest('.attimg').classList.add('noimg'); } });
   root.querySelectorAll('img[data-timg]').forEach(async img => {
     const t = get('t', img.dataset.tid), m = t && t.cover; if (!m) return;
     try { if (!IMG_URL.has(m.id)) IMG_URL.set(m.id, await FILES.url(m)); img.src = IMG_URL.get(m.id); } catch (e) { img.closest('.tcover,.ccov,.rthumb') && img.closest('.tcover,.ccov,.rthumb').classList.add('noimg'); }
@@ -289,6 +293,7 @@ Object.assign(ACTS, {
   ckt: b => { const t = get('t', R.sel), c = t.chk[+b.dataset.i]; c.done = !c.done; put('t', t); if (c.done && t.chk.every(x => x.done)) toast('Todos os itens concluídos', 'Concluir tarefa', () => checkTask(t.id)); },
   ckdel: b => { const t = get('t', R.sel); t.chk.splice(+b.dataset.i, 1); put('t', t); },
   aopen: b => openFile(get('t', R.sel).att[+b.dataset.i]),
+  aimg: b => { const att = get('t', R.sel).att || [], imgs = att.filter(isImgAtt); lightbox(imgs, Math.max(0, imgs.indexOf(att[+b.dataset.i]))); },
   adel: async b => { const t = get('t', R.sel), m = t.att[+b.dataset.i]; if (await confirmBox('Remover o anexo "' + m.name + '"?')) { t.att.splice(+b.dataset.i, 1); put('t', t); FILES.remove(m); } },
   link: b => { const t = get('t', R.sel); pickItem(b.dataset.k, [t.id], id => { t.ln = t.ln || { d: [], t: [] }; const arr = t.ln[b.dataset.k]; if (!arr.includes(id)) arr.push(id); put('t', t); }); },
   unlink: b => { const t = get('t', R.sel); t.ln[b.dataset.k] = t.ln[b.dataset.k].filter(x => x !== b.dataset.id); put('t', t); },
