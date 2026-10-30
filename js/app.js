@@ -156,12 +156,13 @@ function afterRender() {
 }
 function boot() {
   loadDb();
+  subListRepair();
   initSnap(); pruneLog(); setTimeout(checkAch, 2500);
   applyTheme(); applyFontScale();
   if (!/type=recovery|error_description=|access_token=/.test(location.hash)) { const st = db.s.start || 'home'; history.replaceState(null, '', location.pathname + '#/' + st); }
   parseHash();
   initUi();
-  onData(local => { render(); if (local !== false) schedPush(); checkAch(); });
+  onData(local => { if (local === false) subListRepair(); render(); if (local !== false) schedPush(); checkAch(); });
   render(true);
   hideSplash();
   petsSync();

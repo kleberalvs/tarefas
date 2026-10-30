@@ -347,8 +347,19 @@ function put(k, o, opt = {}) {
   if (!opt.nolog && typeof logChange === 'function') logChange(k, o);
   const arr = db[k], i = arr.findIndex(x => x.id === o.id);
   if (i >= 0) arr[i] = o; else arr.push(o);
+  if (k === 't' && !opt.noCascade) subListFix(o);
   if (!opt.silent) changed();
   return o;
+}
+/* subtarefas sempre na mesma lista do pai (senão aparecem soltas na Caixa de entrada) */
+function subListFix(p, depth = 0) {
+  if (depth > 6) return;
+  db.t.forEach(x => { if (x.par === p.id && x.list !== p.list) { x.list = p.list; const l = db.l.find(y => y.id === p.list); if (x.sec && !(l && (l.sec || []).some(z => z.id === x.sec))) x.sec = p.sec || null; put('t', x, { silent: true, noCascade: true }); subListFix(x, depth + 1); } });
+}
+function subListRepair() {
+  const byId = new Map(db.t.map(t => [t.id, t])), root = t => { let p = t, k = 0; while (p.par && byId.get(p.par) && k++ < 8) p = byId.get(p.par); return p; };
+  let n = 0; db.t.forEach(x => { if (!x.par) return; const r = root(x); if (r !== x && x.list !== r.list) { x.list = r.list; put('t', x, { silent: true, noCascade: true, nolog: true }); n++; } });
+  if (n) changed(); return n;
 }
 function putMany(k, list) { list.forEach(o => put(k, o, { silent: true })); changed(); }
 function hardDel(k, id, opt = {}) { const o = get(k, id); if (o && !opt.nolog && typeof logChange === 'function') logChange(k, null, o); db[k] = db[k].filter(x => x.id !== id); changed(); }
