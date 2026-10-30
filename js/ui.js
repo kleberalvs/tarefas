@@ -255,7 +255,7 @@ function headHtml(title, sub, right = '', opts = {}) {
     <button class="ib show-m" data-act="drawer" aria-label="Abrir menu">${ic('menu')}</button>
     <button class="ib side-btn" data-act="side" aria-label="Mostrar barra lateral">${ic('side')}</button>
     <div class="vt">${opts.pre || ''}<h1>${esc(title)}</h1>${sub ? `<p class="mut">${sub}</p>` : ''}</div>
-    <div class="vr">${right}</div>
+    <div class="vr">${right}${typeof radioBtnHtml === 'function' ? radioBtnHtml() : ''}</div>
   </header>`;
 }
 
