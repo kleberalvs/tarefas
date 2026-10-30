@@ -293,7 +293,7 @@ function makePet(c, slot, saved) {
     const fy = b.Y + b.S - FOOT; p.Y += (fy - p.Y) * Math.min(1, dt / 260);
     if (Math.abs(dx) < SW && b.h < SC * 4) { const r = p.chase.reach; p.chase = null; p.walk = null; place(); r(); return; }
     if (Math.abs(dx) > SC * 5 || Math.sign(dx) === p.dir) p.dir = Math.sign(dx) || p.dir;
-    p.X += p.dir * SC * .78 * dt / 16.7; place();
+    p.X += p.dir * SC * (p.rush ? 1.25 : .78) * dt / 16.7; place();
   };
   const chase = () => {
     if (p.dead || !p.playing) return;
@@ -302,6 +302,7 @@ function makePet(c, slot, saved) {
     p.walk = { left: Infinity, run: true }; p.chase = { reach: swat };
   };
   const swat = () => {
+    p.rush = false;
     const b = PETS.ball; if (!b || !p.playing) return endPlay();
     const away = Math.random() < .72 ? p.dir : -p.dir, kick = () => { b.kick(away * (3 + Math.random() * 5.5), 1.5 + Math.random() * 4.5); };
     if (Math.random() < .5) { toPose('stretch', 3); wait(380 + Math.random() * 380, () => { p.m.hop = 1; toPose('stand', 2); wait(160, kick); wait(700 + Math.random() * 500, again); }); }
@@ -318,11 +319,12 @@ function makePet(c, slot, saved) {
     savePos(); wait(1600, () => { p.m = {}; wait(1200, next); });
     ballMaybeDone();
   };
-  p.joinPlay = () => {
-    clearT(); p.walk = null; p.chase = null; p.playing = true;
-    if (p.pose === 'lie' || p.pose === 'sleep') toPose('sit', 4);
+  p.joinPlay = rush => {
+    if (p.playing && !rush) return;
+    clearT(); p.walk = null; p.chase = null; p.playing = true; p.rush = !!rush;
+    if (p.pose === 'lie' || p.pose === 'sleep') toPose('stand', rush ? 3 : 4);
     p.m = { eyes: 'big' }; fx('!', 'say');
-    wait(500 + Math.random() * 700 + slot * 400, chase);
+    wait(rush ? 120 + Math.random() * 200 + slot * 120 : 500 + Math.random() * 700 + slot * 400, chase);
   };
   wait(800 + slot * 1500 + Math.random() * 1500, next);
   /* toque e arraste */
@@ -409,14 +411,24 @@ function makeBall() {
   el.addEventListener('pointerdown', e => {
     e.preventDefault(); e.stopPropagation();
     b.kick((Math.random() < .5 ? -1 : 1) * (3 + Math.random() * 3), 2.5 + Math.random() * 2);
+    ballPlay(true);
   });
   b.kill = () => { b.save(); el.remove(); };
   b.draw(); b.place();
   return b;
 }
-function ballPlay() {
-  const b = PETS.ball; if (!b || b.play) return;
-  const cats = PETS.list.filter(p => !p.dead && p.pose !== 'hang' && !p.el.classList.contains('held') && (p.pose !== 'sleep' || Math.random() < .35));
+function ballPlay(rush) {
+  const b = PETS.ball; if (!b) return;
+  const free = p => !p.dead && p.pose !== 'hang' && !p.el.classList.contains('held');
+  /* tocou na bolinha: todo mundo corre para brincar (até quem estava dormindo) */
+  if (rush) {
+    const until = Date.now() + 15000 + Math.random() * 10000;
+    b.play = { until: Math.max(until, b.play ? b.play.until : 0) };
+    PETS.list.filter(free).forEach(p => p.joinPlay(true));
+    return;
+  }
+  if (b.play) return;
+  const cats = PETS.list.filter(p => free(p) && (p.pose !== 'sleep' || Math.random() < .35));
   if (!cats.length) { b.next = Date.now() + 3 * 6e4; b.save(); return; }
   b.play = { until: Date.now() + 18000 + Math.random() * 17000 };
   if (!b.has) {
