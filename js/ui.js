@@ -278,6 +278,7 @@ function placePop(el, anchor, opts = {}) {
   if (x + w > innerWidth - 8) x = innerWidth - w - 8;
   if (x < 8) x = 8;
   if (y + h > innerHeight - 8) y = Math.max(8, (opts.at ? opts.at.y : r.top) - h - 6);
+  if (y + h > innerHeight - 8) y = Math.max(8, innerHeight - h - 8);
   el.style.left = x + 'px'; el.style.top = y + 'px';
 }
 function menu(anchor, items, opts = {}) {

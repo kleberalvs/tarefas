@@ -2320,3 +2320,12 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
   .month:not(.mob) .cchip .cdot{margin-top:3px}
   .month:not(.mob) .cchip .ctm{margin-top:1px}
 }
+/* menus compactos no computador: cabem inteiros sem rolar */
+@media (min-width:760px){
+  .pop.menu{max-height:calc(100vh - 16px);padding:5px}
+  .pop.menu .mi{min-height:30px;font-size:calc(13.5px * var(--fs,1))}
+  .pop.menu .mi>svg{width:16px;height:16px}
+  .pop.menu hr{margin:3px 4px}
+  .pop.menu .mprio{padding:2px}
+  .pop.menu .mprio .pbtn{height:32px;width:38px}
+}
