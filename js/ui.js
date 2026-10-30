@@ -64,17 +64,17 @@ function countFor(id) {
   if (sm && sm.f) return db.t.filter(t => live(t) && !t.par && sm.f(t)).length;
   return db.t.filter(t => live(t) && !t.par && t.list === id).length;
 }
-const NAVC = { home: '#DC4C3E', inbox: '#3B7DD8', today: '#2E9E6B', tomorrow: '#E8A400', week: '#9150C8', cal: '#DB4035', matrix: '#E8803A', focus: '#DB4035', habits: '#2E9E6B', docs: '#5B5BD6', all: '#808080', done: '#2E9E6B', trash: '#808080', log: '#8A6A55', users: '#3B7DD8', settings: '#808080' };
+const NAVC = { home: '#DC4C3E', inbox: '#3B7DD8', today: '#2E9E6B', tomorrow: '#E8A400', week: '#9150C8', cal: '#DB4035', matrix: '#E8803A', focus: '#DB4035', habits: '#2E9E6B', goals: '#E07C95', docs: '#5B5BD6', all: '#808080', done: '#2E9E6B', trash: '#808080', log: '#8A6A55', users: '#3B7DD8', settings: '#808080' };
 /* itens fixos do menu: cada um pode ter cor própria e ser ocultado */
 const NAVS = {
   home: ['home', 'home', 'Painel', {}],
   inbox: ['l/inbox', 'inbox', 'Caixa de entrada', { drop: 'list:inbox', cnt: 'inbox' }], today: ['l/today', 'today', 'Hoje', { drop: 'smart:today', cnt: 'today' }],
   tomorrow: ['l/tomorrow', 'tomorrow', 'Amanhã', { drop: 'smart:tomorrow', cnt: 'tomorrow' }], week: ['l/week', 'week', 'Próximos 7 dias', { cnt: 'week' }],
   cal: ['cal', 'cal', 'Calendário', {}], matrix: ['matrix', 'matrix', 'Matriz de prioridades', {}], focus: ['focus', 'focus', 'Foco', {}],
-  habits: ['habits', 'habit', 'Hábitos', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }], notes: ['notes', 'note', 'Notas rápidas', {}], meet: ['meet', 'mic', 'Reuniões', {}],
+  habits: ['habits', 'habit', 'Hábitos', {}], goals: ['goals', 'piggy', 'Metas', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }], notes: ['notes', 'note', 'Notas rápidas', {}], meet: ['meet', 'mic', 'Reuniões', {}],
   all: ['l/all', 'all', 'Todas', {}], done: ['l/done', 'done', 'Concluídas', {}], log: ['log', 'clock', 'Histórico', {}], trash: ['l/trash', 'trash', 'Lixeira', { drop: 'trash' }],
 };
-const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs', 'notes', 'meet'], NAV_LOW = ['all', 'done', 'log', 'trash'];
+const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'goals', 'docs', 'notes', 'meet'], NAV_LOW = ['all', 'done', 'log', 'trash'];
 const navPref = id => (db.s.nav || {})[id] || {};
 function NV(id, cur, ov) {
   const p = navPref(id); if (p.hide) return '';
@@ -137,6 +137,7 @@ function sideHtml() {
     ${RB('matrix', 'matrix', 'Matriz de prioridades', 'matrix', cur === 'matrix')}
     ${RB('focus', 'focus', 'Foco', 'focus', cur === 'focus')}
     ${RB('habits', 'habit', 'Hábitos', 'habits', cur === 'habits')}
+    ${RB('goals', 'piggy', 'Metas', 'goals', cur === 'goals')}
     ${RB('docs', 'doc', 'Documentos', 'docs', sec === 'docs')}
     ${RB('notes', 'note', 'Notas rápidas', 'notes', cur === 'notes')}
     ${RB('meet', 'mic', 'Reuniões', 'meet', cur === 'meet')}
@@ -214,7 +215,7 @@ function editProfile() {
 function tabsHtml() {
   const t = R.v, isT = t === 'list' || t === 'matrix';
   const b = (to, icon, name, on) => `<button class="tab${on ? ' on' : ''}" data-act="go" data-to="${to}">${ic(icon, 23)}<span>${name}</span></button>`;
-  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets', 'notes', 'meet'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
+  return b('home', 'home', 'Painel', t === 'home') + b('l/' + (R.v === 'list' ? R.id : (db.s.lastList || 'today')), 'todo', 'Tarefas', isT) + b('cal', 'cal', 'Calendário', t === 'cal') + b('docs', 'doc', 'Documentos', t === 'docs' || t === 'doc') + `<button class="tab${['habits', 'search', 'settings', 'focus', 'log', 'users', 'me', 'ach', 'pets', 'notes', 'meet', 'goals'].includes(t) ? ' on' : ''}" data-act="more-tabs">${ic('more', 23)}<span>Mais</span></button>`;
 }
 /* cabeçalho padrão das telas */
 /* "- " + espaço vira "• "; Enter continua a lista; Enter num item vazio encerra */
@@ -297,6 +298,8 @@ function menu(anchor, items, opts = {}) {
     it.act && it.act(b);
   });
   placePop(el, anchor, opts);
+  const ae = document.activeElement;
+  if (!isMobile() && ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.isContentEditable)) { const f = el.querySelector('.mi:not([disabled])'); if (f) f.classList.add('kb'); }
   return el;
 }
 function pop(anchor, html, opts = {}) {
@@ -753,6 +756,7 @@ const ACTS = {
     { label: 'Pets: ' + (petCfg().on ? 'ligados 🐈' : 'desligados'), icon: 'habit', act: () => ACTS.petstoggle() },
     { label: 'Foco', icon: 'focus', act: () => go('focus') },
     { label: 'Hábitos', icon: 'habit', act: () => go('habits') },
+    { label: 'Metas (porquinhos)', icon: 'piggy', act: () => go('goals') },
     { label: 'Matriz de prioridades', icon: 'matrix', act: () => go('matrix') },
     { label: 'Buscar', icon: 'search', act: () => go('search') },
     { label: 'Todas as listas', icon: 'menu', act: () => { R.drawer = true; render(); } },
@@ -898,3 +902,20 @@ document.addEventListener('selectstart', e => { const t = e.target.nodeType === 
   const upd = () => { const kb = Math.max(0, innerHeight - vv.height - vv.offsetTop); document.documentElement.style.setProperty('--vvh', vv.height + 'px'); document.documentElement.style.setProperty('--kb', kb + 'px'); };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 })();
+/* menus: setas ↑/↓ percorrem as opções e Enter escolhe (funciona mesmo com o cursor num campo de texto) */
+document.addEventListener('keydown', e => {
+  if (!POP || !POP.classList.contains('menu') || e.isComposing) return;
+  if (!['ArrowDown', 'ArrowUp', 'Enter', 'Home', 'End'].includes(e.key)) return;
+  const its = [...POP.querySelectorAll('.mi:not([disabled])')]; if (!its.length) return;
+  let i = its.findIndex(b => b.classList.contains('kb'));
+  if (e.key === 'Enter') { if (i < 0) return; e.preventDefault(); e.stopPropagation(); its[i].click(); return; }
+  e.preventDefault(); e.stopPropagation();
+  if (e.key === 'Home') i = 0; else if (e.key === 'End') i = its.length - 1;
+  else i = i < 0 ? (e.key === 'ArrowDown' ? 0 : its.length - 1) : (i + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length;
+  its.forEach((b, j) => b.classList.toggle('kb', j === i));
+  its[i].scrollIntoView({ block: 'nearest' });
+}, true);
+document.addEventListener('mouseover', e => {
+  const b = e.target.closest && e.target.closest('.pop.menu .mi'); if (!b) return;
+  POP && POP.querySelectorAll('.mi.kb').forEach(x => x !== b && x.classList.remove('kb')); b.classList.add('kb');
+});

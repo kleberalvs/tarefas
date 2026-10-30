@@ -33,6 +33,7 @@ const IC = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   minus: '<path d="M5 12h14"/>',
+  piggy: '<path d="M5 11.5C5 8.5 8 6.5 11.5 6.5c2 0 3.6.6 4.7 1.6l2.3-1.3-.4 2.9c.8.7 1.3 1.6 1.4 2.6H20.5v3h-1.4c-.6 1.1-1.5 2-2.6 2.6V20h-2.5v-1.6h-3.5V20H8v-2.4c-1.8-1.1-3-3-3-5.1z"/><path d="M3 10.5c.3 1 1 1.4 2 1.4"/><path d="M10 6.6l1.2-1.9"/><circle cx="15.6" cy="11" r=".6" fill="currentColor"/>',
   video: '<rect x="3" y="6.5" width="12.5" height="11" rx="2.5"/><path d="M15.5 10.5l5-3v9l-5-3z"/>',
   expand: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
   shrink: '<path d="M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7"/>',
@@ -313,12 +314,12 @@ function smartTokensHtml(p) {
 
 /* ---------- dados ----------
    t tarefas · l listas · f pastas · g etiquetas · d documentos · h hábitos · p sessões de foco · s configurações */
-const KINDS = ['t', 'l', 'f', 'g', 'd', 'h', 'p', 'a', 'z', 'n'];
+const KINDS = ['t', 'l', 'f', 'g', 'd', 'h', 'p', 'a', 'z', 'n', 'm'];
 const COLORS = ['#DB4035', '#E8803A', '#D9A21B', '#7EA04D', '#2E9E6B', '#1E8E9E', '#3B7DD8', '#5B5BD6', '#9150C8', '#C84E9C', '#8A6A55', '#808080'];
 const PRIO = [{ n: 'Nenhuma', c: 'var(--mut)' }, { n: 'Baixa', c: '#3B7DD8' }, { n: 'Média', c: '#E8803A' }, { n: 'Alta', c: '#DB4035' }];
 const DEF_S = () => ({ id: 'cfg', theme: 'auto', weekStart: 0, defList: 'inbox', keepText: false, side: true, pomo: { focus: 25, short: 5, long: 15, every: 4, auto: false, sound: true, amb: 'none', ambOnly: true, vol: 60, alarm: 'bell' }, gClient: '', gCals: null, gTaskCal: '', gPush: true, hideDone: true, compact: false, u: 0 });
 let db = null;
-function blank() { return { t: [], l: [], f: [], g: [], d: [], h: [], p: [], a: [], z: [], n: [], s: DEF_S(), v: 1 }; }
+function blank() { return { t: [], l: [], f: [], g: [], d: [], h: [], p: [], a: [], z: [], n: [], m: [], s: DEF_S(), v: 1 }; }
 function loadDb() {
   try { db = JSON.parse(localStorage.getItem('tt_db') || 'null'); } catch (e) { db = null; }
   if (!db) { db = blank(); seed(); KINDS.forEach(k => db[k].forEach(x => x.sd = 1)); }

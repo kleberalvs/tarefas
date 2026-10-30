@@ -177,6 +177,7 @@ function petsSync() {
   if (PETS.sig === sig) return;
   PETS.sig = sig;
   PETS.list.forEach(p => p.kill()); PETS.list = [];
+  if (PETS.ball) { PETS.ball.kill(); PETS.ball = null; }
   cancelAnimationFrame(PETS.tick); PETS.tick = null;
   if (!want.length) { if (PETS.box) PETS.box.remove(); PETS.box = null; return; }
   if (!PETS.box) { PETS.box = document.createElement('div'); PETS.box.id = 'pets'; document.body.appendChild(PETS.box); }
@@ -187,10 +188,12 @@ function petsSync() {
     if (!PETS.tick) return; PETS.tick = requestAnimationFrame(loop);
     const dt = Math.min(150, ts - last); last = ts; if (document.hidden) return;
     PETS.list.forEach(p => p.glide(dt));
+    if (PETS.ball) PETS.ball.glide(dt);
     acc += dt;
     if (acc >= 83) { const n = Math.min(3, Math.floor(acc / 83)); acc -= n * 83; for (let i = 0; i < n; i++) PETS.list.forEach(p => p.step()); PETS.list.forEach(p => p.draw()); }
   };
   PETS.tick = requestAnimationFrame(loop);
+  PETS.ball = makeBall();
 }
 function petsReset() { try { localStorage.removeItem('tt_petpos'); } catch (e) {} PETS.sig = null; petsSync(); }
 function makePet(c, slot, saved) {
@@ -217,6 +220,7 @@ function makePet(c, slot, saved) {
   };
   /* andar: o deslocamento na tela é contínuo (suave); o desenho troca de quadro como pixel art */
   p.glide = dt => {
+    if (p.chase) return chaseStep(dt);
     if (!p.walk) return;
     const w = p.walk, d = SC * .34 * dt / 16.7 * (w.run ? 2 : 1);
     p.X += p.dir * d; w.left -= d; place();
@@ -280,6 +284,46 @@ function makePet(c, slot, saved) {
     wait(1500, next);
   };
   p.next = next;
+  /* brincar com a bolinha: corre atrás, dá o bote ou uma patada, e repete até cansar */
+  const SW = SC * 3.2, FOOT = 27 * SC;
+  const front = () => p.X + (p.dir > 0 ? EW * .82 : EW * .18);
+  const chaseStep = dt => {
+    const b = PETS.ball; if (!b) { p.chase = null; p.walk = null; return; }
+    const tx = b.X + b.S / 2, dx = tx - front();
+    const fy = b.Y + b.S - FOOT; p.Y += (fy - p.Y) * Math.min(1, dt / 260);
+    if (Math.abs(dx) < SW && b.h < SC * 4) { const r = p.chase.reach; p.chase = null; p.walk = null; place(); r(); return; }
+    if (Math.abs(dx) > SC * 5 || Math.sign(dx) === p.dir) p.dir = Math.sign(dx) || p.dir;
+    p.X += p.dir * SC * .78 * dt / 16.7; place();
+  };
+  const chase = () => {
+    if (p.dead || !p.playing) return;
+    if (Date.now() > (PETS.ball && PETS.ball.play ? PETS.ball.play.until : 0)) return endPlay();
+    p.m = { eyes: 'big' }; toPose('stand', 2);
+    p.walk = { left: Infinity, run: true }; p.chase = { reach: swat };
+  };
+  const swat = () => {
+    const b = PETS.ball; if (!b || !p.playing) return endPlay();
+    const away = Math.random() < .72 ? p.dir : -p.dir, kick = () => { b.kick(away * (3 + Math.random() * 5.5), 1.5 + Math.random() * 4.5); };
+    if (Math.random() < .5) { toPose('stretch', 3); wait(380 + Math.random() * 380, () => { p.m.hop = 1; toPose('stand', 2); wait(160, kick); wait(700 + Math.random() * 500, again); }); }
+    else { toPose('sit', 3); wait(260, () => { toPose('groom', 2); wait(150, () => { kick(); toPose('sit', 2); }); wait(650 + Math.random() * 450, again); }); }
+  };
+  const again = () => {
+    if (!p.playing) return;
+    if (Math.random() < .22) { toPose('sit', 4); p.m = { eyes: 'big' }; return wait(900 + Math.random() * 1400, chase); }
+    chase();
+  };
+  const endPlay = () => {
+    if (!p.playing) return; p.playing = false; p.chase = null; p.walk = null;
+    p.m = { eyes: 'happy', happy: 1 }; toPose('sit', 5); if (Math.random() < .6) fx('♥', 'heart');
+    savePos(); wait(1600, () => { p.m = {}; wait(1200, next); });
+    ballMaybeDone();
+  };
+  p.joinPlay = () => {
+    clearT(); p.walk = null; p.chase = null; p.playing = true;
+    if (p.pose === 'lie' || p.pose === 'sleep') toPose('sit', 4);
+    p.m = { eyes: 'big' }; fx('!', 'say');
+    wait(500 + Math.random() * 700 + slot * 400, chase);
+  };
   wait(800 + slot * 1500 + Math.random() * 1500, next);
   /* toque e arraste */
   let sx = 0, sy = 0, ox = 0, oy = 0, moved = false, down = false, taps = [];
@@ -290,7 +334,7 @@ function makePet(c, slot, saved) {
   el.addEventListener('pointermove', e => {
     if (!down) return;
     if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
-    if (!moved) { moved = true; clearT(); p.walk = null; p.m = { eyes: 'big' }; el.classList.add('held'); toPose('hang', 3); fx('!', 'say'); }
+    if (!moved) { moved = true; clearT(); p.walk = null; p.chase = null; if (p.playing) { p.playing = false; ballMaybeDone(); } p.m = { eyes: 'big' }; el.classList.add('held'); toPose('hang', 3); fx('!', 'say'); }
     p.X = e.clientX - ox; p.Y = e.clientY - oy; place();
   });
   const up = () => {
@@ -298,7 +342,7 @@ function makePet(c, slot, saved) {
     if (moved) { el.classList.remove('held'); el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 420); p.m = {}; toPose('stand', 3); savePos(); wait(900, next); return; }
     /* carinho */
     const now = Date.now(); taps = taps.filter(x => now - x < 1200); taps.push(now);
-    clearT(); p.walk = null;
+    clearT(); p.walk = null; p.chase = null; if (p.playing) { p.playing = false; ballMaybeDone(); }
     if (p.pose === 'sleep') { p.m = { eyes: 'big' }; fx('!', 'say'); toPose('lie', 4); wait(700, () => { p.m = {}; toPose('sit', 6); wait(1500, next); }); return; }
     if (taps.length >= 3) { taps = []; p.m = { eyes: 'happy', happy: 1, mouth: 1 }; toPose('stand', 3); wait(260, () => { p.m.hop = 1; fx('♥', 'heart'); setTimeout(() => fx('♥', 'heart h2'), 160); setTimeout(() => fx('♥', 'heart h3'), 320); }); wait(1400, () => { p.m = {}; toPose('sit', 5); wait(1600, next); }); return; }
     if (p.pose === 'stand' || p.pose === 'stretch') toPose('sit', 5);
@@ -313,6 +357,81 @@ function makePet(c, slot, saved) {
 addEventListener('resize', () => PETS.list.forEach(p => p.place()));
 addEventListener('pointermove', e => { if (PETS.list.length) PETS.ptr = { x: e.clientX, y: e.clientY, t: performance.now() }; }, { passive: true });
 addEventListener('pointerdown', e => { if (PETS.list.length) PETS.ptr = { x: e.clientX, y: e.clientY, t: performance.now() }; }, { passive: true });
+
+/* ---------- bolinha de lã ----------
+   De vez em quando (a cada 35–90 min) os gatos resolvem brincar: a bolinha aparece rolando (na 1ª vez)
+   ou eles vão até onde ela ficou, correm atrás, dão botes e patadas por uns 15–25 s e depois ela fica
+   parada no chão até a próxima brincadeira. Tocar na bolinha faz ela rolar um pouco. */
+const BALL_G = 9;
+function ballLoad() { try { return JSON.parse(localStorage.getItem('tt_petball') || '{}'); } catch (e) { return {}; } }
+function makeBall() {
+  const SC = petScale(), S = BALL_G * SC, st = ballLoad();
+  const el = document.createElement('div'); el.className = 'petball'; el.style.width = el.style.height = S + 'px';
+  el.innerHTML = '<span class="pbsh"></span>';
+  const cv = document.createElement('canvas'); cv.width = cv.height = BALL_G; el.appendChild(cv);
+  PETS.box.appendChild(el);
+  const room = () => [Math.max(0, innerWidth - S), Math.max(0, innerHeight - S)];
+  const b = { el, cv, S, room, X: 0, Y: 0, vx: 0, h: 0, vh: 0, roll: 0, has: !!st.has, next: st.next || Date.now() + (4 + Math.random() * 6) * 6e4, play: null, chk: 0, moving: false };
+  { const [W, H] = room(); b.X = (st.x || .5) * W; b.Y = (st.y || .9) * H; }
+  b.save = () => { const [W, H] = room(); try { localStorage.setItem('tt_petball', JSON.stringify({ x: W ? b.X / W : .5, y: H ? b.Y / H : .9, next: b.next, has: b.has ? 1 : 0 })); } catch (e) {} };
+  b.draw = () => {
+    const c = cv.getContext('2d'), ph = ((Math.floor(b.roll / (SC * 1.6)) % 3) + 3) % 3;
+    c.clearRect(0, 0, BALL_G, BALL_G);
+    const col = { o: '#5A1E2A', b: '#E8556B', d: '#B83248', l: '#FF9BAA' };
+    for (let y = 0; y < BALL_G; y++) for (let x = 0; x < BALL_G; x++) {
+      const dx = x + .5 - 4.5, dy = y + .5 - 4.5, d = Math.hypot(dx, dy);
+      if (d > 4.5) continue;
+      let k = d > 3.6 ? 'o' : ((x + y + ph) % 3 === 0) ? 'd' : (dx + dy < -2.6 && d < 3.2) ? 'l' : 'b';
+      if (k !== 'o' && ((x - y + 9 + ph) % 4 === 0) && d < 3) k = 'd';
+      c.fillStyle = col[k]; c.fillRect(x, y, 1, 1);
+    }
+    c.fillStyle = col.d; c.fillRect(7, 8, 2, 1);
+  };
+  b.place = () => {
+    const [W, H] = room(); b.X = Math.min(Math.max(b.X, 0), W); b.Y = Math.min(Math.max(b.Y, 0), H);
+    el.style.transform = `translate(${Math.round(b.X)}px,${Math.round(b.Y - b.h)}px)`;
+    el.style.setProperty('--h', Math.min(1, b.h / (SC * 12))); el.style.setProperty('--hp', Math.round(b.h) + 'px');
+    el.classList.toggle('off', !b.has);
+  };
+  b.kick = (vx, vh) => { b.vx = vx; b.vh = vh; if (b.h <= 0) b.h = .01; b.moving = true; };
+  b.glide = dt => {
+    const f = dt / 16.7;
+    if (b.moving) {
+      b.X += b.vx * f; b.roll += b.vx * f; b.vx *= Math.pow(.975, f);
+      const [W] = room(); if (b.X <= 0 || b.X >= W) { b.vx = -b.vx * .6; b.X = Math.min(Math.max(b.X, 0), W); }
+      if (b.h > 0 || b.vh) { b.vh -= .45 * f; b.h += b.vh * f; if (b.h <= 0) { b.h = 0; b.vh = Math.abs(b.vh) > 1.4 ? -b.vh * .42 : 0; } }
+      if (Math.abs(b.vx) < .06 && !b.h && !b.vh) { b.vx = 0; b.moving = false; b.save(); }
+      b.draw(); b.place();
+    }
+    b.chk += dt;
+    if (b.chk > 4000) { b.chk = 0; if (!b.play && Date.now() > b.next && !document.hidden && !document.body.classList.contains('v-focus')) ballPlay(); }
+  };
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    b.kick((Math.random() < .5 ? -1 : 1) * (3 + Math.random() * 3), 2.5 + Math.random() * 2);
+  });
+  b.kill = () => { b.save(); el.remove(); };
+  b.draw(); b.place();
+  return b;
+}
+function ballPlay() {
+  const b = PETS.ball; if (!b || b.play) return;
+  const cats = PETS.list.filter(p => !p.dead && p.pose !== 'hang' && !p.el.classList.contains('held') && (p.pose !== 'sleep' || Math.random() < .35));
+  if (!cats.length) { b.next = Date.now() + 6 * 6e4; b.save(); return; }
+  b.play = { until: Date.now() + 15000 + Math.random() * 10000 };
+  if (!b.has) {
+    /* primeira vez: a bolinha chega rolando pela lateral, na altura do gato */
+    const lead = cats[0], [W] = b.room(), fromR = lead.X < innerWidth / 2;
+    b.has = true; b.Y = lead.Y + 27 * petScale() - b.S; b.X = fromR ? W : 0; b.kick(fromR ? -7.5 : 7.5, 3);
+  }
+  cats.forEach(p => p.joinPlay());
+}
+function ballMaybeDone() {
+  const b = PETS.ball; if (!b || !b.play) return;
+  if (PETS.list.some(p => p.playing)) return;
+  b.play = null; b.next = Date.now() + (35 + Math.random() * 55) * 6e4; b.save();
+}
+addEventListener('resize', () => { if (PETS.ball) PETS.ball.place(); });
 
 /* ---------- tela de escolha ---------- */
 VIEWS.pets = main => {
