@@ -74,7 +74,7 @@ const NAVS = {
   habits: ['habits', 'habit', 'Hábitos', {}], goals: ['goals', 'piggy', 'Metas', {}], docs: ['docs', 'doc', 'Documentos', { drop: 'dfold:' }], notes: ['notes', 'note', 'Notas rápidas', {}], meet: ['meet', 'mic', 'Reuniões', {}],
   all: ['l/all', 'all', 'Todas', {}], done: ['l/done', 'done', 'Concluídas', {}], log: ['log', 'clock', 'Histórico', {}], trash: ['l/trash', 'trash', 'Lixeira', { drop: 'trash' }],
 };
-const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'goals', 'docs', 'notes', 'meet'], NAV_LOW = ['all', 'done', 'log', 'trash'];
+const NAV_TOP = ['home', 'inbox', 'today', 'tomorrow', 'week', 'cal', 'matrix', 'focus', 'habits', 'docs', 'notes', 'meet', 'goals'], NAV_LOW = ['all', 'done', 'log', 'trash'];
 const navPref = id => (db.s.nav || {})[id] || {};
 function NV(id, cur, ov) {
   const p = navPref(id); if (p.hide) return '';
@@ -137,11 +137,11 @@ function sideHtml() {
     ${RB('matrix', 'matrix', 'Matriz de prioridades', 'matrix', cur === 'matrix')}
     ${RB('focus', 'focus', 'Foco', 'focus', cur === 'focus')}
     ${RB('habits', 'habit', 'Hábitos', 'habits', cur === 'habits')}
-    ${RB('goals', 'piggy', 'Metas', 'goals', cur === 'goals')}
     ${RB('docs', 'doc', 'Documentos', 'docs', sec === 'docs')}
     ${RB('notes', 'note', 'Notas rápidas', 'notes', cur === 'notes')}
     ${RB('meet', 'mic', 'Reuniões', 'meet', cur === 'meet')}
     ${RB('search', 'search', 'Buscar', 'search', cur === 'search')}
+    ${RB('goals', 'piggy', 'Metas', 'goals', cur === 'goals')}
     <span class="rsp"></span>
   </div>`;
   const head = (title, btns) => `<div class="sphead"><b>${title}</b><span class="sp"></span>${btns}<button class="ib hide-m" data-act="side" aria-label="Recolher painel" title="Recolher painel">${ic('side', 18)}</button></div>`;
@@ -756,12 +756,12 @@ const ACTS = {
     { label: 'Pets: ' + (petCfg().on ? 'ligados 🐈' : 'desligados'), icon: 'habit', act: () => ACTS.petstoggle() },
     { label: 'Foco', icon: 'focus', act: () => go('focus') },
     { label: 'Hábitos', icon: 'habit', act: () => go('habits') },
-    { label: 'Metas (porquinhos)', icon: 'piggy', act: () => go('goals') },
     { label: 'Matriz de prioridades', icon: 'matrix', act: () => go('matrix') },
     { label: 'Buscar', icon: 'search', act: () => go('search') },
     { label: 'Todas as listas', icon: 'menu', act: () => { R.drawer = true; render(); } },
     { label: 'Concluídas', icon: 'done', act: () => go('l/done') },
     { label: 'Lixeira', icon: 'trash', act: () => go('l/trash') },
+    { label: 'Metas (porquinhos)', icon: 'piggy', act: () => go('goals') },
     { label: 'Configurações', icon: 'gear', act: () => go('settings') },
   ]),
 };
