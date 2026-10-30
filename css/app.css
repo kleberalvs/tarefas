@@ -2310,3 +2310,4 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
   .nedit{max-height:calc(var(--vvh,100dvh) - 24px)}
   #modal:has(.nmodal){padding-bottom:var(--kb,0px)}
 }
+.nbodyin{overflow:hidden}
