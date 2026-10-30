@@ -252,7 +252,7 @@ VIEWS.cal = main => {
 function monthHtml(from, items) {
   const T = today(), mon = CAL.date.slice(0, 7);
   const days = [...Array(42)].map((_, i) => addD(from, i));
-  const max = isMobile() ? 0 : 3;
+  const max = isMobile() ? 0 : 99;
   let h = `<div class="month${isMobile() ? ' mob' : ''}"><div class="mwd">${[0, 1, 2, 3, 4, 5, 6].map(i => `<span>${wdShort[(i + weekStart()) % 7]}</span>`).join('')}</div><div class="mgrid">`;
   days.forEach(d => {
     const its = items.filter(it => onDay(it, d)).sort((a, b) => (b.allDay - a.allDay) || (a.start < b.start ? -1 : 1));
