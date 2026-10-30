@@ -2280,3 +2280,5 @@ body.v-focus #pets{display:none!important}
 .rst.cur{background:var(--hover);color:var(--txt)}
 .rst.cur b{color:var(--redfg)}
 .rst .eq{color:var(--red);height:14px}
+.rother{display:block;margin:0 auto 8px;padding:5px 12px;border-radius:14px;font-size:calc(12.5px * var(--fs,1));color:var(--mut);border:1px solid var(--line2)}
+.rother:hover{color:var(--txt);border-color:var(--mut2)}
