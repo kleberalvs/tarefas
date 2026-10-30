@@ -873,3 +873,6 @@ function initSwipe() {
   window.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
   window.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0', '_'].includes(e.key)) e.preventDefault(); });
 })();
+
+/* impede começar seleção de texto fora dos campos editáveis (o "segurar" no toque é do app) */
+document.addEventListener('selectstart', e => { const t = e.target.nodeType === 1 ? e.target : e.target.parentElement; if (!t || !t.closest || t.closest('input,textarea,select,[contenteditable=true],.selectable,.aiout,.fvtext,.mtx')) return; e.preventDefault(); });

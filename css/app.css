@@ -2293,3 +2293,12 @@ body.v-focus #pets{display:none!important}
 /* capas: sem menu nativo de imagem ao segurar (o toque vai para o cartão) */
 .ccov,.ccov img,.rthumb,.rthumb img,.tcover img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
 .ccov img,.rthumb img{pointer-events:none}
+/* ---------- app, não página: sem seleção de texto ao segurar (só onde se digita) ---------- */
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable=true],[contenteditable=true] *,.selectable,.selectable *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
+/* camadas: menus e avisos sempre por cima de qualquer outra coisa (exceto a abertura) */
+.pop{z-index:160}
+#toast{z-index:170}
+.radiop{z-index:155}
+.aiout,.aiout *,.fvtext,.fvtext *,.mtx,.mtx *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
