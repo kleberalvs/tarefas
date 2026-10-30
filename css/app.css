@@ -2302,3 +2302,11 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 #toast{z-index:170}
 .radiop{z-index:155}
 .aiout,.aiout *,.fvtext,.fvtext *,.mtx,.mtx *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+/* nota aberta: a barra de opções fica sempre visível embaixo; só o conteúdo rola */
+.nedit{display:flex;flex-direction:column;overflow:hidden;max-height:min(86vh,calc(var(--vvh,100dvh) - 40px))}
+.nescroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;position:relative;z-index:2}
+.nedit>.nefoot{position:relative;flex:none;border-top:1px solid color-mix(in srgb,currentColor 10%,transparent)}
+@media (max-width:759px){
+  .nedit{max-height:calc(var(--vvh,100dvh) - 24px)}
+  #modal:has(.nmodal){padding-bottom:var(--kb,0px)}
+}

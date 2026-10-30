@@ -888,3 +888,10 @@ function initSwipe() {
 
 /* impede começar seleção de texto fora dos campos editáveis (o "segurar" no toque é do app) */
 document.addEventListener('selectstart', e => { const t = e.target.nodeType === 1 ? e.target : e.target.parentElement; if (!t || !t.closest || t.closest('input,textarea,select,[contenteditable=true],.selectable,.aiout,.fvtext,.mtx')) return; e.preventDefault(); });
+
+/* teclado do celular: a janela (notas, menus de baixo) acompanha a área visível para os botões não ficarem escondidos */
+(() => {
+  const vv = window.visualViewport; if (!vv) return;
+  const upd = () => { const kb = Math.max(0, innerHeight - vv.height - vv.offsetTop); document.documentElement.style.setProperty('--vvh', vv.height + 'px'); document.documentElement.style.setProperty('--kb', kb + 'px'); };
+  vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
+})();

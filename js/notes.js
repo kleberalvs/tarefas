@@ -127,7 +127,7 @@ function drawNoteEditor() {
   const itemRow = (i, k) => `<div class="nitem${i.done ? ' done' : ''}" data-k="${k}"><input type="checkbox" ${i.done ? 'checked' : ''} data-nck="${k}" aria-label="Marcar"><input class="nit" value="${esc(i.t)}" data-nit="${k}" placeholder="Item"><button class="ib xs" data-nrm="${k}" aria-label="Remover item">${ic('x', 15)}</button></div>`;
   const el = modal(`<div class="nedit ncard${n.color ? ' tint' : ''}${n.bg ? ' patt' : ''}${n.bgImg ? ' bgimg' : ''}${n.big ? ' big' : ''}" style="${noteStyle(n)}">
     ${n.bgImg ? `<img class="nbgi" data-nimg="${n.bgImg.id}" data-n="${n.id}" data-bg="1" alt="">` : ''}
-    <div class="neimgs">${(n.img || []).map(m => `<div class="neimg"><img data-nimg="${m.id}" data-n="${n.id}" data-lbi="${m.id}" alt=""><button class="ib xs" data-nimgrm="${m.id}" aria-label="Remover imagem">${ic('trash', 15)}</button></div>`).join('')}</div>
+    <div class="nescroll"><div class="neimgs">${(n.img || []).map(m => `<div class="neimg"><img data-nimg="${m.id}" data-n="${n.id}" data-lbi="${m.id}" alt=""><button class="ib xs" data-nimgrm="${m.id}" aria-label="Remover imagem">${ic('trash', 15)}</button></div>`).join('')}</div>
     <div class="nin">
       <div class="nehead"><input class="ntitle" id="ne_t" placeholder="Título" value="${esc(n.title || '')}" maxlength="200"><button class="npin${n.pin ? ' on' : ''}" data-ne="pin" aria-label="Fixar">${ic('pin', 19)}</button><button class="npin nclose" data-ne="close" aria-label="Fechar a nota" title="Fechar">${ic('x', 20)}</button></div>
       ${n.list ? `<div class="nitems">${items.map((i, k) => i.done ? '' : itemRow(i, k)).join('')}<div class="nitem add">${ic('plus', 16)}<input class="nit" id="ne_add" placeholder="Item da lista"></div>${items.some(i => i.done) ? `<p class="mut sm nmk">${items.filter(i => i.done).length} marcado(s)</p>${items.map((i, k) => i.done ? itemRow(i, k) : '').join('')}` : ''}</div>`
@@ -137,7 +137,7 @@ function drawNoteEditor() {
       <div id="ne_rec"></div>
       ${(n.tags || []).length ? `<div class="ntags">${n.tags.map(t => `<span>${esc(t)}<button data-ntagrm="${esc(t)}" aria-label="Remover etiqueta">×</button></span>`).join('')}</div>` : ''}
       ${n.u ? `<p class="nedited">Editada ${new Date(n.u).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
-    </div>
+    </div></div>
     <div class="nefoot">
       <button class="ib" data-pop data-ne="pal" title="Cores, fundo e letra" aria-label="Cores, fundo e letra">${ic('palette', 18)}</button>
       <button class="ib" data-pop data-ne="img" title="Adicionar imagem" aria-label="Adicionar imagem">${ic('img', 18)}</button>
