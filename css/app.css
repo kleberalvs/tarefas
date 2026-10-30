@@ -2329,3 +2329,8 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
   .pop.menu .mprio{padding:2px}
   .pop.menu .mprio .pbtn{height:32px;width:38px}
 }
+/* concluir: risco e cor entram suaves */
+.trow .ttl{transition:color .25s var(--ease)}
+.trow.checking .ttl{text-decoration:line-through;text-decoration-thickness:1.5px}
+.trow.checking{transition:opacity .25s .08s var(--ease)}
+.trow.checking>.chk{animation:chkpop .42s var(--spring)}

@@ -360,20 +360,57 @@ function tagMenu(anchor, sel, done) {
 }
 
 /* ---------- ações das tarefas ---------- */
+/* concluir: marca na hora (bolinha + risco + som), a linha desliza e recolhe suavemente,
+   e só então os dados são gravados e a tela redesenhada (sem travar no meio da animação) */
+const CHK_PENDING = new Map();
 function checkTask(id, el) {
   const t = get('t', id); if (!t || t.note) return;
   const row = el && el.closest('.trow');
-  const go = () => {
+  const commit = () => {
+    CHK_PENDING.delete(id);
     const r = completeTask(t);
     if (typeof gcalAfterComplete === 'function') gcalAfterComplete(t, r);
+    return r;
+  };
+  if (!row || t.done || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const r = commit();
     if (r.repeated) toast('Próxima: ' + fmtWhen(r.next), 'Desfazer', () => { put('t', Object.assign(t, r.before)); });
     else if (t.done) { toast('Tarefa concluída', 'Desfazer', () => { Object.assign(t, r.before); put('t', t); }); playDone(); }
-  };
-  if (row && !t.done) { row.classList.add('checking'); setTimeout(() => { row.classList.add('leaving'); setTimeout(go, 280); }, 320); } else go();
+    return;
+  }
+  if (CHK_PENDING.has(id)) return;
+  const st = { cancel: false, r: null };
+  CHK_PENDING.set(id, st);
+  row.classList.add('checking');
+  playDone();
+  const rep = !!(t.rep && (t.due || t.start));
+  toast(rep ? 'Concluída · vai para a próxima data' : 'Tarefa concluída', 'Desfazer', () => {
+    if (!st.r) { st.cancel = true; CHK_PENDING.delete(id); row.getAnimations().forEach(a => a.cancel()); row.classList.remove('checking'); row.style.cssText = row.style.cssText.replace(/height[^;]*;?|overflow[^;]*;?/g, ''); return; }
+    Object.assign(t, { done: false, dt: null }, st.r.before); put('t', t);
+  });
+  setTimeout(() => {
+    if (st.cancel) return;
+    if (!row.isConnected) { st.r = commit(); return; }
+    const cs = getComputedStyle(row), h = row.offsetHeight;
+    row.style.overflow = 'hidden';
+    const out = row.animate([
+      { opacity: .55, transform: 'translateX(0)', height: h + 'px', paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, marginTop: cs.marginTop, marginBottom: cs.marginBottom },
+      { opacity: 0, transform: 'translateX(28px)', height: h + 'px', paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, marginTop: cs.marginTop, marginBottom: cs.marginBottom, offset: .45 },
+      { opacity: 0, transform: 'translateX(28px)', height: '0px', paddingTop: '0px', paddingBottom: '0px', marginTop: '0px', marginBottom: '0px', borderBottomWidth: '0px', minHeight: '0px' },
+    ], { duration: 460, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+    out.onfinish = () => {
+      if (st.cancel) return;
+      // grava sem redesenhar no meio do quadro; o redesenho vem quando o navegador estiver livre
+      HOLD_RENDER++;
+      try { st.r = commit(); } finally { HOLD_RENDER--; }
+      const go = () => render();
+      (window.requestIdleCallback ? requestIdleCallback(go, { timeout: 400 }) : setTimeout(go, 60));
+    };
+  }, 380);
 }
 function playDone() {
   if (!db.s.pomo.sound) return;
-  try { const a = new (window.AudioContext || window.webkitAudioContext)(), o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(880, a.currentTime); o.frequency.exponentialRampToValueAtTime(1320, a.currentTime + .09); g.gain.setValueAtTime(.06, a.currentTime); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + .25); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + .26); } catch (e) {}
+  try { const a = actx(), o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(880, a.currentTime); o.frequency.exponentialRampToValueAtTime(1320, a.currentTime + .09); g.gain.setValueAtTime(.06, a.currentTime); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + .25); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + .26); } catch (e) {}
 }
 function deleteTask(t) {
   const before = clone(t);

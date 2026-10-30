@@ -23,7 +23,9 @@ addEventListener('hashchange', () => { parseHash(); R.drawer = false; closePop()
 
 /* ---------- renderização ---------- */
 let rq = 0;
+let HOLD_RENDER = 0;
 function render(force) {
+  if (HOLD_RENDER && force !== true) return;
   if (force === true) { cancelAnimationFrame(rq); rq = 0; doRender(true); return; }
   if (rq) return;
   rq = requestAnimationFrame(() => { rq = 0; doRender(false); });
