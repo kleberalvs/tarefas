@@ -309,14 +309,14 @@ function bindQa(box, base) {
   };
   inp.addEventListener('input', upd);
   inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); }
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); if (submit()) close(); }
     if (e.key === 'Escape') { e.stopPropagation(); close(); }
   });
   const close = () => { if (box.closest('#modal')) closeModal(); else { QA = null; render(true); } };
   box.addEventListener('click', e => {
     const b = e.target.closest('[data-qa]'); if (!b) return;
     const k = b.dataset.qa;
-    if (k === 'add') { submit(); inp.focus(); }
+    if (k === 'add') { if (submit()) close(); else inp.focus(); }
     if (k === 'cancel') close();
     if (k === 'date') datePicker(b, extra.dp || { date: base().due ? dOnly(base().due) : null }, v => { extra.dp = v; upd(); inp.focus(); });
     if (k === 'prio') menu(b, [3, 2, 1, 0].map(p => ({ label: 'Prioridade ' + PRIO[p].n.toLowerCase(), color: PRIO[p].c, on: extra.prio === p, act: () => { extra.prio = p || null; upd(); inp.focus(); } })));
