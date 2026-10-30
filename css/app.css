@@ -2430,3 +2430,14 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .gdep .f1{cursor:pointer}
 @media (max-width:759px){.gcrumb{display:none}.gdep{gap:8px}.gdep .f1 b{font-size:calc(15px * var(--fs,1))}.grun{font-size:calc(12px * var(--fs,1))}}
 .menu .mi.kb{background:var(--hover)}
+/* porquinho 3D */
+.pigw{position:relative;display:inline-block;line-height:0;user-select:none;-webkit-user-select:none;transform-origin:50% 90%}
+.pigw img{width:100%;height:auto;display:block;pointer-events:none;-webkit-user-drag:none}
+.pigw.bob{animation:pigbob 3.2s ease-in-out infinite}
+.pigw.gulp{animation:piggulp .55s var(--spring) 2}
+.pigw.shake{animation:pigshake .6s var(--ease)}
+.gcard:hover .pigw{animation:pigwig .6s var(--ease)}
+.pigw .gcoin{left:calc(var(--sx) - 15px);top:calc(var(--sy) - 70px)}
+.pigw .pgs{position:absolute;font-style:normal;color:#F7C948;line-height:1;text-shadow:0 0 8px rgba(247,201,72,.8);animation:pigspark 1.6s ease-in-out infinite}
+.pigw .s1{left:6%;top:18%;font-size:18px}.pigw .s2{right:8%;top:4%;font-size:13px;animation-delay:.5s}.pigw .s3{right:2%;top:46%;font-size:11px;animation-delay:1s}
+.gskin .pigw{margin:2px 0}

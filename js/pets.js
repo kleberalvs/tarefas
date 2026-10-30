@@ -359,7 +359,7 @@ addEventListener('pointermove', e => { if (PETS.list.length) PETS.ptr = { x: e.c
 addEventListener('pointerdown', e => { if (PETS.list.length) PETS.ptr = { x: e.clientX, y: e.clientY, t: performance.now() }; }, { passive: true });
 
 /* ---------- bolinha de lã ----------
-   De vez em quando (a cada 35–90 min) os gatos resolvem brincar: a bolinha aparece rolando (na 1ª vez)
+   De vez em quando (a cada 6–15 min) os gatos resolvem brincar: a bolinha aparece rolando (na 1ª vez)
    ou eles vão até onde ela ficou, correm atrás, dão botes e patadas por uns 15–25 s e depois ela fica
    parada no chão até a próxima brincadeira. Tocar na bolinha faz ela rolar um pouco. */
 const BALL_G = 9;
@@ -371,7 +371,7 @@ function makeBall() {
   const cv = document.createElement('canvas'); cv.width = cv.height = BALL_G; el.appendChild(cv);
   PETS.box.appendChild(el);
   const room = () => [Math.max(0, innerWidth - S), Math.max(0, innerHeight - S)];
-  const b = { el, cv, S, room, X: 0, Y: 0, vx: 0, h: 0, vh: 0, roll: 0, has: !!st.has, next: st.next || Date.now() + (4 + Math.random() * 6) * 6e4, play: null, chk: 0, moving: false };
+  const b = { el, cv, S, room, X: 0, Y: 0, vx: 0, h: 0, vh: 0, roll: 0, has: !!st.has, next: st.next && st.next < Date.now() + 16 * 6e4 ? st.next : Date.now() + (1 + Math.random() * 2.5) * 6e4, play: null, chk: 0, moving: false };
   { const [W, H] = room(); b.X = (st.x || .5) * W; b.Y = (st.y || .9) * H; }
   b.save = () => { const [W, H] = room(); try { localStorage.setItem('tt_petball', JSON.stringify({ x: W ? b.X / W : .5, y: H ? b.Y / H : .9, next: b.next, has: b.has ? 1 : 0 })); } catch (e) {} };
   b.draw = () => {
@@ -417,8 +417,8 @@ function makeBall() {
 function ballPlay() {
   const b = PETS.ball; if (!b || b.play) return;
   const cats = PETS.list.filter(p => !p.dead && p.pose !== 'hang' && !p.el.classList.contains('held') && (p.pose !== 'sleep' || Math.random() < .35));
-  if (!cats.length) { b.next = Date.now() + 6 * 6e4; b.save(); return; }
-  b.play = { until: Date.now() + 15000 + Math.random() * 10000 };
+  if (!cats.length) { b.next = Date.now() + 3 * 6e4; b.save(); return; }
+  b.play = { until: Date.now() + 18000 + Math.random() * 17000 };
   if (!b.has) {
     /* primeira vez: a bolinha chega rolando pela lateral, na altura do gato */
     const lead = cats[0], [W] = b.room(), fromR = lead.X < innerWidth / 2;
@@ -429,7 +429,7 @@ function ballPlay() {
 function ballMaybeDone() {
   const b = PETS.ball; if (!b || !b.play) return;
   if (PETS.list.some(p => p.playing)) return;
-  b.play = null; b.next = Date.now() + (35 + Math.random() * 55) * 6e4; b.save();
+  b.play = null; b.next = Date.now() + (6 + Math.random() * 9) * 6e4; b.save();
 }
 addEventListener('resize', () => { if (PETS.ball) PETS.ball.place(); });
 

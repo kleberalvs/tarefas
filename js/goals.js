@@ -2,19 +2,14 @@
    Registro: kind 'm' → { id, name, target (centavos), due (aaaa-mm-dd, opcional), skin, dep: [{ id, d, at, v, note }], real: { v, at }, arch, c, u }
    v positivo = guardou; negativo = retirou. Tudo sincroniza junto com as tarefas. */
 'use strict';
+/* porquinhos em 3D (renderizados com luz de estúdio; um arquivo por cor em assets/pigs) */
 const PIGS = {
-  rosa: { n: 'Clássico', b: '#F7A8B8', s: '#E07C95', sn: '#F2879F', e: '#E7738D' },
-  ouro: { n: 'Dourado', b: '#F4C651', s: '#C9952A', sn: '#E9B13A', e: '#D9A030', pat: 'spark', acc: 'crown' },
-  porcelana: { n: 'Porcelana', b: '#F6F8FC', s: '#C5D3E8', sn: '#DCE6F4', e: '#C9D6EA', pat: 'flower', ink: '#2F5DA8' },
-  menta: { n: 'Menta', b: '#A6E3CD', s: '#6FBFA4', sn: '#8BD4BB', e: '#7CC7AE', pat: 'dots', acc: 'bow' },
-  noite: { n: 'Noite estrelada', b: '#363C74', s: '#22264E', sn: '#4D5496', e: '#2B3062', pat: 'stars', eye: '#F7E08A' },
-  melancia: { n: 'Melancia', b: '#F36C6C', s: '#C94848', sn: '#F58C8C', e: '#5DAA4A', pat: 'melon' },
-  vaca: { n: 'Vaquinha', b: '#FFFFFF', s: '#D8D8DE', sn: '#F6B6C2', e: '#2B2B2B', pat: 'spots' },
-  robo: { n: 'Robô', b: '#BAC4CF', s: '#8493A3', sn: '#9DA9B6', e: '#7C8B9B', pat: 'robot', eye: '#3FD3FF' },
-  vidro: { n: 'Vidro', b: 'rgba(210,235,255,.28)', s: 'rgba(120,170,215,.55)', sn: 'rgba(200,228,255,.6)', e: 'rgba(160,200,235,.7)', glass: 1 },
-  cafe: { n: 'Café', b: '#B9845A', s: '#8A5A36', sn: '#D0A27B', e: '#93633F', pat: 'heart', acc: 'flower' },
+  laranja: { n: 'Laranja' }, rosa: { n: 'Rosa' }, dourado: { n: 'Dourado' }, prata: { n: 'Prata' }, azul: { n: 'Azul' },
+  menta: { n: 'Menta' }, lilas: { n: 'Lilás' }, vermelho: { n: 'Vermelho' }, grafite: { n: 'Grafite' }, perola: { n: 'Pérola' },
 };
-const pigKey = k => PIGS[k] ? k : 'rosa';
+const PIG_OLD = { ouro: 'dourado', porcelana: 'perola', noite: 'grafite', melancia: 'vermelho', vaca: 'perola', robo: 'prata', vidro: 'azul', cafe: 'laranja' };
+const PIG_SLOT = [38.4, 12.5], PIG_AR = 511 / 560;
+const pigKey = k => PIGS[k] ? k : PIG_OLD[k] || 'laranja';
 const brl = c => ((c || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const brlS = c => (c < 0 ? '−' : '+') + brl(Math.abs(c));
 function parseBRL(s) {
@@ -33,48 +28,9 @@ function ymAdd(ym, n) { const [y, m] = ym.split('-').map(Number), d = new Date(y
 function ymDiff(a, b) { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y2 - y1) * 12 + (m2 - m1); }
 
 /* ---------- o porquinho (SVG desenhado à mão) ---------- */
-let PIG_N = 0;
 function pigSvg(skin, pct = 0, size = 120, opts = {}) {
-  const P = PIGS[pigKey(skin)], id = 'pg' + (++PIG_N), lvl = Math.max(0, Math.min(1, pct));
-  const body = 'M22 56c0-19 17-33 39-33 13 0 23 4 30 11 4-1 8 0 10 3 6 3 10 9 10 17 0 9-5 16-12 19-3 9-12 16-25 18H43C30 89 22 74 22 56z';
-  const top = 86 - lvl * 63;
-  let pat = '';
-  if (P.pat === 'dots') pat = [[38, 44], [52, 36], [66, 42], [44, 62], [60, 58], [76, 66], [34, 72], [56, 78], [86, 50]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.2" fill="#fff" opacity=".85"/>`).join('');
-  if (P.pat === 'stars') pat = [[36, 46, 3], [58, 38, 2.2], [72, 56, 3.4], [46, 66, 2.4], [84, 44, 2], [30, 64, 1.6], [62, 76, 2]].map(([x, y, r]) => `<path d="M${x} ${y - r * 1.6}l${r * .45} ${r * 1.1} ${r * 1.15} ${r * .1}-${r * .9} ${r * .75} ${r * .3} ${r * 1.15}-${r} -${r * .62}-${r} ${r * .62} ${r * .3}-${r * 1.15}-${r * .9}-${r * .75} ${r * 1.15}-${r * .1}z" fill="#F7E08A"/>`).join('') + '<circle cx="50" cy="50" r="1" fill="#fff"/><circle cx="78" cy="70" r="1" fill="#fff"/><circle cx="40" cy="78" r=".9" fill="#fff"/>';
-  if (P.pat === 'spark') pat = [[40, 40], [70, 62], [52, 74]].map(([x, y]) => `<path d="M${x} ${y - 5}q1 4 5 5q-4 1-5 5q-1-4-5-5q4-1 5-5z" fill="#fff" opacity=".8"/>`).join('');
-  if (P.pat === 'flower') pat = [[40, 50], [66, 66], [56, 38], [80, 46], [36, 74]].map(([x, y], i) => `<g transform="translate(${x} ${y}) scale(${i % 2 ? .8 : 1})">${[0, 72, 144, 216, 288].map(a => `<ellipse cx="0" cy="-4" rx="2.4" ry="3.6" fill="${P.ink}" opacity=".85" transform="rotate(${a})"/>`).join('')}<circle r="1.8" fill="#fff"/></g>`).join('') + `<path d="M28 60q8-6 14 2M70 78q8-8 16-2" stroke="${P.ink}" stroke-width="1.4" fill="none" opacity=".6"/>`;
-  if (P.pat === 'melon') pat = `<path d="M18 74q40 22 96 0v20H18z" fill="#5DAA4A"/><path d="M18 71q40 22 96 0" stroke="#C9F0A5" stroke-width="3" fill="none"/>` + [[40, 46], [54, 40], [68, 48], [46, 60], [62, 62], [78, 56], [86, 42]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="1.5" ry="2.6" fill="#2B1B1B" transform="rotate(20 ${x} ${y})"/>`).join('');
-  if (P.pat === 'spots') pat = '<path d="M30 46c4-8 16-9 18-1s-6 12-12 11-9-4-6-10z" fill="#2B2B2B"/><path d="M60 60c6-5 16-2 15 6s-12 10-16 5-3-7 1-11z" fill="#2B2B2B"/><path d="M76 34c5-1 9 3 7 7s-8 3-9 0 0-6 2-7z" fill="#2B2B2B"/><circle cx="44" cy="76" r="4" fill="#2B2B2B"/>';
-  if (P.pat === 'robot') pat = '<path d="M30 56h60M58 26v62" stroke="#7B8896" stroke-width="1.2" fill="none" opacity=".7"/>' + [[34, 50], [34, 62], [82, 50], [82, 62], [52, 32], [64, 32]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#6E7B89"/>`).join('') + '<rect x="40" y="64" width="14" height="8" rx="2" fill="#7FE3A0" opacity=".85"/><rect x="43" y="66" width="2" height="4" fill="#2F7A4A"/><rect x="47" y="66" width="2" height="4" fill="#2F7A4A"/>';
-  if (P.pat === 'heart') pat = '<path d="M52 52c-5-6-14-2-11 5 2 5 11 10 11 10s9-5 11-10c3-7-6-11-11-5z" fill="#F4D6C0" opacity=".9"/>' + [[36, 70], [74, 70], [80, 42]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2" fill="#E9C9A8" opacity=".7"/>`).join('');
-  const coins = P.glass && lvl > 0 ? (() => { let h = ''; const rows = Math.ceil(lvl * 9); for (let r = 0; r < rows; r++) for (let c = 0; c < 7; c++) { const x = 30 + c * 11 + (r % 2) * 5, y = 84 - r * 6.6; h += `<ellipse cx="${x}" cy="${y}" rx="5.4" ry="3.2" fill="#F2C14E" stroke="#B9862A" stroke-width=".8"/>`; } return h; })() : '';
-  const fill = !P.glass && lvl > 0 && lvl < 1 ? `<rect x="0" y="${top}" width="140" height="${100 - top}" fill="url(#${id}f)" opacity=".34"/><path d="M0 ${top}q12-3 24 0t24 0 24 0 24 0 24 0 24 0" stroke="#FFE7A0" stroke-width="1.6" fill="none" opacity=".9"/>` : '';
-  const eye = P.eye || '#2A1A1F';
-  const acc = P.acc === 'crown' ? '<path d="M70 18l4 7 5-9 5 9 4-7 1 12H69z" fill="#F7D461" stroke="#B9862A" stroke-width="1.2" stroke-linejoin="round"/><circle cx="79" cy="16" r="1.6" fill="#E9534B"/>'
-    : P.acc === 'bow' ? '<path d="M66 26l-8-6v12zM66 26l8-6v12z" fill="#F07CA0" stroke="#C9507A" stroke-width="1"/><circle cx="66" cy="26" r="2.4" fill="#C9507A"/>'
-      : P.acc === 'flower' ? `<g transform="translate(70 24)">${[0, 72, 144, 216, 288].map(a => `<ellipse cx="0" cy="-3.6" rx="2.6" ry="3.4" fill="#FFF4E8" transform="rotate(${a})"/>`).join('')}<circle r="2" fill="#F2B84B"/></g>` : '';
-  const full = pct >= 1 ? '<g class="pigspark"><path d="M14 30l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#F7D461"/><path d="M110 18l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="#F7D461"/></g>' : '';
-  return `<svg class="pig${opts.cls ? ' ' + opts.cls : ''}" viewBox="0 0 130 100" width="${size}" height="${Math.round(size * 100 / 130)}" aria-hidden="true">
-    <defs><radialGradient id="${id}g" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity="${P.glass ? .5 : .35}"/><stop offset=".45" stop-color="${P.b}" stop-opacity="0"/><stop offset="1" stop-color="${P.s}" stop-opacity="${P.glass ? .5 : .55}"/></radialGradient>
-    <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD866"/><stop offset="1" stop-color="#E9A21F"/></linearGradient>
-    <clipPath id="${id}c"><path d="${body}"/></clipPath></defs>
-    <ellipse cx="66" cy="94" rx="40" ry="4.5" fill="#000" opacity=".12"/>
-    <path d="M24 54c-6-1-10 2-9 6s6 4 6 0-4-4-6-1" stroke="${P.s}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-    <rect x="32" y="76" width="11" height="17" rx="4.5" fill="${P.s}"/><rect x="78" y="76" width="11" height="17" rx="4.5" fill="${P.s}"/>
-    <path d="M78 29l4-14 12 11z" fill="${P.s}"/>
-    <path d="${body}" fill="${P.b}" ${P.glass ? `stroke="${P.s}" stroke-width="1.6"` : ''}/>
-    <g clip-path="url(#${id}c)">${coins}${pat}${fill}<path d="${body}" fill="url(#${id}g)"/></g>
-    <rect x="42" y="78" width="11" height="15" rx="4.5" fill="${P.b}" ${P.glass ? `stroke="${P.s}" stroke-width="1.2"` : ''}/><rect x="88" y="78" width="11" height="15" rx="4.5" fill="${P.b}" ${P.glass ? `stroke="${P.s}" stroke-width="1.2"` : ''}/>
-    <path d="M84 30l5-15 11 13c-5 1-11 2-16 2z" fill="${P.e}"/><path d="M87 27l3-8 6 7z" fill="${P.sn}" opacity=".8"/>
-    <ellipse cx="110" cy="57" rx="9.5" ry="11" fill="${P.sn}" stroke="${P.s}" stroke-width="1.2"/>
-    <ellipse cx="107.5" cy="54" rx="1.6" ry="2.6" fill="${P.s}"/><ellipse cx="113" cy="54" rx="1.6" ry="2.6" fill="${P.s}"/>
-    <g class="pigeye"><ellipse cx="93" cy="45" rx="3.3" ry="${opts.happy ? 1 : 3.8}" fill="${eye}"/>${opts.happy ? '' : '<circle cx="94.2" cy="43.4" r="1.2" fill="#fff"/>'}</g>
-    <ellipse cx="96" cy="58" rx="5" ry="3" fill="#FF6F8E" opacity="${P.glass ? .25 : .35}"/>
-    <path d="M100 66q4 3 8 1" stroke="${P.s}" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-    <rect x="52" y="23.5" width="20" height="4.6" rx="2.3" fill="#2A1A1F" opacity=".7" transform="rotate(-3 62 26)"/>
-    <path d="M30 44q8-14 24-17" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="${P.glass ? .7 : .35}"/>
-    ${acc}${full}
-  </svg>`;
+  const k = pigKey(skin);
+  return `<span class="pigw${opts.cls ? ' ' + opts.cls : ''}${pct >= 1 ? ' full' : ''}" style="width:${size}px;--sx:${PIG_SLOT[0]}%;--sy:${PIG_SLOT[1]}%"><img src="assets/pigs/${k}.webp" width="${size}" height="${Math.round(size * PIG_AR)}" alt="" draggable="false" decoding="async">${pct >= 1 ? '<i class="pgs s1">✦</i><i class="pgs s2">✦</i><i class="pgs s3">✦</i>' : ''}</span>`;
 }
 
 /* ---------- telas ---------- */
@@ -94,7 +50,7 @@ VIEWS.goals = main => {
       <div class="gkpi"><span class="mut sm">Depósitos no mês</span><b>${monthDeps.filter(x => x.v > 0).length}</b></div>
     </div>` : ''}
     <div class="ggrid">${gs.map(goalCard).join('')}${gs.length ? `<button class="gcard gadd" data-act="gnew">${ic('plus', 28)}<span>Nova meta</span></button>` : ''}</div>
-    ${!gs.length ? `<div class="empty gempty">${pigSvg('rosa', .35, 170, { cls: 'bob' })}<p><b>Crie seu primeiro porquinho</b></p><p class="mut">Defina uma meta (uma viagem, uma reserva, um presente) e registre cada valor que você guardar de verdade. O app acompanha o total, os meses e quanto falta.</p><button class="btn red" data-act="gnew">${ic('plus', 16)}Nova meta</button></div>` : ''}
+    ${!gs.length ? `<div class="empty gempty">${pigSvg('laranja', .35, 190, { cls: 'bob' })}<p><b>Crie seu primeiro porquinho</b></p><p class="mut">Defina uma meta (uma viagem, uma reserva, um presente) e registre cada valor que você guardar de verdade. O app acompanha o total, os meses e quanto falta.</p><button class="btn red" data-act="gnew">${ic('plus', 16)}Nova meta</button></div>` : ''}
     ${arch.length ? `<details class="harch"><summary>Arquivadas e concluídas (${arch.length})</summary><div class="ggrid sm">${arch.map(goalCard).join('')}</div></details>` : ''}
   </div></div>`;
 };
@@ -185,13 +141,13 @@ function goalChart(g) {
 /* ---------- animação da moeda caindo no cofrinho ---------- */
 function pigCoinAnim(main, a) {
   const box = main.querySelector('.gbig'); if (!box) return;
-  const svg = box.querySelector('svg');
+  const svg = box.querySelector('.pigw');
   if (a.v > 0) {
     const n = Math.min(5, 1 + Math.floor(Math.log10(Math.max(1, a.v / 100)) * 1.5));
     for (let i = 0; i < n; i++) {
       const c = document.createElement('span'); c.className = 'gcoin'; c.style.animationDelay = (i * .14) + 's';
       c.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30"><circle cx="12" cy="12" r="10" fill="#F4C651" stroke="#B9862A" stroke-width="1.6"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#FFE59A" stroke-width="1.2"/><text x="12" y="15.6" text-anchor="middle" font-size="9" font-weight="800" fill="#9A6B12" font-family="system-ui">$</text></svg>';
-      box.appendChild(c); setTimeout(() => c.remove(), 1400 + i * 140);
+      svg.appendChild(c); setTimeout(() => c.remove(), 1400 + i * 140);
     }
     setTimeout(() => { svg.classList.remove('bob'); svg.classList.add('gulp'); coinSound(n); }, 520);
     setTimeout(() => { svg.classList.remove('gulp'); svg.classList.add('bob'); }, 1100 + n * 140);
@@ -213,7 +169,7 @@ function skinGrid(cur, pct = .45) {
 }
 function editGoal(g) {
   const isNew = !g;
-  g = g || { id: uid(), name: '', target: 0, due: '', skin: Object.keys(PIGS)[goalsAll().length % 6], dep: [], c: Date.now() };
+  g = g || { id: uid(), name: '', target: 0, due: '', skin: Object.keys(PIGS)[goalsAll().length % 10], dep: [], c: Date.now() };
   const el = modal(`<h2>${isNew ? 'Nova meta' : 'Editar meta'}</h2><form class="gform">
     <label class="lab">Nome da meta<input class="in" name="n" value="${esc(g.name)}" placeholder="Ex.: Viagem de férias, Reserva de emergência" maxlength="60" required autofocus></label>
     <div class="row"><label class="lab f1">Valor da meta (R$)<input class="in" name="t" inputmode="decimal" data-nocalc value="${g.target ? (g.target / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}" placeholder="Ex.: 5.000,00"></label>
@@ -293,5 +249,5 @@ Object.assign(ACTS, {
   gdepdel: b => { const g = get('m', b.dataset.id); if (!g) return; const i = (g.dep || []).findIndex(x => x.id === b.dataset.d); if (i < 0) return; const [x] = g.dep.splice(i, 1); put('m', g); toast('Registro excluído', 'Desfazer', () => { g.dep.splice(i, 0, x); put('m', g); }); },
   greal: b => realBox(get('m', b.dataset.id)),
   gfix: b => { const g = get('m', b.dataset.id); if (!g || !g.real) return; const d = g.real.v - gSaved(g); if (!d) return; const x = { id: uid(), d: today(), at: Date.now(), v: d, note: 'Ajuste com o saldo real' }; g.dep = (g.dep || []).concat([x]); GS.anim = { id: g.id, v: d }; put('m', g); toast('Porquinho ajustado ao saldo real', 'Desfazer', () => { g.dep = g.dep.filter(y => y.id !== x.id); put('m', g); }); },
-  gtap: b => { const s = b.querySelector('svg'); if (!s) return; s.classList.remove('bob', 'shake'); void s.getBoundingClientRect(); s.classList.add('shake'); coinSound(1); setTimeout(() => { s.classList.remove('shake'); s.classList.add('bob'); }, 650); },
+  gtap: b => { const s = b.querySelector('.pigw'); if (!s) return; s.classList.remove('bob', 'shake'); void s.getBoundingClientRect(); s.classList.add('shake'); coinSound(1); setTimeout(() => { s.classList.remove('shake'); s.classList.add('bob'); }, 650); },
 });
