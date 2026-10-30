@@ -2203,3 +2203,16 @@ body.v-focus #pets{display:none!important}
 .duprow{display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
 .duprow input{margin-top:3px;width:18px;height:18px;accent-color:var(--red)}
 .duprow .f1>b{display:block}.duprow small{font-size:calc(12.5px * var(--fs,1))}
+/* barrinha da tela cheia: compacta, no canto inferior direito */
+.fxfbar{left:auto;right:calc(18px + var(--safe-r));bottom:calc(18px + var(--safe-b));transform:none;gap:8px;padding:5px 5px 5px 7px;border-radius:16px;max-width:min(320px,calc(100vw - 36px));background:rgba(14,16,24,.62);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.fxfring{width:30px;height:30px;flex:none}
+.fxfring .bg{fill:none;stroke:rgba(255,255,255,.16);stroke-width:3}
+.fxfring .fg{fill:none;stroke:#FFD54A;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+#fxfull.brk .fxfring .fg{stroke:#6FD3A0}
+.fxftxt{display:flex;flex-direction:column;min-width:0;line-height:1.15;margin-right:4px}
+.fxfbar .fxclock{font-size:calc(16px * var(--fs,1));font-weight:800}
+.fxfbar .fxflabel{font-size:calc(11.5px * var(--fs,1));max-width:170px;opacity:.72}
+.fxfb{width:30px;height:30px}
+.fxfb svg{width:15px;height:15px}
+#fxfull.idle .fxfbar{opacity:.38}
+@media (max-width:759px){.fxfbar{right:12px;bottom:calc(12px + var(--safe-b))}.fxfbar .fxflabel{max-width:120px}}

@@ -279,7 +279,7 @@ function fxFullOpen() {
   const a = fxAnim() === 'ring' ? 'cats' : fxAnim(), [cw, ch] = fxSize(a);
   const el = document.createElement('div'); el.id = 'fxfull'; el.className = 'a-' + a;
   el.innerHTML = `<canvas class="fxcv" width="${cw}" height="${ch}" aria-hidden="true"></canvas>
-    <div class="fxfbar" role="toolbar" aria-label="Foco"><span class="fxclock" role="timer">${mmss(fLeft())}</span><span class="fxflabel"></span>
+    <div class="fxfbar" role="toolbar" aria-label="Foco"><svg class="fxfring" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" class="bg"/><circle cx="16" cy="16" r="13" class="fg" stroke-dasharray="81.7" stroke-dashoffset="81.7" transform="rotate(-90 16 16)"/></svg><span class="fxftxt"><span class="fxclock" role="timer">${mmss(fLeft())}</span><span class="fxflabel"></span></span>
     <button class="fxfb" data-fx="play" aria-label="Iniciar ou pausar"></button><button class="fxfb" data-fx="close" aria-label="Sair da tela cheia" title="Reduzir (Esc)">${ic('shrink', 18)}</button></div>`;
   document.body.appendChild(el); document.body.classList.add('fxfull-on');
   el.addEventListener('click', e => { const b = e.target.closest('[data-fx]'); if (!b) return; if (b.dataset.fx === 'close') fxFullClose(); else { FS.run ? fPause() : fStart(); fxFullTick(); } });
@@ -297,7 +297,9 @@ function fxFullTick() {
   const el = $('#fxfull'); if (!el) return;
   const c = el.querySelector('.fxclock'); if (c) c.textContent = mmss(fLeft());
   const t = FS.task && get('t', FS.task), focusing = FS.mode === 'focus' || FS.mode === 'watch';
-  const lb = el.querySelector('.fxflabel'), txt = (FS.run ? (focusing ? 'Focando' : 'Pausa') : FS.began ? 'Pausado' : 'Pronto') + (t ? ' · ' + t.title : '');
+  const rg = el.querySelector('.fxfring .fg'); if (rg) rg.setAttribute('stroke-dashoffset', (81.7 * (1 - fxFrac())).toFixed(1));
+  el.classList.toggle('brk', FS.mode === 'short' || FS.mode === 'long');
+  const lb = el.querySelector('.fxflabel'), txt = t ? t.title : (FS.run ? (focusing ? 'Focando' : 'Pausa') : FS.began ? 'Pausado' : 'Pronto');
   if (lb && lb.textContent !== txt) lb.textContent = txt;
   const pb = el.querySelector('[data-fx=play]'), want = FS.run ? 'pause' : 'play'; if (pb && pb.dataset.ic !== want) { pb.dataset.ic = want; pb.innerHTML = ic(want, 18); }
   const cv = el.querySelector('canvas'); if (cv && (FX.t % 10 === 0 || !el.dataset.bg)) { el.dataset.bg = 1; try { const g = cv.getContext('2d'), p1 = g.getImageData(1, 1, 1, 1).data, p2 = g.getImageData(1, cv.height - 2, 1, 1).data; el.style.background = `linear-gradient(rgb(${p1[0]},${p1[1]},${p1[2]}),rgb(${p2[0]},${p2[1]},${p2[2]}))`; } catch (e) {} }

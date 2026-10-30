@@ -495,7 +495,13 @@ function clean(html) {
       if (c.nodeType === 3) return;
       if (c.nodeType !== 1) { c.remove(); return; }
       walk(c);
-      if (c.tagName === 'DIV' || c.tagName === 'P') { c.after(document.createElement('br')); }
+      if (c.tagName === 'DIV' || c.tagName === 'P' || c.tagName === 'LI') {
+        /* cada bloco vira uma linha: quebra antes (se vier depois de texto) e depois (se não for só uma linha vazia) */
+        const prev = c.previousSibling, onlyBr = c.childNodes.length === 1 && c.firstChild.nodeName === 'BR';
+        if (prev && prev.nodeName !== 'BR' && !(prev.nodeType === 3 && !prev.textContent.trim() && !prev.previousSibling)) c.before(document.createElement('br'));
+        if (c.tagName === 'LI' && !/^\s*•/.test(c.textContent)) c.prepend(document.createTextNode('• '));
+        if (!onlyBr) c.after(document.createElement('br'));
+      }
       if (!OK_TAGS.has(c.tagName)) { c.replaceWith(...c.childNodes); return; }
       const keep = {};
       if (c.tagName === 'A') { const h = c.getAttribute('href') || ''; if (/^(https?:|mailto:|tel:|#)/i.test(h)) keep.href = h; }

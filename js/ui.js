@@ -238,15 +238,15 @@ function bulletRich(el) {
     if (n.nodeType !== 3) return;
     const before = n.textContent.slice(0, r.startOffset), prev = n.previousSibling;
     const lineStart = !prev || prev.nodeName === 'BR' || prev.nodeName === 'DIV' || prev.nodeName === 'P';
-    if (lineStart && BUL_RE.test(before)) { n.textContent = '• ' + n.textContent.slice(r.startOffset); const nr = document.createRange(); nr.setStart(n, 2); nr.collapse(true); s.removeAllRanges(); s.addRange(nr); }
+    if (lineStart && BUL_RE.test(before)) { n.textContent = '•\u00a0' + n.textContent.slice(r.startOffset); const nr = document.createRange(); nr.setStart(n, 2); nr.collapse(true); s.removeAllRanges(); s.addRange(nr); }
   });
   el.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
     const s = getSelection(); if (!s.rangeCount) return; const n = s.getRangeAt(0).startContainer;
     const txt = (n.nodeType === 3 ? n.textContent : n.textContent || '');
-    if (!txt.startsWith('• ')) return;
-    if (txt.trim() === '•') { e.preventDefault(); n.textContent = ''; return; }
-    setTimeout(() => document.execCommand('insertText', false, '• '), 0);
+    if (!/^•[ \u00a0]/.test(txt)) return;
+    if (txt.replace(/\u00a0/g, ' ').trim() === '•') { e.preventDefault(); const rg = document.createRange(); rg.selectNodeContents(n); s.removeAllRanges(); s.addRange(rg); document.execCommand('delete'); return; }
+    e.preventDefault(); document.execCommand('insertParagraph'); document.execCommand('insertText', false, '•\u00a0');
   });
 }
 function folderPathName(f) { const p = []; let x = f, k = 0; while (x && k++ < 12) { p.unshift((x.emoji ? x.emoji + ' ' : '') + x.name); x = x.par ? get('f', x.par) : null; } return p.join(' / '); }

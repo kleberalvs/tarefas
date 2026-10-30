@@ -119,7 +119,7 @@ function qaHtml(gkey, ph) {
     <input class="qin" placeholder="${esc(ph || 'Ex.: Dentista amanhã às 15h #saúde !alta')}" aria-label="Nova tarefa" autocomplete="off" enterkeyhint="done">
     <input class="qnote" placeholder="Descrição" aria-label="Descrição">
     <div class="qtok"></div>
-    <div class="qbar"><button class="chipb" data-qa="date">${ic('cal', 16)}<span>Data</span></button><button class="chipb" data-qa="prio">${ic('flag', 16)}<span>Prioridade</span></button><button class="chipb" data-qa="tag">${ic('tag', 16)}<span>Etiqueta</span></button>
+    <div class="qbar"><button class="chipb" data-qa="date" data-pop>${ic('cal', 16)}<span>Data</span></button><button class="chipb" data-qa="prio" data-pop>${ic('flag', 16)}<span>Prioridade</span></button><button class="chipb" data-qa="tag" data-pop>${ic('tag', 16)}<span>Etiqueta</span></button>
     <span class="sp"></span><button class="btn ghost sm" data-qa="cancel">Cancelar</button><button class="btn red sm" data-qa="add">Adicionar</button></div></div>`;
 }
 
@@ -261,8 +261,23 @@ function bindOpenQa(main) {
   if (!box) { QA = null; return; }
   const g = box.dataset.g;
   bindQa(box, () => (GMAP[g] || {}).set || {});
-  box.querySelector('.qin').focus();
+  const inp = box.querySelector('.qin'), nt = box.querySelector('.qnote');
+  if (QA_DRAFT && QA_DRAFT.g === g) { inp.value = QA_DRAFT.v; if (nt) nt.value = QA_DRAFT.n || ''; inp.dispatchEvent(new Event('input')); }
+  QA_DRAFT = null;
+  inp.focus();
+  /* tocar fora do campo de adicionar fecha (o texto digitado pode ser recuperado em "Desfazer") */
+  const out = e => {
+    if (!document.body.contains(box)) { document.removeEventListener('pointerdown', out, true); return; }
+    const tg = e.target;
+    if (box.contains(tg) || tg.closest('.pop,#modal,.dp,.dpick,.toast,#toast')) return;
+    document.removeEventListener('pointerdown', out, true);
+    const v = inp.value.trim(), n = nt ? nt.value.trim() : '';
+    QA = null; render(true);
+    if (v) toast('Rascunho fechado', 'Desfazer', () => { QA_DRAFT = { g, v, n }; QA = g; render(true); }, 5000);
+  };
+  setTimeout(() => document.addEventListener('pointerdown', out, true), 0);
 }
+let QA_DRAFT = null;
 function bindQa(box, base) {
   const inp = box.querySelector('.qin'), note = box.querySelector('.qnote'), tok = box.querySelector('.qtok');
   const extra = { prio: null, tags: [], dp: null };
@@ -319,7 +334,7 @@ function quickAdd(preset = {}) {
     <input class="qin" placeholder="Ex.: Dentista amanhã às 15h #saúde !alta" aria-label="Nova tarefa" autocomplete="off" enterkeyhint="done">
     <input class="qnote" placeholder="Descrição" aria-label="Descrição">
     <div class="qtok"></div>
-    <div class="qbar"><button class="chipb" data-qa="date">${ic('cal', 16)}<span>Data</span></button><button class="chipb" data-qa="prio">${ic('flag', 16)}<span>Prioridade</span></button><button class="chipb" data-qa="tag">${ic('tag', 16)}<span>Etiqueta</span></button><button class="chipb" data-qa="list">${ic('list', 16)}<span>${esc((get('l', base.list) || get('l', db.s.defList) || get('l', 'inbox')).name)}</span></button>
+    <div class="qbar"><button class="chipb" data-qa="date" data-pop>${ic('cal', 16)}<span>Data</span></button><button class="chipb" data-qa="prio" data-pop>${ic('flag', 16)}<span>Prioridade</span></button><button class="chipb" data-qa="tag" data-pop>${ic('tag', 16)}<span>Etiqueta</span></button><button class="chipb" data-qa="list" data-pop>${ic('list', 16)}<span>${esc((get('l', base.list) || get('l', db.s.defList) || get('l', 'inbox')).name)}</span></button>
     <span class="sp"></span><button class="btn ghost sm" data-qa="cancel">Cancelar</button><button class="btn red sm" data-qa="add">Adicionar</button></div>
     <p class="hint">Dicas: <b>amanhã 9h</b>, <b>toda segunda</b>, <b>dia 15</b>, <b>das 14h às 16h</b>, <b>#etiqueta</b>, <b>~lista</b>, <b>!alta</b>, <b>lembrar 30 min antes</b></p></div>`, { cls: 'qmodal' });
   const box = el.querySelector('.qa');

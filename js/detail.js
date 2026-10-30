@@ -179,6 +179,8 @@ function bindDetail(det, t) {
   no.oninput = saveNotes;
   autoLinkEditable(no, saveNotes);
   no.onblur = () => { t.notes = clean(no.innerHTML); put('t', t); gcalPushTask(t); };
+  /* antes de qualquer outro toque no painel (prioridade, data, lista…), grava a descrição para não perder nem bagunçar o texto */
+  det.addEventListener('pointerdown', e => { if (no.contains(e.target)) return; const h = clean(no.innerHTML); if (h !== (t.notes || '')) { t.notes = h; put('t', t, { silent: true }); } }, true);
   no.addEventListener('paste', e => { e.preventDefault(); const h = e.clipboardData.getData('text/html'), tx = e.clipboardData.getData('text/plain'); document.execCommand('insertHTML', false, h ? clean(h) : esc(tx).replace(/\n/g, '<br>')); });
   det.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener('change', async () => {
     const f = inp.dataset.f, v = inp.value;
