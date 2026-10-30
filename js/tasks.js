@@ -174,6 +174,7 @@ VIEWS.list = main => {
       body += `<section class="grp donegrp"><div class="gh"><button class="caret${sh ? ' open' : ''}" data-act="showdone" aria-label="${sh ? 'Ocultar' : 'Mostrar'} concluídas">${ic('chev', 14)}</button><b>Concluídas</b><span class="cnt">${doneT.length}</span></div>${sh ? doneT.slice(0, 200).map(t => rowHtml(t, { showList, show })).join('') : ''}</section>`;
     }
   }
+  if (id === 'inbox') { const dg = dupGroups(); if (dg.length) body = `<div class="dupbar">${ic('copy', 18)}<span class="f1"><b>${plural(dg.reduce((n, g) => n + g.drop.length, 0), 'tarefa repetida', 'tarefas repetidas')}</b> aqui também ${dg.some(g => g.keep.list !== 'inbox') ? 'estão em outras listas' : 'aparecem duas vezes'}.</span><button class="btn sm red" data-act="dupfix">Revisar</button></div>` + body; }
   main.innerHTML = headHtml(info.name, sub, right, { pre }) + `<div class="scroll${board ? ' hscroll' : ''}"><div class="tlist${board ? ' isboard' : ''}">${body}</div></div><button class="fab" data-act="quick" aria-label="Adicionar tarefa">${ic('plus', 26)}</button>`;
   bindOpenQa(main);
 };
@@ -607,3 +608,44 @@ function pickMoveTarget(items, done) {
     el.querySelectorAll('[data-sec]').forEach(x => x.onclick = () => { closeModal(); done(l, x.dataset.sec || null); });
   });
 }
+
+/* tarefas repetidas: mesmo título, abertas; mantém a que está numa lista de verdade (ou a mais recente) */
+const dupNorm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+function dupGroups() {
+  const by = new Map();
+  db.t.forEach(t => { if (t.del || t.done || t.par || t.note || !dupNorm(t.title)) return; const k = dupNorm(t.title); if (!by.has(k)) by.set(k, []); by.get(k).push(t); });
+  const out = [];
+  by.forEach(ts => {
+    if (ts.length < 2 || !ts.some(t => t.list === 'inbox')) return;
+    const score = t => (t.list !== 'inbox' ? 1e15 : 0) + ((t.att || []).length + (t.cover ? 1 : 0) + subsOf(t.id).length) * 1e13 + (t.u || t.c || 0);
+    const sorted = ts.slice().sort((a, b) => score(b) - score(a)), keep = sorted[0];
+    const drop = sorted.slice(1).filter(t => t.list === 'inbox');
+    if (drop.length) out.push({ keep, drop });
+  });
+  return out;
+}
+function dupMerge(keep, d) {
+  /* traz para a tarefa mantida o que só existe na cópia */
+  if (d.notes && stripHtml(d.notes).trim() && !stripHtml(keep.notes || '').includes(stripHtml(d.notes).trim())) keep.notes = (keep.notes ? keep.notes + '<br>' : '') + d.notes;
+  (d.att || []).forEach(a => { keep.att = keep.att || []; if (!keep.att.some(x => x.id === a.id)) keep.att.push(a); });
+  (d.tags || []).forEach(g => { keep.tags = keep.tags || []; if (!keep.tags.includes(g)) keep.tags.push(g); });
+  if (!keep.due && d.due) { keep.due = d.due; keep.start = keep.start || d.start; }
+  if ((d.prio || 0) > (keep.prio || 0)) keep.prio = d.prio;
+  const ks = subsOf(keep.id).map(x => dupNorm(x.title));
+  subsOf(d.id).forEach(x => { if (!ks.includes(dupNorm(x.title))) { x.par = keep.id; x.list = keep.list; put('t', x, { silent: true, noCascade: true }); } });
+}
+ACTS.dupfix = () => {
+  const gs = dupGroups(); if (!gs.length) return;
+  const ln = id => (get('l', id) || {}).name || 'Caixa de entrada';
+  const el = modal(`<div class="dupm"><h2>Tarefas repetidas</h2><p class="mut sm">Estas tarefas estão na Caixa de entrada e também ${gs.some(g => g.keep.list !== 'inbox') ? 'em outra lista' : 'repetidas'}. Vou manter a da lista e mandar a cópia para a Lixeira — anexos, notas, etiquetas e subtarefas que só existirem na cópia passam para a tarefa mantida.</p>
+    <div class="duplist">${gs.map((g, i) => `<label class="duprow"><input type="checkbox" data-dup="${i}" checked><span class="f1"><b>${esc(g.keep.title)}</b><small class="mut">fica em <b>${esc(ln(g.keep.list))}</b> · ${plural(g.drop.length, 'cópia', 'cópias')} na Caixa de entrada sai${g.drop.length > 1 ? 'em' : ''}</small></span></label>`).join('')}</div>
+    <div class="row end"><button class="btn ghost" data-x>Cancelar</button><button class="btn red" data-go>Remover cópias</button></div></div>`);
+  el.querySelector('[data-x]').onclick = () => closeModal();
+  el.querySelector('[data-go]').onclick = () => {
+    const stamp = Date.now(), done = [];
+    el.querySelectorAll('[data-dup]:checked').forEach(c => { const g = gs[+c.dataset.dup]; const before = clone(g.keep); g.drop.forEach(d => { dupMerge(g.keep, d); d.del = stamp; put('t', d, { silent: true, noCascade: true }); done.push(d); }); put('t', g.keep, { silent: true }); done.push(['keep', g.keep, before]); });
+    closeModal(); changed();
+    const n = done.filter(x => !Array.isArray(x)).length;
+    toast(`${plural(n, 'cópia removida', 'cópias removidas')}`, 'Desfazer', () => { done.forEach(x => { if (Array.isArray(x)) { Object.assign(x[1], x[2]); put('t', x[1], { silent: true, noCascade: true }); } else { x.del = null; put('t', x, { silent: true, noCascade: true }); } }); changed(); }, 8000);
+  };
+};

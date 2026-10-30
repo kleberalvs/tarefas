@@ -2197,3 +2197,9 @@ body.v-focus #pets{display:none!important}
 .mvrow.cur{opacity:.55}
 .mvrow small{display:inline-flex;align-items:center;gap:3px}
 .mvic{width:22px;display:inline-flex;justify-content:center;color:var(--mut)}
+.dupbar{display:flex;align-items:center;gap:10px;margin:4px 0 14px;padding:10px 12px 10px 14px;border-radius:14px;background:color-mix(in srgb,var(--tom) 12%,var(--card));border:1px solid color-mix(in srgb,var(--tom) 35%,transparent);font-size:calc(14px * var(--fs,1))}
+.dupbar svg{color:var(--tom);flex:none}
+.duplist{max-height:50vh;overflow-y:auto;margin:10px 0}
+.duprow{display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.duprow input{margin-top:3px;width:18px;height:18px;accent-color:var(--red)}
+.duprow .f1>b{display:block}.duprow small{font-size:calc(12.5px * var(--fs,1))}
