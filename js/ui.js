@@ -608,14 +608,26 @@ function initDnd() {
   let st = null, timer = null;
   /* toque: segurar "levanta" o item; se mover, vira arraste; se soltar sem mover, abre o menu do item */
   const begin = (e, src, armed) => {
-    DND.on = true; DND.src = src.dataset.drag; DND.el = src; DND.armed = !!armed; DND.sx = e.clientX; DND.sy = e.clientY; DND.g = null;
+    DND.on = true; DND.menu = false; DND.src = src.dataset.drag; DND.el = src; DND.armed = !!armed; DND.sx = e.clientX; DND.sy = e.clientY; DND.g = null;
     DND.mk = null; DND.mkc = null; DND.tilt = src.closest('.board') ? 2 : 0;
     if (typeof closePop === 'function' && POP) closePop();
     if (navigator.vibrate) try { navigator.vibrate(12); } catch (x) {}
-    if (armed) { src.classList.add('lift'); return; }
+    if (armed) {
+      src.classList.add('lift');
+      /* continuando a segurar, o menu abre sozinho (sem precisar soltar); mover em seguida fecha o menu e arrasta */
+      clearTimeout(DND.mt); DND.mt = setTimeout(() => { if (DND.on && DND.armed && !DND.menu) openHoldMenu(); }, 380);
+      return;
+    }
     lift(e);
   };
+  const openHoldMenu = () => {
+    const c = DND.el.closest('[data-ctx]') || DND.el.querySelector('[data-ctx]'); if (!c || typeof ctxMenu !== 'function') return;
+    const r = DND.el.getBoundingClientRect(); DND.menu = true;
+    ctxMenu(c.dataset.ctx, DND.el, { x: Math.min(DND.sx, innerWidth - 20), y: Math.min(r.bottom, innerHeight - 40) });
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
+  };
   const lift = e => {
+    clearTimeout(DND.mt); if (DND.menu) { DND.menu = false; if (POP) closePop(); }
     const src = DND.el, r = src.getBoundingClientRect();
     const g = src.cloneNode(true); g.className += ' dghost'; g.style.width = Math.min(r.width, 420) + 'px'; g.classList.remove('lift');
     g.removeAttribute('data-drop'); g.removeAttribute('data-drag'); g.querySelectorAll('[data-drop],[data-drag]').forEach(x => { x.removeAttribute('data-drop'); x.removeAttribute('data-drag'); });
@@ -660,9 +672,9 @@ function initDnd() {
     if (!DND.on) return;
     if (DND.armed) {
       /* segurou e soltou sem arrastar: abre o menu do item */
-      DND.on = false; DND.armed = false; DND.el.classList.remove('lift'); DND.justDropped = Date.now();
-      const c = DND.el.closest('[data-ctx]') || DND.el.querySelector('[data-ctx]');
-      if (c && typeof ctxMenu === 'function') { const r = DND.el.getBoundingClientRect(); ctxMenu(c.dataset.ctx, DND.el, { x: Math.min(DND.sx, innerWidth - 20), y: Math.min(r.bottom, innerHeight - 40) }); }
+      clearTimeout(DND.mt); DND.on = false; DND.armed = false; DND.el.classList.remove('lift'); DND.justDropped = Date.now();
+      if (!DND.menu) openHoldMenu();
+      DND.menu = false;
       return;
     }
     if (DND.raf) cancelAnimationFrame(DND.raf); DND.raf = 0; frame(); if (DND.raf) { cancelAnimationFrame(DND.raf); DND.raf = 0; }
