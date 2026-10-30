@@ -2186,3 +2186,14 @@ body.v-focus #pets{display:none!important}
 #splash .spglow{position:absolute;left:50%;top:50%;margin:-200px 0 0 -170px}
 #splash .spw{position:absolute;left:0;right:0;top:calc(50% + 34px);justify-content:center}
 #splash .sptag{position:absolute;left:0;right:0;top:calc(50% + 82px);text-align:center}
+/* mover em lote */
+.mbox.mvmodal{max-width:440px}
+.mvpick h2{display:flex;align-items:center;gap:6px}
+.mvpick #mvq{margin:2px 0 8px}
+.mvlist{max-height:min(56vh,460px);overflow-y:auto;margin:0 -6px;padding:0 6px}
+.mvgh{margin:12px 4px 4px;font-size:calc(12px * var(--fs,1));font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
+.mvrow{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:0 10px;border-radius:10px;text-align:left;font-size:calc(14.5px * var(--fs,1))}
+.mvrow:hover{background:var(--hover)}
+.mvrow.cur{opacity:.55}
+.mvrow small{display:inline-flex;align-items:center;gap:3px}
+.mvic{width:22px;display:inline-flex;justify-content:center;color:var(--mut)}

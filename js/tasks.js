@@ -549,7 +549,7 @@ function selBar() {
     <button class="btn ghost sm" data-sb="all">${allOn ? '<span class="hide-m">Desmarcar </span>Nenhuma' : '<span class="hide-m">Selecionar </span>Todas'}</button>
     <span class="sp"></span>
     ${anyTask ? `<button class="ib" data-sb="done" ${n ? '' : 'disabled'} title="Concluir" aria-label="Concluir selecionadas">${ic('check', 19)}</button>` : ''}
-    <button class="ib" data-sb="move" ${n ? '' : 'disabled'} title="Mover para outra lista" aria-label="Mover selecionadas">${ic('folder', 19)}</button>
+    <button class="btn ghost sm" data-sb="move" ${n ? '' : 'disabled'} title="Mover para outra lista" aria-label="Mover selecionadas para outra lista">${ic('folder', 16)}<span class="hide-m">Mover</span></button>
     <button class="btn red sm" data-sb="del" ${n ? '' : 'disabled'}>${ic('trash', 16)}<span class="hide-m">Excluir</span></button>`;
   bar.onclick = async e => {
     const b = e.target.closest('[data-sb]'); if (!b) return;
@@ -568,12 +568,42 @@ function selBar() {
       const ts = list.filter(t => !t.note && !t.done); ts.forEach(t => completeTask(t, true)); selEnd(); changed();
       toast(plural(ts.length, 'tarefa concluída', 'tarefas concluídas'));
     }
-    if (k === 'move') {
-      menu(b, db.l.filter(l => !l.arch).map(l => ({ label: l.name, color: l.color, act: () => { list.forEach(t => { t.list = l.id; t.sec = null; if (l.kind === 'notes') t.note = true; put('t', t, { silent: true }); }); selEnd(); changed(); toast(`${plural(list.length, 'item movido', 'itens movidos')} para ${l.name}`); } })), { right: 1 });
-    }
+    if (k === 'move') pickMoveTarget(list, (l, sec) => {
+      const all = [...new Set(list.flatMap(t => [t, ...subsOf(t.id)]))], prev = all.map(t => [t, t.list, t.sec, t.note]);
+      all.forEach(t => { t.list = l.id; t.sec = list.includes(t) ? (sec || null) : t.sec && (l.sec || []).some(x => x.id === t.sec) ? t.sec : null; t.note = l.kind === 'notes'; put('t', t, { silent: true }); });
+      selEnd(); changed();
+      const ss = sec && (l.sec || []).find(x => x.id === sec);
+      toast(`${plural(list.length, 'item movido', 'itens movidos')} para ${l.name}${ss ? ' · ' + ss.name : ''}`, 'Desfazer', () => { prev.forEach(([t, li, se, no]) => { t.list = li; t.sec = se; t.note = no; put('t', t, { silent: true }); }); changed(); }, 6000);
+    });
   };
 }
 /* sair da seleção ao trocar de tela; repintar após cada renderização */
 addEventListener('hashchange', () => { if (SELM) { SELM = null; const bar = $('#selbar'); if (bar) bar.remove(); document.body.classList.remove('selmode'); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && SELM) selEnd(); });
 new MutationObserver(() => { if (SELM) { const m = $('#main'); if (m && !m.querySelector('.selhint')) selPaint(); } }).observe(document.getElementById('main') || document.body, { childList: true });
+
+/* escolher lista (e seção) de destino para mover itens em lote */
+function pickMoveTarget(items, done) {
+  const cur = new Set(items.map(t => t.list));
+  const lists = db.l.filter(l => !l.arch);
+  const folderName = id => { const f = db.f.find(x => x.id === id); return f ? `${f.emoji ? f.emoji + ' ' : ''}${f.name}` : ''; };
+  const groups = [['', lists.filter(l => l.id === 'inbox' || !l.folder)], ...db.f.filter(f => (f.kind || 'l') === 'l').map(f => [f.id, lists.filter(l => l.folder === f.id && l.id !== 'inbox')])].filter(([, ls]) => ls.length);
+  const row = l => `<button class="mvrow${cur.has(l.id) && cur.size === 1 ? ' cur' : ''}" data-mv="${l.id}">${l.id === 'inbox' ? `<span class="mvic">${ic('inbox', 16)}</span>` : l.emoji ? `<span class="mvic nemo">${esc(l.emoji)}</span>` : `<span class="mvic"><span class="ldot" style="background:${esc(l.color || '#808080')}"></span></span>`}<span class="f1">${esc(l.name)}${l.kind === 'notes' ? ' <small class="mut">· notas</small>' : ''}</span>${(l.sec || []).length ? `<small class="mut">${plural(l.sec.length, 'seção', 'seções')} ${ic('right', 12)}</small>` : ''}${cur.has(l.id) && cur.size === 1 ? `<small class="mut">atual</small>` : ''}</button>`;
+  const el = modal(`<div class="mvpick"><h2>Mover ${plural(items.length, 'item', 'itens')} para…</h2>
+    <input class="in" id="mvq" placeholder="Buscar lista" autocomplete="off">
+    <div class="mvlist">${groups.map(([fid, ls]) => `<div class="mvgrp" data-g>${fid ? `<p class="mvgh">${esc(folderName(fid))}</p>` : ''}${ls.map(row).join('')}</div>`).join('')}</div>
+    <div class="row end"><button class="btn ghost" data-x>Cancelar</button></div></div>`, { cls: 'mvmodal' });
+  el.querySelector('[data-x]').onclick = () => closeModal();
+  const q = el.querySelector('#mvq');
+  if (isMobile()) setTimeout(() => q.blur(), 30);
+  q.oninput = () => { const v = q.value.trim().toLowerCase(); el.querySelectorAll('.mvrow').forEach(r => r.hidden = v && !r.textContent.toLowerCase().includes(v)); el.querySelectorAll('[data-g]').forEach(g => g.hidden = ![...g.querySelectorAll('.mvrow')].some(r => !r.hidden)); };
+  q.onkeydown = e => { if (e.key === 'Enter') { const r = [...el.querySelectorAll('.mvrow')].find(x => !x.hidden); if (r) r.click(); } };
+  el.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => {
+    const l = get('l', b.dataset.mv); if (!l) return;
+    if (!(l.sec || []).length) { closeModal(); done(l, null); return; }
+    el.querySelector('.mvpick').innerHTML = `<h2><button class="ib" data-back aria-label="Voltar">${ic('left', 18)}</button>${esc(l.name)}: qual seção?</h2><div class="mvlist">${[{ id: '', name: 'Sem seção' }, ...l.sec].map(x => `<button class="mvrow" data-sec="${esc(x.id)}"><span class="f1">${esc(x.name)}</span></button>`).join('')}</div><div class="row end"><button class="btn ghost" data-x2>Cancelar</button></div>`;
+    el.querySelector('[data-x2]').onclick = () => closeModal();
+    el.querySelector('[data-back]').onclick = () => { closeModal(true); pickMoveTarget(items, done); };
+    el.querySelectorAll('[data-sec]').forEach(x => x.onclick = () => { closeModal(); done(l, x.dataset.sec || null); });
+  });
+}
