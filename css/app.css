@@ -2282,3 +2282,14 @@ body.v-focus #pets{display:none!important}
 .rst .eq{color:var(--red);height:14px}
 .rother{display:block;margin:0 auto 8px;padding:5px 12px;border-radius:14px;font-size:calc(12.5px * var(--fs,1));color:var(--mut);border:1px solid var(--line2)}
 .rother:hover{color:var(--txt);border-color:var(--mut2)}
+/* arrastar mais suave: o fantasma vira uma camada própria da GPU */
+.dghost{will-change:transform;contain:layout paint;box-shadow:0 18px 40px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.2);transition:none!important;animation:dgin .14s ease-out}
+.dghost *{transition:none!important;animation:none!important}
+@keyframes dgin{from{opacity:.6}}
+.dragging{opacity:.3;transition:opacity .12s}
+.dropon{transition:none}
+/* segurar o item no toque: ele "levanta" */
+.lift{transform:scale(1.025);box-shadow:0 14px 34px rgba(0,0,0,.32)!important;transition:transform .16s var(--ease),box-shadow .16s;position:relative;z-index:5}
+/* capas: sem menu nativo de imagem ao segurar (o toque vai para o cartão) */
+.ccov,.ccov img,.rthumb,.rthumb img,.tcover img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+.ccov img,.rthumb img{pointer-events:none}

@@ -602,40 +602,74 @@ function dpToTask(t, v) {
 
 /* ---------- arrastar e soltar (mouse e toque) ---------- */
 const DND = { on: false };
+let LAST_PT = 'mouse';
+document.addEventListener('pointerdown', e => { LAST_PT = e.pointerType || 'mouse'; }, true);
 function initDnd() {
   let st = null, timer = null;
-  const begin = (e, src) => {
-    DND.on = true; DND.src = src.dataset.drag; DND.el = src;
-    const r = src.getBoundingClientRect();
-    const g = src.cloneNode(true); g.className += ' dghost'; g.style.width = Math.min(r.width, 420) + 'px';
-    document.body.appendChild(g); DND.g = g; DND.dx = e.clientX - r.left; DND.dy = e.clientY - r.top;
-    src.classList.add('dragging'); document.body.classList.add('dnd');
+  /* toque: segurar "levanta" o item; se mover, vira arraste; se soltar sem mover, abre o menu do item */
+  const begin = (e, src, armed) => {
+    DND.on = true; DND.src = src.dataset.drag; DND.el = src; DND.armed = !!armed; DND.sx = e.clientX; DND.sy = e.clientY; DND.g = null;
+    DND.mk = null; DND.mkc = null; DND.tilt = src.closest('.board') ? 2 : 0;
+    if (typeof closePop === 'function' && POP) closePop();
     if (navigator.vibrate) try { navigator.vibrate(12); } catch (x) {}
+    if (armed) { src.classList.add('lift'); return; }
+    lift(e);
+  };
+  const lift = e => {
+    const src = DND.el, r = src.getBoundingClientRect();
+    const g = src.cloneNode(true); g.className += ' dghost'; g.style.width = Math.min(r.width, 420) + 'px'; g.classList.remove('lift');
+    g.removeAttribute('data-drop'); g.removeAttribute('data-drag'); g.querySelectorAll('[data-drop],[data-drag]').forEach(x => { x.removeAttribute('data-drop'); x.removeAttribute('data-drag'); });
+    DND.dx = DND.sx - r.left; DND.dy = DND.sy - r.top; g.style.transform = `translate3d(${r.left}px, ${r.top}px, 0)`;
+    document.body.appendChild(g); DND.g = g; DND.armed = false;
+    src.classList.remove('lift'); src.classList.add('dragging'); document.body.classList.add('dnd');
     move(e);
   };
+  /* o movimento só guarda a posição; um laço por quadro (requestAnimationFrame) move o "fantasma",
+     testa o alvo e faz a rolagem automática — bem mais suave que fazer tudo a cada evento do ponteiro */
   const move = e => {
     if (!DND.on) return;
     DND.px = e.clientX; DND.py = e.clientY;
-    DND.g.style.transform = `translate(${e.clientX - DND.dx}px, ${e.clientY - DND.dy}px)`;
-    const t = document.elementFromPoint(e.clientX, e.clientY);
+    if (DND.armed) { if (Math.hypot(e.clientX - DND.sx, e.clientY - DND.sy) > 8) lift(e); return; }
+    if (!DND.raf) DND.raf = requestAnimationFrame(frame);
+  };
+  const mark = (el, cls) => {
+    if (DND.mk === el && DND.mkc === cls) return;
+    if (DND.mk) DND.mk.classList.remove('dropon', 'drop-before', 'drop-after');
+    DND.mk = el; DND.mkc = cls; if (el && cls) el.classList.add(cls);
+  };
+  const frame = () => {
+    DND.raf = 0; if (!DND.on) return;
+    const x = DND.px, y = DND.py;
+    DND.g.style.transform = `translate3d(${x - DND.dx}px, ${y - DND.dy}px, 0) rotate(${DND.tilt || 0}deg)`;
+    const t = document.elementFromPoint(x, y);
     const d = t && t.closest('[data-drop]');
-    $$('.dropon,.drop-before,.drop-after').forEach(x => x.classList.remove('dropon', 'drop-before', 'drop-after'));
-    DND.dst = null;
     if (d && d !== DND.el) {
-      const r = d.getBoundingClientRect(), before = e.clientY < r.top + r.height / 2;
+      const r = d.getBoundingClientRect(), before = y < r.top + r.height / 2, row = d.dataset.drop.startsWith('row:') || d.dataset.drop.startsWith('blk:');
       DND.dst = d.dataset.drop; DND.before = before;
-      d.classList.add(d.dataset.drop.startsWith('row:') || d.dataset.drop.startsWith('blk:') ? (before ? 'drop-before' : 'drop-after') : 'dropon');
-    }
-    const sc = t && t.closest('.scroll, .bcol .cards, .sside');
-    if (sc) { const r = sc.getBoundingClientRect(); if (e.clientY < r.top + 50) sc.scrollTop -= 12; else if (e.clientY > r.bottom - 50) sc.scrollTop += 12; }
-    const bd = t && t.closest('.board'); if (bd) { const r = bd.getBoundingClientRect(); if (e.clientX < r.left + 50) bd.scrollLeft -= 14; else if (e.clientX > r.right - 50) bd.scrollLeft += 14; }
+      mark(d, row ? (before ? 'drop-before' : 'drop-after') : 'dropon');
+    } else { DND.dst = null; mark(null); }
+    /* rolagem automática perto das bordas (contínua enquanto o dedo/mouse fica parado ali) */
+    let scrolled = false;
+    const sc = t && t.closest('.scroll, .bcol .cards, .sside, .qlist');
+    if (sc) { const r = sc.getBoundingClientRect(), k = y < r.top + 60 ? -(r.top + 60 - y) : y > r.bottom - 60 ? (y - (r.bottom - 60)) : 0; if (k) { sc.scrollTop += Math.max(-18, Math.min(18, k / 3)); scrolled = true; } }
+    const bd = t && t.closest('.board'); if (bd) { const r = bd.getBoundingClientRect(), k = x < r.left + 70 ? -(r.left + 70 - x) : x > r.right - 70 ? (x - (r.right - 70)) : 0; if (k) { bd.scrollLeft += Math.max(-22, Math.min(22, k / 3)); scrolled = true; } }
+    if (scrolled) DND.raf = requestAnimationFrame(frame);
   };
   const end = () => {
     clearTimeout(timer); timer = null; st = null;
     if (!DND.on) return;
+    if (DND.armed) {
+      /* segurou e soltou sem arrastar: abre o menu do item */
+      DND.on = false; DND.armed = false; DND.el.classList.remove('lift'); DND.justDropped = Date.now();
+      const c = DND.el.closest('[data-ctx]') || DND.el.querySelector('[data-ctx]');
+      if (c && typeof ctxMenu === 'function') { const r = DND.el.getBoundingClientRect(); ctxMenu(c.dataset.ctx, DND.el, { x: Math.min(DND.sx, innerWidth - 20), y: Math.min(r.bottom, innerHeight - 40) }); }
+      return;
+    }
+    if (DND.raf) cancelAnimationFrame(DND.raf); DND.raf = 0; frame(); if (DND.raf) { cancelAnimationFrame(DND.raf); DND.raf = 0; }
     const { src, dst, before } = DND;
+    if (DND.raf) { cancelAnimationFrame(DND.raf); DND.raf = 0; }
     DND.g.remove(); DND.el.classList.remove('dragging'); document.body.classList.remove('dnd');
-    $$('.dropon,.drop-before,.drop-after').forEach(x => x.classList.remove('dropon', 'drop-before', 'drop-after'));
+    mark(null);
     DND.on = false; DND.justDropped = Date.now();
     if (dst) for (const h of DROPS) { if (h(src, dst, before) !== undefined) break; }
   };
@@ -643,7 +677,7 @@ function initDnd() {
     const src = e.target.closest('[data-drag]');
     if (!src || e.button > 0 || e.target.closest('button:not([data-handle]),input,textarea,select,a[href]:not([data-drag]),[contenteditable=true]')) return;
     st = { x: e.clientX, y: e.clientY, src, touch: e.pointerType !== 'mouse', handle: !!e.target.closest('[data-handle]') };
-    if (st.touch) timer = setTimeout(() => { if (st) begin(st.e || e, src); }, st.handle ? 120 : 420);
+    if (st.touch) timer = setTimeout(() => { if (st) begin(st.e || e, src, !st.handle); }, st.handle ? 120 : 420);
   });
   document.addEventListener('pointermove', e => {
     if (DND.on) { e.preventDefault(); move(e); return; }
@@ -745,6 +779,8 @@ function initUi() {
   });
   document.addEventListener('contextmenu', e => {
     const c = e.target.closest('[data-ctx]');
+    /* no toque quem abre o menu é o "segurar e soltar" do arraste — evita menu duplicado ou atrás do item */
+    if (c && (LAST_PT !== 'mouse' && c.closest('[data-drag]'))) { e.preventDefault(); return; }
     if (c && !isMobile()) { e.preventDefault(); ctxMenu(c.dataset.ctx, c, { x: e.clientX, y: e.clientY }); }
   });
   $('#scrim').onclick = () => { closePop(); };
