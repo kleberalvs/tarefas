@@ -5,6 +5,7 @@ let FS = { mode: 'focus', run: false, end: 0, left: null, start: 0, task: null, 
 try { Object.assign(FS, JSON.parse(localStorage.getItem('tt_focus') || '{}')); } catch (e) {}
 const saveFS = () => { try { localStorage.setItem('tt_focus', JSON.stringify(FS)); } catch (e) {} };
 const FMODES = { focus: 'Foco', short: 'Pausa curta', long: 'Pausa longa', watch: 'Cronômetro' };
+const fTotal = () => modeLen(FS.mode) + (FS.extra || 0);
 const modeLen = m => (m === 'focus' ? db.s.pomo.focus : m === 'short' ? db.s.pomo.short : m === 'long' ? db.s.pomo.long : 0) * 60;
 function fLeft() {
   if (FS.mode === 'watch') return FS.run ? Math.floor((Date.now() - FS.start) / 1000) : (FS.left || 0);
@@ -22,19 +23,19 @@ function fStart() {
 function fPause() { if (!FS.run) return; FS.left = fLeft(); FS.run = false; saveFS(); syncTimer(); ambientFollow(); render(true); }
 function fStop(log) {
   if (log && FS.began) {
-    const secs = FS.mode === 'watch' ? fLeft() : modeLen(FS.mode) - fLeft();
+    const secs = FS.mode === 'watch' ? fLeft() : fTotal() - fLeft();
     if ((FS.mode === 'focus' || FS.mode === 'watch') && secs >= 60) { put('p', Object.assign({ id: uid(), start: FS.began, end: Date.now(), dur: Math.round(secs / 60), task: FS.task, type: FS.mode }, FS.mode === 'focus' && fLeft() > 0 ? { ab: 1 } : {})); setTimeout(() => typeof fxAfterSession === 'function' && fxAfterSession(), 400); }
   }
-  FS.run = false; FS.left = null; FS.began = 0; FS.start = 0; saveFS(); syncTimer(); ambientFollow(); render(true);
+  FS.run = false; FS.left = null; FS.began = 0; FS.start = 0; FS.extra = 0; saveFS(); syncTimer(); ambientFollow(); render(true);
 }
 function fSet(m) { if (FS.run && !confirm('Interromper a sessão atual?')) return; if (FS.run || FS.began) fStop(true); FS.mode = m; FS.left = null; saveFS(); render(true); }
 function fFinish() {
   const was = FS.mode;
-  if (was === 'focus') { put('p', { id: uid(), start: FS.began || Date.now() - modeLen('focus') * 1000, end: Date.now(), dur: db.s.pomo.focus, task: FS.task, type: 'focus' }); FS.n = (FS.n || 0) + 1; setTimeout(() => typeof fxAfterSession === 'function' && fxAfterSession(), 600); }
+  if (was === 'focus') { put('p', { id: uid(), start: FS.began || Date.now() - fTotal() * 1000, end: Date.now(), dur: Math.round(fTotal() / 60), task: FS.task, type: 'focus' }); FS.n = (FS.n || 0) + 1; setTimeout(() => typeof fxAfterSession === 'function' && fxAfterSession(), 600); }
   const next = was === 'focus' ? (FS.n % (db.s.pomo.every || 4) === 0 ? 'long' : 'short') : 'focus';
   notify(was === 'focus' ? 'Sessão de foco concluída' : 'Pausa encerrada', was === 'focus' ? 'Hora de uma ' + FMODES[next].toLowerCase() + '.' : 'Vamos voltar ao foco?');
   playAlarm();
-  FS.mode = next; FS.run = false; FS.left = null; FS.began = 0; saveFS(); syncTimer();
+  FS.mode = next; FS.run = false; FS.left = null; FS.began = 0; FS.extra = 0; saveFS(); syncTimer();
   if (db.s.pomo.auto) fStart(); else { ambientFollow(); render(true); }
 }
 function startFocusOn(id) { if (FS.run) fStop(true); FS.task = id; FS.mode = 'focus'; FS.left = null; saveFS(); go('focus'); setTimeout(fStart, 50); }
@@ -47,8 +48,9 @@ setInterval(() => {
   const s = fLeft();
   if (FS.mode !== 'watch' && s <= 0) { fFinish(); return; }
   const t = $('#ftime'); if (t) t.textContent = mmss(s);
-  const ring = $('#fring'); if (ring && FS.mode !== 'watch') ring.style.strokeDashoffset = (2 * Math.PI * 118 * (1 - s / modeLen(FS.mode))).toFixed(1);
+  const ring = $('#fring'); if (ring && FS.mode !== 'watch') ring.style.strokeDashoffset = (2 * Math.PI * 118 * (1 - s / fTotal())).toFixed(1);
   const mini = $('#fmini'); if (mini) mini.textContent = mmss(s);
+  fExtPaint(s);
   document.title = mmss(s) + ' · ' + FMODES[FS.mode];
 }, 1000);
 function focusStats() {
@@ -62,7 +64,7 @@ function focusStats() {
   return { todayN: todayP.filter(p => p.type === 'focus').length, todayM: todayP.reduce((s, p) => s + (p.dur || 0), 0), week, total, count: ps.length, perTask };
 }
 VIEWS.focus = main => {
-  const s = fLeft(), len = modeLen(FS.mode), C = 2 * Math.PI * 118;
+  const s = fLeft(), len = fTotal(), C = 2 * Math.PI * 118;
   const t = FS.task && get('t', FS.task);
   const st = focusStats(), wmax = Math.max(30, ...st.week.map(w => w.m));
   const recent = db.p.slice().sort((a, b) => b.start - a.start).slice(0, 12);
@@ -71,11 +73,12 @@ VIEWS.focus = main => {
     <div class="fcard">
       <div class="seg">${Object.entries(FMODES).map(([k, n]) => `<button class="${FS.mode === k ? 'on' : ''}" data-act="fmode" data-m="${k}">${n}</button>`).join('')}</div>
       <div class="fxpick" role="radiogroup" aria-label="Animação do foco">${FX_ANIMS.map(([k, e, n]) => `<button class="${fxAnim() === k ? 'on' : ''}" data-act="fxanim" data-k="${k}" role="radio" aria-checked="${fxAnim() === k}"><span>${e}</span>${n}</button>`).join('')}</div>
-      ${fxAnim() !== 'ring' ? fxSceneHtml().replace('</div></div>', `</div><div class="fxtime"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><small>${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? (fxAnim() === 'forest' ? 'Sua árvore está crescendo' : fxAnim() === 'room' ? 'Trabalhando' : 'Focando') : 'Descansando') : FS.began ? 'Pausado' : 'Pronto'}</small>${FS.mode === 'watch' ? '' : `<div class="fxbar"><i id="fxbar" style="width:${Math.round(fxFrac() * 100)}%"></i></div>`}</div></div>`) : `<div class="fring m-${FS.mode}">
+      ${fxAnim() !== 'ring' ? fxSceneHtml().replace(/<\/div>$/, `<div class="fxtime"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><small>${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? (fxAnim() === 'forest' ? 'Sua árvore está crescendo' : fxAnim() === 'room' ? 'Trabalhando' : 'Focando') : 'Descansando') : FS.began ? 'Pausado' : 'Pronto'}</small>${FS.mode === 'watch' ? '' : `<div class="fxbar"><i id="fxbar" style="width:${Math.round(fxFrac() * 100)}%"></i></div>`}</div></div>`) : `<div class="fring m-${FS.mode}">
         <svg viewBox="0 0 260 260" aria-hidden="true"><circle cx="130" cy="130" r="118" class="rbg"/>${FS.mode === 'watch' ? '' : `<circle id="fring" cx="130" cy="130" r="118" class="rfg" stroke-dasharray="${C.toFixed(1)}" style="stroke-dashoffset:${(C * (1 - s / len)).toFixed(1)}" transform="rotate(-90 130 130)"/>`}</svg>
         <div class="fin"><span id="ftime" role="timer" aria-live="off">${mmss(s)}</span><span class="mut">${FS.run ? (FS.mode === 'focus' || FS.mode === 'watch' ? 'Focando' : 'Descansando') : 'Pronto'}</span></div>
       </div>`}
       <button class="ftask" data-act="fpick">${t ? `<span class="chk sm p${t.prio || 0}"><span>${ic('check', 10)}</span></span><span>${esc(t.title)}</span>` : `${ic('todo', 18)}<span class="mut">Escolher tarefa para focar</span>`}${ic('chevd', 14)}</button>
+      ${fDurHtml()}
       <div class="fbtns">
         ${FS.run ? `<button class="btn big ghost" data-act="fpause">${ic('pause', 20)}Pausar</button>` : `<button class="btn big red" data-act="fstart">${ic('play', 20)}${FS.began ? 'Continuar' : 'Iniciar'}</button>`}
         ${FS.began ? `<button class="btn big ghost" data-act="fstop">${ic('stop', 18)}${FS.mode === 'watch' ? 'Encerrar' : 'Parar'}</button>` : ''}
@@ -278,3 +281,29 @@ function checkReminders() {
   });
   FIRED = keep; try { localStorage.setItem('tt_fired', JSON.stringify(FIRED)); } catch (e) {}
 }
+
+/* ---------- escolher a duração e estender o foco ---------- */
+const DUR_KEY = { focus: 'focus', short: 'short', long: 'long' };
+function fDurHtml() {
+  if (FS.mode === 'watch') return '';
+  const k = DUR_KEY[FS.mode], m = db.s.pomo[k];
+  if (!FS.began) {
+    const pres = FS.mode === 'focus' ? [15, 25, 45, 60, 90] : FS.mode === 'short' ? [3, 5, 10, 15] : [10, 15, 20, 30];
+    return `<div class="fdur" role="group" aria-label="Duração"><div class="fdstep"><button class="ib" data-act="fdur" data-d="-5" aria-label="Menos 5 minutos">${ic('minus', 18)}</button><b>${m} min</b><button class="ib" data-act="fdur" data-d="5" aria-label="Mais 5 minutos">${ic('plus', 18)}</button></div><div class="fdpre">${pres.map(v => `<button class="${v === m ? 'on' : ''}" data-act="fdur" data-v="${v}">${v}</button>`).join('')}</div></div>`;
+  }
+  return `<div class="fext" id="fext" role="group" aria-label="Estender"><span class="fexl">Estender</span>${[5, 10, 25, 50].map(v => `<button data-act="fext" data-v="${v}">+${v} min</button>`).join('')}</div>`;
+}
+function fExtend(min) {
+  if (FS.mode === 'watch' || !FS.began) return;
+  FS.extra = (FS.extra || 0) + min * 60;
+  if (FS.run) FS.end += min * 60000; else FS.left = fLeft() + min * 60;
+  saveFS(); syncTimer && syncTimer();
+  toast(`+${min} min · termina às ${new Date(Date.now() + fLeft() * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
+  render(true);
+}
+/* nos últimos 3 minutos os botões de estender ficam em destaque */
+function fExtPaint(s) { const e = $('#fext'); if (e) e.classList.toggle('soon', FS.mode !== 'watch' && s <= 180); const f = $('#fxfull'); if (f) f.classList.toggle('soon', FS.mode !== 'watch' && FS.began && s <= 180); }
+Object.assign(ACTS, {
+  fdur: b => { const k = DUR_KEY[FS.mode]; if (!k || FS.began) return; const p = db.s.pomo; p[k] = clamp(b.dataset.v ? +b.dataset.v : p[k] + (+b.dataset.d), 1, 180); FS.left = null; put('s', db.s); },
+  fext: b => fExtend(+b.dataset.v),
+});

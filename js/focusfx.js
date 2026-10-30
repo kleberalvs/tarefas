@@ -230,7 +230,7 @@ function drawGrowing(x, cx, by, g) {
 const FX_ANIMS = [['cats', '🐱', 'Gatinhos'], ['room', '🏠', 'Quartinho'], ['forest', '🌳', 'Floresta'], ['ring', '⏱️', 'Clássico']];
 const fxSize = a => a === 'room' ? [RMW, RMH] : [FXW, FXH];
 const RM_ACT = { desk: 'Trabalhando no computador', coffee: 'Pausa para o café', read: 'Lendo um pouco', sleep: 'Dormindo', music: 'Ouvindo música' };
-function fxFrac() { const s = fLeft(), len = modeLen(FS.mode); return FS.mode === 'watch' ? Math.min(1, s / (25 * 60)) : len ? 1 - s / len : 0; }
+function fxFrac() { const s = fLeft(), len = fTotal(); return FS.mode === 'watch' ? Math.min(1, s / (25 * 60)) : len ? 1 - s / len : 0; }
 function fxPlannedKind() { const m = FS.mode === 'watch' ? 25 : db.s.pomo.focus; return m < 15 ? 'bush' : m < 25 ? 'bush' : m < 45 ? (hashS(FS.began + '') < .5 ? 'round' : 'pine') : m < 90 ? 'big' : 'ipe'; }
 function fxNextGift() {
   const c = fxCounts();
@@ -280,9 +280,9 @@ function fxFullOpen() {
   const el = document.createElement('div'); el.id = 'fxfull'; el.className = 'a-' + a;
   el.innerHTML = `<canvas class="fxcv" width="${cw}" height="${ch}" aria-hidden="true"></canvas>
     <div class="fxfbar" role="toolbar" aria-label="Foco"><svg class="fxfring" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" class="bg"/><circle cx="16" cy="16" r="13" class="fg" stroke-dasharray="81.7" stroke-dashoffset="81.7" transform="rotate(-90 16 16)"/></svg><span class="fxftxt"><span class="fxclock" role="timer">${mmss(fLeft())}</span><span class="fxflabel"></span></span>
-    <button class="fxfb" data-fx="play" aria-label="Iniciar ou pausar"></button><button class="fxfb" data-fx="close" aria-label="Sair da tela cheia" title="Reduzir (Esc)">${ic('shrink', 18)}</button></div>`;
+    <button class="fxfb fxplus" data-fx="ext" aria-label="Mais 10 minutos" title="+10 min">+10</button><button class="fxfb" data-fx="play" aria-label="Iniciar ou pausar"></button><button class="fxfb" data-fx="close" aria-label="Sair da tela cheia" title="Reduzir (Esc)">${ic('shrink', 18)}</button></div>`;
   document.body.appendChild(el); document.body.classList.add('fxfull-on');
-  el.addEventListener('click', e => { const b = e.target.closest('[data-fx]'); if (!b) return; if (b.dataset.fx === 'close') fxFullClose(); else { FS.run ? fPause() : fStart(); fxFullTick(); } });
+  el.addEventListener('click', e => { const b = e.target.closest('[data-fx]'); if (!b) return; if (b.dataset.fx === 'close') fxFullClose(); else if (b.dataset.fx === 'ext') { fExtend(10); fxFullTick(); } else { FS.run ? fPause() : fStart(); fxFullTick(); } });
   let hide; const wake = () => { el.classList.remove('idle'); clearTimeout(hide); hide = setTimeout(() => el.classList.add('idle'), 3500); };
   el.addEventListener('pointermove', wake); el.addEventListener('pointerdown', wake); wake();
   if (!isMobile() && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
