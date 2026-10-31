@@ -2458,3 +2458,9 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .gskin .pigw{border:0!important;padding:0!important;background:none!important;border-radius:0!important;display:inline-block}
 .pigw .gcoin{top:calc(var(--sy) - 64px);animation-name:gcoin2}
 @keyframes gcoin2{0%{transform:translateY(-12px) rotateY(0);opacity:0}20%{opacity:1}70%{transform:translateY(46px) rotateY(540deg);opacity:1}100%{transform:translateY(58px) rotateY(720deg) scale(.4);opacity:0}}
+/* quadro: os botões do cartão ficam sobre um fundo opaco com degradê, sem misturar com o título */
+.trow.card{--tactbg:var(--card)}
+.trow.card .tact{background:var(--tactbg);z-index:2}
+.trow.card .tact::before{content:"";position:absolute;right:100%;top:0;bottom:0;width:26px;background:linear-gradient(90deg,transparent,var(--tactbg));pointer-events:none}
+[data-skin=vidro] .trow.card{--tactbg:#1E2233}
+[data-skin=vidro] .trow.card .tact{box-shadow:none;border-radius:8px 8px 8px 8px}
