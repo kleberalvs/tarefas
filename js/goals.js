@@ -4,11 +4,17 @@
 'use strict';
 /* porquinhos em 3D (renderizados com luz de estúdio; um arquivo por cor em assets/pigs) */
 const PIGS = {
-  laranja: { n: 'Laranja' }, rosa: { n: 'Rosa' }, dourado: { n: 'Dourado' }, prata: { n: 'Prata' }, azul: { n: 'Azul' },
-  menta: { n: 'Menta' }, lilas: { n: 'Lilás' }, vermelho: { n: 'Vermelho' }, grafite: { n: 'Grafite' }, perola: { n: 'Pérola' },
+  laranja: { n: 'Laranja', g: 'c' }, rosa: { n: 'Rosa', g: 'c' }, azul: { n: 'Azul', g: 'c' }, menta: { n: 'Menta', g: 'c' }, lilas: { n: 'Lilás', g: 'c' },
+  vermelho: { n: 'Vermelho', g: 'c' }, grafite: { n: 'Grafite', g: 'c' }, perola: { n: 'Pérola', g: 'c' }, dourado: { n: 'Dourado', g: 'c' }, prata: { n: 'Prata', g: 'c' },
+  bolinhas: { n: 'Bolinhas', g: 'e' }, marinheiro: { n: 'Marinheiro', g: 'e' }, galaxia: { n: 'Galáxia', g: 'e' }, melancia: { n: 'Melancia', g: 'e' },
+  vaca: { n: 'Vaquinha', g: 'e' }, marmore: { n: 'Mármore', g: 'e' }, onca: { n: 'Oncinha', g: 'e' }, arcoiris: { n: 'Arco-íris', g: 'e' },
+  rei: { n: 'Rei', g: 'a' }, laco: { n: 'Lacinho', g: 'a' }, oculos: { n: 'Descolado', g: 'a' }, festa: { n: 'Festa', g: 'a' },
+  natal: { n: 'Natal', g: 'a' }, dj: { n: 'DJ', g: 'a' }, chique: { n: 'Chique', g: 'a' }, vidro: { n: 'Vidro com moedas', g: 'a' },
 };
+const PIG_GROUPS = [['c', 'Cores'], ['e', 'Estampas'], ['a', 'Acessórios e especiais']];
+const GOAL_IDEAS = [['✈️', 'Viagem'], ['🛟', 'Reserva de emergência'], ['🚗', 'Carro'], ['🏠', 'Casa própria'], ['🎓', 'Estudos'], ['💻', 'Notebook novo'], ['🎁', 'Presentes de Natal'], ['💍', 'Casamento'], ['📱', 'Celular novo'], ['🏖️', 'Férias']];
 const PIG_OLD = { ouro: 'dourado', porcelana: 'perola', noite: 'grafite', melancia: 'vermelho', vaca: 'perola', robo: 'prata', vidro: 'azul', cafe: 'laranja' };
-const PIG_SLOT = [38.4, 12.5], PIG_AR = 511 / 560;
+const PIG_SLOT = [35.7, 21.9], PIG_AR = 539 / 560;
 const pigKey = k => PIGS[k] ? k : PIG_OLD[k] || 'laranja';
 const brl = c => ((c || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const brlS = c => (c < 0 ? '−' : '+') + brl(Math.abs(c));
@@ -51,8 +57,9 @@ VIEWS.goals = main => {
     </div>` : ''}
     <div class="ggrid">${gs.map(goalCard).join('')}${gs.length ? `<button class="gcard gadd" data-act="gnew">${ic('plus', 28)}<span>Nova meta</span></button>` : ''}</div>
     ${!gs.length ? `<div class="empty gempty">${pigSvg('laranja', .35, 190, { cls: 'bob' })}<p><b>Crie seu primeiro porquinho</b></p><p class="mut">Defina uma meta (uma viagem, uma reserva, um presente) e registre cada valor que você guardar de verdade. O app acompanha o total, os meses e quanto falta.</p><button class="btn red" data-act="gnew">${ic('plus', 16)}Nova meta</button></div>` : ''}
+    ${gs.length ? `<p class="hint gtip">Você pode ter quantos porquinhos quiser, um para cada objetivo. Toque em <b>Nova meta</b> para criar outro.</p>` : ''}
     ${arch.length ? `<details class="harch"><summary>Arquivadas e concluídas (${arch.length})</summary><div class="ggrid sm">${arch.map(goalCard).join('')}</div></details>` : ''}
-  </div></div>`;
+  </div></div><button class="fab" data-act="gnew" aria-label="Nova meta">${ic('plus', 26)}</button>`;
 };
 function goalCard(g) {
   const s = gSaved(g), p = gPct(g), last = (g.dep || []).reduce((a, x) => !a || x.d > a.d ? x : a, null);
@@ -83,6 +90,7 @@ function goalDetail(main, g) {
   const byM = []; rows.forEach(x => { const k = ymOf(x.d); let m = byM[byM.length - 1]; if (!m || m.k !== k) byM.push(m = { k, items: [], sum: 0 }); m.items.push(x); m.sum += x.v; });
   const real = g.real && g.real.v != null ? g.real : null, diff = real ? real.v - st.s : 0;
   main.innerHTML = headHtml(g.name, '', `<button class="ib" data-act="gskin" data-id="${g.id}" aria-label="Trocar porquinho" title="Trocar porquinho">${ic('star', 19)}</button><button class="ib" data-act="gedit" data-id="${g.id}" aria-label="Editar meta" title="Editar meta">${ic('edit', 19)}</button>`, { pre: `<nav class="crumbs gcrumb"><a href="#/goals">Metas</a><span>/</span></nav>` }) + `<div class="scroll"><div class="goals gdet">
+    <nav class="gtabs">${goalsAll().filter(x => !x.arch).sort((a, b) => (a.o || a.c || 0) - (b.o || b.c || 0)).map(x => `<a class="gtab${x.id === g.id ? ' on' : ''}" href="#/goals/${x.id}"><img src="assets/pigs/${pigKey(x.skin)}.webp" alt="" width="34" height="${Math.round(34 * PIG_AR)}"><span>${esc(x.name)}</span></a>`).join('')}<button class="gtab add" data-act="gnew">${ic('plus', 16)}<span>Nova meta</span></button></nav>
     <section class="ghero">
       <button class="gbig" data-act="gtap" aria-label="Porquinho">${pigSvg(g.skin, p, 230, { cls: 'bob' })}</button>
       <div class="ghinfo">
@@ -165,12 +173,13 @@ function goalConfetti(box) {
 
 /* ---------- formulários ---------- */
 function skinGrid(cur, pct = .45) {
-  return `<div class="gskins">${Object.entries(PIGS).map(([k, P]) => `<label class="gskin"><input type="radio" name="skin" value="${k}" ${k === pigKey(cur) ? 'checked' : ''}><span>${pigSvg(k, pct, 92)}<i>${esc(P.n)}</i></span></label>`).join('')}</div>`;
+  return PIG_GROUPS.map(([gk, gn]) => `<span class="gskh">${gn}</span><div class="gskins">${Object.entries(PIGS).filter(([, P]) => P.g === gk).map(([k, P]) => `<label class="gskin"><input type="radio" name="skin" value="${k}" ${k === pigKey(cur) ? 'checked' : ''}><span>${pigSvg(k, pct >= 1 ? .9 : pct, 92)}<i>${esc(P.n)}</i></span></label>`).join('')}</div>`).join('');
 }
 function editGoal(g) {
   const isNew = !g;
   g = g || { id: uid(), name: '', target: 0, due: '', skin: Object.keys(PIGS)[goalsAll().length % 10], dep: [], c: Date.now() };
   const el = modal(`<h2>${isNew ? 'Nova meta' : 'Editar meta'}</h2><form class="gform">
+    ${isNew ? `<div class="gideas">${GOAL_IDEAS.map(([e, n]) => `<button type="button" class="fchip" data-idea="${esc(n)}">${e} ${esc(n)}</button>`).join('')}</div>` : ''}
     <label class="lab">Nome da meta<input class="in" name="n" value="${esc(g.name)}" placeholder="Ex.: Viagem de férias, Reserva de emergência" maxlength="60" required autofocus></label>
     <div class="row"><label class="lab f1">Valor da meta (R$)<input class="in" name="t" inputmode="decimal" data-nocalc value="${g.target ? (g.target / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}" placeholder="Ex.: 5.000,00"></label>
     <label class="lab f1">Prazo (opcional)<input class="in" type="date" name="d" value="${esc(g.due || '')}"></label></div>
@@ -180,6 +189,7 @@ function editGoal(g) {
   </form>`, { cls: 'wide' });
   const f = el.querySelector('form');
   el.querySelector('[data-x]').onclick = () => closeModal();
+  el.querySelectorAll('[data-idea]').forEach(b => b.onclick = () => { f.n.value = b.dataset.idea; el.querySelectorAll('[data-idea]').forEach(x => x.classList.toggle('on', x === b)); f.t.focus(); });
   f.onsubmit = e => {
     e.preventDefault();
     const t = parseBRL(f.t.value);
