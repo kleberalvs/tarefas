@@ -2467,3 +2467,19 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .petball{cursor:grab}.petball.held{cursor:grabbing;z-index:3}
 .petball.held canvas{transform:scale(1.15);filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
 .petball.held .pbsh{transform:translateY(14px) scale(.7);opacity:.4}
+/* manias dos gatos */
+.pfx.item{top:calc(var(--sc,3) * 21px);font-size:calc(var(--sc,3) * 6px);animation:pfxitem 5.6s ease forwards}
+@keyframes pfxitem{0%{opacity:0;transform:translateY(6px) scale(.6)}8%,88%{opacity:1;transform:none}100%{opacity:0;transform:scale(.8)}}
+.pfx.note{font-size:18px;color:#9B7BEA;top:4%;animation:pfxnote 2s ease-out forwards}
+.pfx.note:nth-child(odd){color:#F0587A}
+@keyframes pfxnote{0%{opacity:0;transform:translate(0,4px) rotate(-10deg)}15%{opacity:1}50%{transform:translate(12px,-22px) rotate(10deg)}100%{opacity:0;transform:translate(-4px,-48px) rotate(-6deg)}}
+.pfx.dream{left:62%;top:-6%;font-size:16px}
+.pfx.poof{left:50%;top:40%;transform:translate(-50%,-50%);font-size:34px;animation:pfxpoof .9s ease-out forwards}
+@keyframes pfxpoof{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}}
+.pfx.spark{font-size:16px;animation:pfxpoof 1.4s ease-out forwards}.pfx.spark.s0{left:20%;top:20%}.pfx.spark.s1{left:78%;top:8%}.pfx.spark.s2{left:60%;top:55%}
+.pet{transition:opacity .45s ease,filter .45s ease}
+.pet.vanish{opacity:0;filter:blur(4px)}
+.pet.sing .petb{animation:catsway 1.2s ease-in-out infinite}
+@keyframes catsway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.petbfly{position:absolute;left:0;top:0;font-size:22px;pointer-events:none;will-change:transform;filter:drop-shadow(0 2px 2px rgba(0,0,0,.2))}
+.petq{display:block;font-size:11px;color:var(--red);font-weight:600;margin-top:1px}

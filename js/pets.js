@@ -22,6 +22,17 @@ const CATS = {
   siames: { n: 'Siamês', b: '#F1E2CB', d: '#5A4232', l: '#FFF8EC', e: '#4C98EA', o: '#36271D', points: 1 },
   tricolor: { n: 'Tricolor', b: '#FAF5EC', d: '#DDD2C2', l: '#FFFFFF', e: '#5E9342', o: '#3A2D26', calico: ['#EE9845', '#3A3436'] },
 };
+/* a mania de cada pelagem (aparece de vez em quando, a cada ~40 s no mínimo) */
+const PET_QUIRKS = {
+  laranja: { n: 'Comilão', d: 'De vez em quando aparece uma tigelinha e ele come todo feliz.' },
+  marrom: { n: 'Caçador', d: 'Persegue borboletas com os olhos e dá o bote.' },
+  cinza: { n: 'Dorminhoco', d: 'Cochila mais que todo mundo e sonha com peixinhos.' },
+  preto: { n: 'Ninja', d: 'Some numa nuvem de fumaça e reaparece em outro lugar.' },
+  pretobranco: { n: 'Cantor', d: 'Solta a voz com notinhas musicais.' },
+  brancopreto: { n: 'Vaidoso', d: 'Se arruma com capricho até brilhar.' },
+  siames: { n: 'Tagarela', d: 'Fala sem parar e puxa conversa com o outro gato.' },
+  tricolor: { n: 'Elétrica', d: 'Do nada sai correndo pela tela e depois desaba cansada.' },
+};
 const catKey = k => CATS[k] ? k : ({ frajola: 'pretobranco', branco: 'brancopreto' })[k] || 'laranja';
 function catPal(k) {
   const c = CATS[catKey(k)], B = hex2(c.b), D = hex2(c.d), L = hex2(c.l);
@@ -213,7 +224,7 @@ function makePet(c, slot, saved) {
   const cv = document.createElement('canvas'); cv.width = PW; cv.height = PH; cv.className = 'petcv'; el.querySelector('.petb').appendChild(cv);
   PETS.box.appendChild(el);
   const room = () => [Math.max(0, innerWidth - EW), Math.max(0, innerHeight - EH)];
-  const p = { slot, k: c.k, n: c.n, el, cv, room, dead: false, timers: [], t: 0, dir: slot ? -1 : 1, pose: 'sit', P: cloneP(POSES.sit), tw: null, walk: null, m: {}, v: 0, gait: 0, lastTurn: 0 };
+  const p = { slot, k: c.k, n: c.n, el, cv, room, dead: false, timers: [], t: 0, dir: slot ? -1 : 1, pose: 'sit', P: cloneP(POSES.sit), tw: null, walk: null, m: {}, v: 0, gait: 0, lastTurn: 0, born: Date.now() - 25000 };
   { const [W, H] = room(); p.X = saved ? saved.x * W : W - 40 - slot * (EW + 10); p.Y = petFloor() - 27 * SC; }
   p.floorY = () => petFloor() - 27 * SC;
   const place = () => { const [W, H] = room(); p.X = Math.min(Math.max(p.X, 0), W); if (!el.classList.contains('held') && !p.fall) p.Y = p.floorY(); p.Y = Math.min(Math.max(p.Y, 0), H); el.style.transform = `translate(${Math.round(p.X)}px,${Math.round(p.Y)}px)`; cv.style.transform = p.dir < 0 ? 'scaleX(-1)' : ''; };
@@ -233,7 +244,7 @@ function makePet(c, slot, saved) {
     if (p.fall) { const f = dt / 16.7, fy = p.floorY(); p.fall.vy += .9 * f; p.Y += p.fall.vy * f; if (p.Y >= fy) { p.Y = fy; const d = p.fall.done; p.fall = null; place(); d && d(); } else place(); return; }
     if (p.chase) return chaseStep(dt);
     if (!p.walk) { if (p.v > .01) { p.v *= Math.pow(.8, dt / 16.7); p.X += p.dir * p.v * dt / 16.7; place(); } else p.v = 0; return; }
-    const w = p.walk, f = dt / 16.7; let tgt = SC * .34 * (w.run ? 2 : 1);
+    const w = p.walk, f = dt / 16.7; let tgt = SC * .34 * (w.run ? 2 : 1) * (w.zoom || 1);
     if (w.left < SC * 14) tgt *= Math.max(.3, w.left / (SC * 14));
     p.v += (tgt - p.v) * Math.min(1, dt / 220);
     const d = p.v * f; p.gait += d;
@@ -275,6 +286,7 @@ function makePet(c, slot, saved) {
   };
   const next = () => {
     if (p.dead || p.pose === 'hang') return;
+    if (!p.playing && Date.now() - (p.lq || p.born) > 40000 && Math.random() < .2 && quirk()) return;
     const r = Math.random();
     if (p.pose === 'sit') {
       if (r < .26) return wait(2500 + Math.random() * 3500, next);
@@ -298,6 +310,87 @@ function makePet(c, slot, saved) {
     wait(1500, next);
   };
   p.next = next;
+  /* ---------- manias ---------- */
+  const fxl = (html, cls, ms, css) => { const sp = document.createElement('span'); sp.className = 'pfx ' + cls; sp.innerHTML = html; if (css) sp.style.cssText = css; el.querySelector('.petfx').appendChild(sp); setTimeout(() => sp.remove(), ms); return sp; };
+  const headL = () => p.dir > 0 ? '72%' : '22%', footL = () => p.dir > 0 ? '96%' : '-6%';
+  const quirk = () => {
+    const q = catKey(p.k); p.lq = Date.now(); clearT(); p.walk = null; p.m = {};
+    const done = (ms = 1200) => wait(ms, () => { p.m = {}; next(); });
+    if (q === 'laranja') {
+      toPose('sit', 5); fxl('🥣', 'item', 5600, `left:${footL()}`);
+      wait(700, () => { toPose('stretch', 6); let k = 0; const nhac = () => { if (p.dead || k++ > 9) return; p.m.mouth = k % 2 ? 1 : 0; p.m.eyes = 'happy'; if (k === 3) fx('nhac nhac', 'say'); T(nhac, 300); }; nhac(); });
+      wait(4300, () => { p.m = { eyes: 'happy', happy: 1, mouth: 1 }; toPose('sit', 6); fx('😋', 'heart'); done(1600); });
+      return true;
+    }
+    if (q === 'marrom') {
+      toPose('sit', 4); p.m = { eyes: 'big' };
+      const bf = document.createElement('span'); bf.className = 'petbfly'; bf.textContent = '🦋'; PETS.box.appendChild(bf);
+      const r0 = el.getBoundingClientRect(), fromL = Math.random() < .5, t0 = performance.now();
+      const cx = r0.left + r0.width / 2, cy = r0.top + r0.height * .1; let mode = 'come', px = 0, py = 0, tGo = 0;
+      const fly = now => {
+        if (p.dead || !bf.isConnected) return;
+        const t = (now - t0) / 1000;
+        if (mode === 'come') { const k = Math.min(1, t / 3.2); px = (fromL ? cx - 260 : cx + 260) + (fromL ? 1 : -1) * 260 * k + Math.sin(t * 5) * 18; py = cy - 70 + Math.sin(t * 7) * 22; }
+        else { const u = (now - tGo) / 1000; px += (fromL ? 1 : -1) * 4; py -= 3.2 + u * 2; bf.style.opacity = Math.max(0, 1 - u * .9); if (u > 1.2) { bf.remove(); return; } }
+        bf.style.transform = `translate(${px}px,${py}px) scaleX(${Math.sin(t * 22) > 0 ? 1 : .55})`;
+        PETS.ptr = { x: px + 10, y: py + 10, t: performance.now() };
+        requestAnimationFrame(fly);
+      };
+      requestAnimationFrame(fly);
+      p.dir = fromL ? -1 : 1; place();
+      wait(1600, () => { p.dir = px + 10 > p.X + EW / 2 ? 1 : -1; place(); });
+      wait(2700, () => { toPose('stretch', 3); fx('!', 'say'); });
+      wait(3300, () => { mode = 'go'; tGo = performance.now(); p.m = { eyes: 'big' }; p.m.hop = 1; toPose('stand', 2); p.walk = { left: SC * 12, run: true }; });
+      wait(4600, () => { toPose('sit', 5); p.m = { eyes: 'happy' }; done(1500); });
+      return true;
+    }
+    if (q === 'cinza') {
+      toPose('lie', 8);
+      wait(900, () => { toPose('sleep', 12); const zz = () => { if (p.pose !== 'sleep' || p.dead) return; fx(Math.random() < .3 ? '💭🐟' : 'z', Math.random() < .3 ? 'dream' : 'z'); T(zz, 1600); }; zz(); });
+      wait(9000, () => { if (p.pose === 'sleep') { p.m.hop = 1; p.dir = -p.dir; place(); } });
+      wait(20000 + Math.random() * 15000, () => { if (p.pose !== 'sleep') return; toPose('lie', 8); wait(900, () => { toPose('stretch', 8); p.m = { mouth: 2, eyes: 'closed' }; fx('aaawn~', 'say'); wait(1600, () => { p.m = {}; toPose('sit', 6); done(1500); }); }); });
+      return true;
+    }
+    if (q === 'preto') {
+      toPose('stand', 4); p.m = { eyes: 'happy' };
+      wait(600, () => { fxl('💨', 'poof', 900); el.classList.add('vanish'); });
+      wait(1500, () => { const [W] = room(); let nx = Math.random() * W; if (Math.abs(nx - p.X) < W * .25) nx = (p.X + W / 2) % W; p.X = nx; p.dir = Math.random() < .5 ? -1 : 1; place(); savePos(); });
+      wait(2300, () => { el.classList.remove('vanish'); fxl('✨', 'poof', 900); toPose('sit', 5); p.m = {}; done(1600); });
+      return true;
+    }
+    if (q === 'pretobranco') {
+      toPose('sit', 5); el.classList.add('sing'); p.m = { eyes: 'happy' };
+      let k = 0; const sing = () => { if (p.dead || k++ > 10) return; p.m.mouth = k % 2 ? 2 : 1; fxl(['♪', '♫', '♬', '♩'][k % 4], 'note', 2000, `left:${headL()}`); T(sing, 420); }; wait(400, sing);
+      wait(5400, () => { el.classList.remove('sing'); p.m = { eyes: 'happy', happy: 1 }; fx('♥', 'heart'); done(1400); });
+      return true;
+    }
+    if (q === 'brancopreto') {
+      toPose('groom', 5); wait(2200, () => { p.dir = -p.dir; place(); });
+      wait(4200, () => { toPose('sit', 5); p.m = { eyes: 'happy', happy: 1 }; [0, 220, 440].forEach((d, i) => setTimeout(() => fxl('✨', 'spark s' + i, 1400), d)); });
+      wait(6000, () => { done(800); });
+      return true;
+    }
+    if (q === 'siames') {
+      toPose('sit', 4); const o = other();
+      if (o) { p.dir = o.X > p.X ? 1 : -1; place(); }
+      const ph = ['miau?', 'mrrrau!', 'nhaaau', 'prrr…', 'miau miau!', 'hm?', 'mia!'].sort(() => Math.random() - .5).slice(0, 4);
+      ph.forEach((t, i) => wait(400 + i * 1050, () => { p.m.mouth = 1; fx(t, 'say'); T(() => { p.m.mouth = 0; }, 450); }));
+      if (o && !o.playing && o.pose !== 'sleep') wait(1900, () => { o.el.querySelector('.petfx') && (() => { const sp = document.createElement('span'); sp.className = 'pfx say'; sp.textContent = Math.random() < .5 ? '?' : 'miau.'; o.el.querySelector('.petfx').appendChild(sp); setTimeout(() => sp.remove(), 1600); })(); });
+      wait(400 + ph.length * 1050, () => done(1200));
+      return true;
+    }
+    if (q === 'tricolor') {
+      const [W] = room(); toPose('stand', 2); p.m = { eyes: 'big' }; fx('!', 'say');
+      wait(350, () => { p.dir = p.X > W / 2 ? -1 : 1; place(); p.walk = { left: W * .7, run: true, zoom: 2.3, done: () => {
+        p.dir = -p.dir; place(); p.walk = { left: W * .35, run: true, zoom: 2, done: () => {
+          toPose('lie', 5); let k = 0; const pant = () => { if (p.dead || k++ > 10) return; p.m.mouth = k % 2 ? 2 : 1; T(pant, 250); }; pant(); wait(2800, () => { p.m = {}; toPose('sit', 6); done(1400); });
+        } };
+      } }; });
+      return true;
+    }
+    return false;
+  };
+  p.quirk = quirk;
   /* brincar com a bolinha: corre atrás, dá o bote ou uma patada, e repete até cansar */
   const SW = SC * 3.2, FOOT = 27 * SC;
   const front = () => p.X + (p.dir > 0 ? EW * .82 : EW * .18);
@@ -502,9 +595,9 @@ VIEWS.pets = main => {
     <nav class="crumbs"><a href="#/me">Perfil</a><span>/</span><span>Pets</span></nav>
     <label class="srow petsw"><span class="f1"><b>Mostrar gatinhos no app</b><span class="mut sm">Gatinhos em pixel art que andam, sentam, deitam, se espreguiçam, se lambem e cochilam pela tela.</span></span><span class="sw-t"><input type="checkbox" data-petson ${cfg.on ? 'checked' : ''}><span></span></span></label>
     <section class="sgrp"><h2>🐈 Escolha até dois gatos</h2>
-      <div class="petgrid">${Object.entries(CATS).map(([k, c]) => { const i = sel.indexOf(k); return `<button class="petcard${i >= 0 ? ' on' : ''}" data-act="petpick" data-k="${k}">${i >= 0 ? `<span class="petnum">${i + 1}</span>` : ''}${catImg(k, 'sit', 96)}<span>${esc(c.n)}</span></button>`; }).join('')}</div>
+      <div class="petgrid">${Object.entries(CATS).map(([k, c]) => { const i = sel.indexOf(k); return `<button class="petcard${i >= 0 ? ' on' : ''}" data-act="petpick" data-k="${k}">${i >= 0 ? `<span class="petnum">${i + 1}</span>` : ''}${catImg(k, 'sit', 96)}<span>${esc(c.n)}</span><span class="petq">${esc(PET_QUIRKS[k] ? PET_QUIRKS[k].n : '')}</span></button>`; }).join('')}</div>
     </section>
-    ${cfg.cats.length ? `<section class="sgrp"><h2>Nomes</h2>${cfg.cats.map((c, i) => `<div class="srow"><span class="row">${catImg(c.k, 'sit', 48)}<span class="mut sm">${esc(petBreedName(c.k))}</span></span><input class="in sm" data-petname="${i}" value="${esc(c.n || '')}" maxlength="20" placeholder="Nome"></div>`).join('')}</section>` : ''}
+    ${cfg.cats.length ? `<section class="sgrp"><h2>Nomes</h2>${cfg.cats.map((c, i) => `<div class="srow"><span class="row">${catImg(c.k, 'sit', 48)}<span class="mut sm">${esc(petBreedName(c.k))}${PET_QUIRKS[catKey(c.k)] ? ` · mania: <b>${esc(PET_QUIRKS[catKey(c.k)].n)}</b> — ${esc(PET_QUIRKS[catKey(c.k)].d)}` : ''}</span></span><input class="in sm" data-petname="${i}" value="${esc(c.n || '')}" maxlength="20" placeholder="Nome"></div>`).join('')}</section>` : ''}
     <p class="hint">Toque no gatinho para fazer carinho (três toques rápidos e ele pula de alegria). Se ele estiver dormindo, acorda. Arraste para levá-lo a outro lugar — a posição fica salva em cada aparelho.</p>
     <div class="row"><button class="btn ghost sm" data-act="petsreset">Trazer os gatos de volta para o canto</button></div>
   </div></div>`;
