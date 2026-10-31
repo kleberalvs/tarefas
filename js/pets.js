@@ -408,11 +408,32 @@ function makeBall() {
     b.chk += dt;
     if (b.chk > 4000) { b.chk = 0; if (!b.play && Date.now() > b.next && !document.hidden && !document.body.classList.contains('v-focus')) ballPlay(); }
   };
+  /* tocar = chuta de leve; segurar e arrastar = carrega a bolinha; soltar em movimento = arremessa na direção do gesto */
+  let hold = null;
   el.addEventListener('pointerdown', e => {
     e.preventDefault(); e.stopPropagation();
-    b.kick((Math.random() < .5 ? -1 : 1) * (3 + Math.random() * 3), 2.5 + Math.random() * 2);
-    ballPlay(true);
+    try { el.setPointerCapture(e.pointerId); } catch (er) {}
+    hold = { sx: e.clientX, sy: e.clientY, ox: e.clientX - b.X, oy: e.clientY - b.Y, moved: false, pts: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
   });
+  el.addEventListener('pointermove', e => {
+    if (!hold) return;
+    const now = performance.now();
+    hold.pts.push({ x: e.clientX, y: e.clientY, t: now }); while (hold.pts.length > 2 && now - hold.pts[0].t > 90) hold.pts.shift();
+    if (!hold.moved && Math.hypot(e.clientX - hold.sx, e.clientY - hold.sy) < 6) return;
+    if (!hold.moved) { hold.moved = true; el.classList.add('held'); b.moving = false; b.vx = b.vh = 0; b.h = 0; }
+    b.X = e.clientX - hold.ox; b.Y = e.clientY - hold.oy; b.roll += (e.movementX || 0); b.draw(); b.place();
+    PETS.ptr = { x: e.clientX, y: e.clientY, t: now };
+  });
+  const drop = e => {
+    if (!hold) return; const h = hold; hold = null; el.classList.remove('held');
+    if (!h.moved) { b.kick((Math.random() < .5 ? -1 : 1) * (3 + Math.random() * 3), 2.5 + Math.random() * 2); ballPlay(true); return; }
+    const a0 = h.pts[0], a1 = h.pts[h.pts.length - 1], dt = Math.max(16, a1.t - a0.t);
+    const vx = Math.max(-22, Math.min(22, (a1.x - a0.x) / dt * 16.7)), vy = (a1.y - a0.y) / dt * 16.7;
+    const vh = Math.max(0, Math.min(13, -vy * .8));
+    if (Math.abs(vx) < .4 && vh < .5) { b.save(); ballPlay(true); return; }
+    b.kick(vx, vh); ballPlay(true);
+  };
+  el.addEventListener('pointerup', drop); el.addEventListener('pointercancel', drop);
   b.kill = () => { b.save(); el.remove(); };
   b.draw(); b.place();
   return b;

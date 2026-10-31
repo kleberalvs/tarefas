@@ -2464,3 +2464,6 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .trow.card .tact::before{content:"";position:absolute;right:100%;top:0;bottom:0;width:26px;background:linear-gradient(90deg,transparent,var(--tactbg));pointer-events:none}
 [data-skin=vidro] .trow.card{--tactbg:#1E2233}
 [data-skin=vidro] .trow.card .tact{box-shadow:none;border-radius:8px 8px 8px 8px}
+.petball{cursor:grab}.petball.held{cursor:grabbing;z-index:3}
+.petball.held canvas{transform:scale(1.15);filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
+.petball.held .pbsh{transform:translateY(14px) scale(.7);opacity:.4}
