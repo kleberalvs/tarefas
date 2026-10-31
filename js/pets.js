@@ -170,7 +170,12 @@ function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, cats: Array.
 function savePets(p) { db.s.pets = p; put('s', db.s); petsSync(); }
 function petScale() { return isMobile() ? 2.6 : 3.2; }
 /* chão: linha onde ficam as patas dos gatos e onde a bolinha para (perto da parte de baixo do app) */
-function petFloor() { const SC = petScale(), EH = PH * SC, H = Math.max(0, innerHeight - EH); return H * (isMobile() ? .86 : .92) + 27 * SC; }
+function petFloor() {
+  let y = innerHeight - 3;
+  const tb = document.getElementById('tabbar');
+  if (tb && getComputedStyle(tb).display !== 'none') { const r = tb.getBoundingClientRect(); if (r.height && r.top > innerHeight * .5) y = r.top - 2; }
+  return y;
+}
 function petPos() { try { return JSON.parse(localStorage.getItem('tt_petpos') || '{}'); } catch (e) { return {}; } }
 function savePos() { const m = {}; PETS.list.forEach(p => { const [W, H] = p.room(); m[p.slot] = { x: W ? p.X / W : 0, y: H ? p.Y / H : 0 }; }); try { localStorage.setItem('tt_petpos', JSON.stringify(m)); } catch (e) {} }
 function petsSync() {
