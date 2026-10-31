@@ -197,7 +197,9 @@ function petsSync() {
     PETS.list.forEach(p => p.glide(dt));
     if (PETS.ball) PETS.ball.glide(dt);
     acc += dt;
-    if (acc >= 83) { const n = Math.min(3, Math.floor(acc / 83)); acc -= n * 83; for (let i = 0; i < n; i++) PETS.list.forEach(p => p.step()); PETS.list.forEach(p => p.draw()); }
+    let stepped = false;
+    if (acc >= 83) { const n = Math.min(3, Math.floor(acc / 83)); acc -= n * 83; for (let i = 0; i < n; i++) PETS.list.forEach(p => p.step()); PETS.list.forEach(p => p.draw()); stepped = true; }
+    if (!stepped) { PETS.fd = (PETS.fd || 0) + dt; if (PETS.fd >= 33) { PETS.fd = 0; PETS.list.forEach(p => { if (p.walk || p.fall || p.v > .05) p.draw(); }); } }
   };
   PETS.tick = requestAnimationFrame(loop);
   PETS.ball = makeBall();
@@ -211,7 +213,7 @@ function makePet(c, slot, saved) {
   const cv = document.createElement('canvas'); cv.width = PW; cv.height = PH; cv.className = 'petcv'; el.querySelector('.petb').appendChild(cv);
   PETS.box.appendChild(el);
   const room = () => [Math.max(0, innerWidth - EW), Math.max(0, innerHeight - EH)];
-  const p = { slot, k: c.k, n: c.n, el, cv, room, dead: false, timers: [], t: 0, dir: slot ? -1 : 1, pose: 'sit', P: cloneP(POSES.sit), tw: null, walk: null, m: {} };
+  const p = { slot, k: c.k, n: c.n, el, cv, room, dead: false, timers: [], t: 0, dir: slot ? -1 : 1, pose: 'sit', P: cloneP(POSES.sit), tw: null, walk: null, m: {}, v: 0, gait: 0, lastTurn: 0 };
   { const [W, H] = room(); p.X = saved ? saved.x * W : W - 40 - slot * (EW + 10); p.Y = petFloor() - 27 * SC; }
   p.floorY = () => petFloor() - 27 * SC;
   const place = () => { const [W, H] = room(); p.X = Math.min(Math.max(p.X, 0), W); if (!el.classList.contains('held') && !p.fall) p.Y = p.floorY(); p.Y = Math.min(Math.max(p.Y, 0), H); el.style.transform = `translate(${Math.round(p.X)}px,${Math.round(p.Y)}px)`; cv.style.transform = p.dir < 0 ? 'scaleX(-1)' : ''; };
@@ -230,8 +232,11 @@ function makePet(c, slot, saved) {
   p.glide = dt => {
     if (p.fall) { const f = dt / 16.7, fy = p.floorY(); p.fall.vy += .9 * f; p.Y += p.fall.vy * f; if (p.Y >= fy) { p.Y = fy; const d = p.fall.done; p.fall = null; place(); d && d(); } else place(); return; }
     if (p.chase) return chaseStep(dt);
-    if (!p.walk) return;
-    const w = p.walk, d = SC * .34 * dt / 16.7 * (w.run ? 2 : 1);
+    if (!p.walk) { if (p.v > .01) { p.v *= Math.pow(.8, dt / 16.7); p.X += p.dir * p.v * dt / 16.7; place(); } else p.v = 0; return; }
+    const w = p.walk, f = dt / 16.7; let tgt = SC * .34 * (w.run ? 2 : 1);
+    if (w.left < SC * 14) tgt *= Math.max(.3, w.left / (SC * 14));
+    p.v += (tgt - p.v) * Math.min(1, dt / 220);
+    const d = p.v * f; p.gait += d;
     p.X += p.dir * d; w.left -= d; place();
     const [W] = room();
     if (w.left <= 0 || p.X <= 0 || p.X >= W) { const done = w.done; p.walk = null; savePos(); done && done(); }
@@ -244,7 +249,7 @@ function makePet(c, slot, saved) {
     if (!p.walk && !held) { P.B[3] += br * .28; P.C[3] += br * .18; P.Hq[3] += br * .12; }
     /* passos: pares diagonais alternados */
     if (p.walk) {
-      const ph = t * (p.walk.run ? 1.15 : .78);
+      const ph = p.gait * .42 / SC;
       [['fn', 0], ['bf', 0], ['ff', Math.PI], ['bn', Math.PI]].forEach(([k, o]) => { const s = Math.sin(ph + o), lift = Math.max(0, Math.cos(ph + o)); P[k][2] += s * 2.1; P[k][3] -= lift * 1.3; P[k][0] += s * .5; });
       const bob = Math.round(Math.abs(Math.sin(ph))) * .6; ['B', 'C', 'Hq'].forEach(k => P[k][1] -= bob); P.H[1] -= bob;
     }
@@ -296,14 +301,23 @@ function makePet(c, slot, saved) {
   /* brincar com a bolinha: corre atrás, dá o bote ou uma patada, e repete até cansar */
   const SW = SC * 3.2, FOOT = 27 * SC;
   const front = () => p.X + (p.dir > 0 ? EW * .82 : EW * .18);
+  /* virar com calma: no máximo uma vez a cada ~0,4 s (evita o gato "piscar" de um lado para o outro) */
+  const turnTo = sg => { const now = performance.now(); if (sg && sg !== p.dir && now - p.lastTurn > 420) { p.dir = sg; p.lastTurn = now; p.v *= .35; place(); } };
   const chaseStep = dt => {
     const b = PETS.ball; if (!b) { p.chase = null; p.walk = null; return; }
-    const tx = b.X + b.S / 2, dx = tx - front();
-    if (b.air() > SC * 7 || b.el.classList.contains('held')) { if (p.walk) p.walk = null; if (Math.abs(dx) > SC * 3) p.dir = Math.sign(dx); p.m.eyes = 'big'; place(); return; }
+    const f = dt / 16.7, cx = p.X + EW / 2, bx = b.X + b.S / 2, side = Math.sign(bx - cx) || p.dir, rel = (bx - cx) * p.dir;
+    /* bolinha no ar (ou na mão): espera parado, olhando para ela */
+    if (b.air() > SC * 7 || b.el.classList.contains('held')) {
+      p.walk = null; p.v *= Math.pow(.82, f); if (p.v > .02) { p.X += p.dir * p.v * f; p.gait += p.v * f; }
+      if (rel < -EW * .2) turnTo(side); p.m.eyes = 'big'; place(); return;
+    }
+    if (rel < -EW * .12) { turnTo(side); place(); return; }
+    const dist = rel - EW * .32;
+    if (dist < SW && b.air() < SC * 4) { const r = p.chase.reach; p.chase = null; p.walk = null; p.v = 0; place(); r(); return; }
     if (!p.walk) p.walk = { left: Infinity, run: true };
-    if (Math.abs(dx) < SW && b.air() < SC * 4) { const r = p.chase.reach; p.chase = null; p.walk = null; place(); r(); return; }
-    if (Math.abs(dx) > SC * 5 || Math.sign(dx) === p.dir) p.dir = Math.sign(dx) || p.dir;
-    p.X += p.dir * SC * (p.rush ? 1.25 : .78) * dt / 16.7; place();
+    let tgt = SC * (p.rush ? 1.25 : .8); if (dist < SC * 22) tgt *= Math.max(.3, dist / (SC * 22));
+    p.v += (tgt - p.v) * Math.min(1, dt / 200);
+    p.X += p.dir * p.v * f; p.gait += p.v * f; place();
   };
   const chase = () => {
     if (p.dead || !p.playing) return;
