@@ -169,6 +169,8 @@ const PETS = { box: null, list: [], tick: null };
 function petCfg() { const p = db.s.pets || {}; return { on: !!p.on, cats: Array.isArray(p.cats) ? p.cats.slice(0, 2) : [] }; }
 function savePets(p) { db.s.pets = p; put('s', db.s); petsSync(); }
 function petScale() { return isMobile() ? 2.6 : 3.2; }
+/* chão: linha onde ficam as patas dos gatos e onde a bolinha para (perto da parte de baixo do app) */
+function petFloor() { const SC = petScale(), EH = PH * SC, H = Math.max(0, innerHeight - EH); return H * (isMobile() ? .86 : .92) + 27 * SC; }
 function petPos() { try { return JSON.parse(localStorage.getItem('tt_petpos') || '{}'); } catch (e) { return {}; } }
 function savePos() { const m = {}; PETS.list.forEach(p => { const [W, H] = p.room(); m[p.slot] = { x: W ? p.X / W : 0, y: H ? p.Y / H : 0 }; }); try { localStorage.setItem('tt_petpos', JSON.stringify(m)); } catch (e) {} }
 function petsSync() {
@@ -205,8 +207,9 @@ function makePet(c, slot, saved) {
   PETS.box.appendChild(el);
   const room = () => [Math.max(0, innerWidth - EW), Math.max(0, innerHeight - EH)];
   const p = { slot, k: c.k, n: c.n, el, cv, room, dead: false, timers: [], t: 0, dir: slot ? -1 : 1, pose: 'sit', P: cloneP(POSES.sit), tw: null, walk: null, m: {} };
-  { const [W, H] = room(); p.X = saved ? saved.x * W : W - 40 - slot * (EW + 10); p.Y = saved ? saved.y * H : H * (isMobile() ? .86 : .92); }
-  const place = () => { const [W, H] = room(); p.X = Math.min(Math.max(p.X, 0), W); p.Y = Math.min(Math.max(p.Y, 0), H); el.style.transform = `translate(${Math.round(p.X)}px,${Math.round(p.Y)}px)`; cv.style.transform = p.dir < 0 ? 'scaleX(-1)' : ''; };
+  { const [W, H] = room(); p.X = saved ? saved.x * W : W - 40 - slot * (EW + 10); p.Y = petFloor() - 27 * SC; }
+  p.floorY = () => petFloor() - 27 * SC;
+  const place = () => { const [W, H] = room(); p.X = Math.min(Math.max(p.X, 0), W); if (!el.classList.contains('held') && !p.fall) p.Y = p.floorY(); p.Y = Math.min(Math.max(p.Y, 0), H); el.style.transform = `translate(${Math.round(p.X)}px,${Math.round(p.Y)}px)`; cv.style.transform = p.dir < 0 ? 'scaleX(-1)' : ''; };
   p.place = place; place();
   const T = (fn, ms) => { const id = setTimeout(() => { if (!p.dead) fn(); }, ms); p.timers.push(id); if (p.timers.length > 40) p.timers = p.timers.slice(-20); return id; };
   const clearT = () => { p.timers.forEach(clearTimeout); p.timers = []; };
@@ -220,6 +223,7 @@ function makePet(c, slot, saved) {
   };
   /* andar: o deslocamento na tela é contínuo (suave); o desenho troca de quadro como pixel art */
   p.glide = dt => {
+    if (p.fall) { const f = dt / 16.7, fy = p.floorY(); p.fall.vy += .9 * f; p.Y += p.fall.vy * f; if (p.Y >= fy) { p.Y = fy; const d = p.fall.done; p.fall = null; place(); d && d(); } else place(); return; }
     if (p.chase) return chaseStep(dt);
     if (!p.walk) return;
     const w = p.walk, d = SC * .34 * dt / 16.7 * (w.run ? 2 : 1);
@@ -290,8 +294,9 @@ function makePet(c, slot, saved) {
   const chaseStep = dt => {
     const b = PETS.ball; if (!b) { p.chase = null; p.walk = null; return; }
     const tx = b.X + b.S / 2, dx = tx - front();
-    const fy = b.Y + b.S - FOOT; p.Y += (fy - p.Y) * Math.min(1, dt / 260);
-    if (Math.abs(dx) < SW && b.h < SC * 4) { const r = p.chase.reach; p.chase = null; p.walk = null; place(); r(); return; }
+    if (b.air() > SC * 7 || b.el.classList.contains('held')) { if (p.walk) p.walk = null; if (Math.abs(dx) > SC * 3) p.dir = Math.sign(dx); p.m.eyes = 'big'; place(); return; }
+    if (!p.walk) p.walk = { left: Infinity, run: true };
+    if (Math.abs(dx) < SW && b.air() < SC * 4) { const r = p.chase.reach; p.chase = null; p.walk = null; place(); r(); return; }
     if (Math.abs(dx) > SC * 5 || Math.sign(dx) === p.dir) p.dir = Math.sign(dx) || p.dir;
     p.X += p.dir * SC * (p.rush ? 1.25 : .78) * dt / 16.7; place();
   };
@@ -341,7 +346,7 @@ function makePet(c, slot, saved) {
   });
   const up = () => {
     if (!down) return; down = false;
-    if (moved) { el.classList.remove('held'); el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 420); p.m = {}; toPose('stand', 3); savePos(); wait(900, next); return; }
+    if (moved) { el.classList.remove('held'); p.m = { eyes: 'big' }; toPose('stand', 3); p.fall = { vy: 0, done: () => { el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 420); p.m = {}; savePos(); wait(700, next); } }; if (p.Y >= p.floorY()) { const d = p.fall.done; p.fall = null; place(); d(); } return; }
     /* carinho */
     const now = Date.now(); taps = taps.filter(x => now - x < 1200); taps.push(now);
     clearT(); p.walk = null; p.chase = null; if (p.playing) { p.playing = false; ballMaybeDone(); }
@@ -373,8 +378,9 @@ function makeBall() {
   const cv = document.createElement('canvas'); cv.width = cv.height = BALL_G; el.appendChild(cv);
   PETS.box.appendChild(el);
   const room = () => [Math.max(0, innerWidth - S), Math.max(0, innerHeight - S)];
-  const b = { el, cv, S, room, X: 0, Y: 0, vx: 0, h: 0, vh: 0, roll: 0, has: !!st.has, next: st.next && st.next < Date.now() + 16 * 6e4 ? st.next : Date.now() + (1 + Math.random() * 2.5) * 6e4, play: null, chk: 0, moving: false };
-  { const [W, H] = room(); b.X = (st.x || .5) * W; b.Y = (st.y || .9) * H; }
+  const b = { el, cv, S, room, X: 0, Y: 0, vx: 0, vy: 0, roll: 0, has: !!st.has, next: st.next && st.next < Date.now() + 16 * 6e4 ? st.next : Date.now() + (1 + Math.random() * 2.5) * 6e4, play: null, chk: 0, moving: false };
+  b.floorTop = () => petFloor() - S; b.air = () => Math.max(0, b.floorTop() - b.Y);
+  { const [W] = room(); b.X = (st.x || .5) * W; b.Y = b.floorTop(); }
   b.save = () => { const [W, H] = room(); try { localStorage.setItem('tt_petball', JSON.stringify({ x: W ? b.X / W : .5, y: H ? b.Y / H : .9, next: b.next, has: b.has ? 1 : 0 })); } catch (e) {} };
   b.draw = () => {
     const c = cv.getContext('2d'), ph = ((Math.floor(b.roll / (SC * 1.6)) % 3) + 3) % 3;
@@ -390,19 +396,25 @@ function makeBall() {
     c.fillStyle = col.d; c.fillRect(7, 8, 2, 1);
   };
   b.place = () => {
-    const [W, H] = room(); b.X = Math.min(Math.max(b.X, 0), W); b.Y = Math.min(Math.max(b.Y, 0), H);
-    el.style.transform = `translate(${Math.round(b.X)}px,${Math.round(b.Y - b.h)}px)`;
-    el.style.setProperty('--h', Math.min(1, b.h / (SC * 12))); el.style.setProperty('--hp', Math.round(b.h) + 'px');
+    const [W] = room(), ft = b.floorTop(); b.X = Math.min(Math.max(b.X, 0), W);
+    if (!el.classList.contains('held') && !b.moving) b.Y = ft; b.Y = Math.min(Math.max(b.Y, 0), ft);
+    const h = ft - b.Y;
+    el.style.transform = `translate(${Math.round(b.X)}px,${Math.round(b.Y)}px)`;
+    el.style.setProperty('--h', Math.min(1, h / (SC * 40))); el.style.setProperty('--hp', Math.round(h) + 'px');
     el.classList.toggle('off', !b.has);
   };
-  b.kick = (vx, vh) => { b.vx = vx; b.vh = vh; if (b.h <= 0) b.h = .01; b.moving = true; };
+  b.kick = (vx, vh) => { b.vx = vx; b.vy = -vh; b.moving = true; };
   b.glide = dt => {
     const f = dt / 16.7;
     if (b.moving) {
-      b.X += b.vx * f; b.roll += b.vx * f; b.vx *= Math.pow(.975, f);
+      /* gravidade: sobe, desacelera e cai até o chão; quica perdendo força; no chão rola com atrito */
+      const ft = b.floorTop(), ground = b.Y >= ft - .5 && Math.abs(b.vy) < .01;
+      b.vy += .6 * f; b.X += b.vx * f; b.Y += b.vy * f; b.roll += b.vx * f;
+      b.vx *= Math.pow(ground ? .972 : .996, f);
       const [W] = room(); if (b.X <= 0 || b.X >= W) { b.vx = -b.vx * .6; b.X = Math.min(Math.max(b.X, 0), W); }
-      if (b.h > 0 || b.vh) { b.vh -= .45 * f; b.h += b.vh * f; if (b.h <= 0) { b.h = 0; b.vh = Math.abs(b.vh) > 1.4 ? -b.vh * .42 : 0; } }
-      if (Math.abs(b.vx) < .06 && !b.h && !b.vh) { b.vx = 0; b.moving = false; b.save(); }
+      if (b.Y < 0) { b.Y = 0; b.vy = Math.abs(b.vy) * .4; }
+      if (b.Y >= ft) { b.Y = ft; if (b.vy > 2.4) { b.vy = -b.vy * .5; b.vx *= .85; } else b.vy = 0; }
+      if (Math.abs(b.vx) < .06 && b.Y >= ft && !b.vy) { b.vx = 0; b.moving = false; b.save(); }
       b.draw(); b.place();
     }
     b.chk += dt;
@@ -420,7 +432,7 @@ function makeBall() {
     const now = performance.now();
     hold.pts.push({ x: e.clientX, y: e.clientY, t: now }); while (hold.pts.length > 2 && now - hold.pts[0].t > 90) hold.pts.shift();
     if (!hold.moved && Math.hypot(e.clientX - hold.sx, e.clientY - hold.sy) < 6) return;
-    if (!hold.moved) { hold.moved = true; el.classList.add('held'); b.moving = false; b.vx = b.vh = 0; b.h = 0; }
+    if (!hold.moved) { hold.moved = true; el.classList.add('held'); b.moving = false; b.vx = b.vy = 0; }
     b.X = e.clientX - hold.ox; b.Y = e.clientY - hold.oy; b.roll += (e.movementX || 0); b.draw(); b.place();
     PETS.ptr = { x: e.clientX, y: e.clientY, t: now };
   });
@@ -428,10 +440,8 @@ function makeBall() {
     if (!hold) return; const h = hold; hold = null; el.classList.remove('held');
     if (!h.moved) { b.kick((Math.random() < .5 ? -1 : 1) * (3 + Math.random() * 3), 2.5 + Math.random() * 2); ballPlay(true); return; }
     const a0 = h.pts[0], a1 = h.pts[h.pts.length - 1], dt = Math.max(16, a1.t - a0.t);
-    const vx = Math.max(-22, Math.min(22, (a1.x - a0.x) / dt * 16.7)), vy = (a1.y - a0.y) / dt * 16.7;
-    const vh = Math.max(0, Math.min(13, -vy * .8));
-    if (Math.abs(vx) < .4 && vh < .5) { b.save(); ballPlay(true); return; }
-    b.kick(vx, vh); ballPlay(true);
+    const vx = Math.max(-24, Math.min(24, (a1.x - a0.x) / dt * 16.7)), vy = Math.max(-26, Math.min(26, (a1.y - a0.y) / dt * 16.7));
+    b.vx = vx; b.vy = vy; b.moving = true; ballPlay(true);
   };
   el.addEventListener('pointerup', drop); el.addEventListener('pointercancel', drop);
   b.kill = () => { b.save(); el.remove(); };
@@ -455,7 +465,7 @@ function ballPlay(rush) {
   if (!b.has) {
     /* primeira vez: a bolinha chega rolando pela lateral, na altura do gato */
     const lead = cats[0], [W] = b.room(), fromR = lead.X < innerWidth / 2;
-    b.has = true; b.Y = lead.Y + 27 * petScale() - b.S; b.X = fromR ? W : 0; b.kick(fromR ? -7.5 : 7.5, 3);
+    b.has = true; b.Y = b.floorTop(); b.X = fromR ? W : 0; b.kick(fromR ? -7.5 : 7.5, 3);
   }
   cats.forEach(p => p.joinPlay());
 }
